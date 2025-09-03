@@ -45,7 +45,6 @@ services:
       # Vite necesita HOST para exponer en 0.0.0.0
     volumes:
       - ./frontend:/app
-      - /app/node_modules
     command: sh -lc "npm install && npm run dev -- --host"
     ports:
       - "5173:5173"

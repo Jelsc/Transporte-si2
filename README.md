@@ -22,6 +22,7 @@ transporte-si2/
 ### 0) Requisitos
 
 * Docker Desktop (o Docker Engine + Compose)
+* Git
 * (Opcional) Node 18+ si vas a tocar el frontend sin Docker
 * (Opcional) Python 3.11+ si vas a correr backend sin Docker
 
@@ -43,6 +44,30 @@ copy frontend\.env.example frontend\.env
 
 ```bash
 docker compose up -d --build
+```
+
+### 2) Ejecucion
+
+```bash
+#para iniciar los contenedores
+
+docker compose up -d
+
+#para generar migracion para una app especifica
+
+docker compose exec backend python manage.py makemigrations <nombreapp>
+
+#para generar migraciones para todas las apps
+
+docker compose exec backend python manage.py makemigrations
+
+#para aplicar migraciones a Postgres
+
+docker compose exec backend python manage.py migrate
+
+#para parar los contenedores
+
+docker compose stop
 ```
 
 ### 3) Comandos útiles
