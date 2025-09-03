@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16
+    container_name: transporte_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-transporte}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-transporte}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: transporte_backend
+    env_file: .env
+    environment:
+      DJANGO_DEBUG: "1"
+      POSTGRES_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: bash -lc "python manage.py migrate --noinput || true && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: transporte_frontend
+    working_dir: /app
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      # Vite necesita HOST para exponer en 0.0.0.0
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: sh -lc "npm install && npm run dev -- --host"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
