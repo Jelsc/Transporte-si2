@@ -155,3 +155,4 @@ docker compose exec backend bash
 
 * **VRP**: integrar `ortools` para ruteo (tareas offline con Celery + Redis).
 * **ETA**: baseline con `scikit-learn` / `xgboost` usando features de tráfico/histórico.
+"# transporte_si2" 
