@@ -1,4 +1,4 @@
- @import "tailwindcss";
+@import "tailwindcss";
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -6,9 +6,7 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
+  
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -48,6 +46,7 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Enlaces mantienen su estilo original */
 a {
   font-weight: 500;
   color: #646cff;
@@ -57,12 +56,29 @@ a:hover {
   color: #535bf2;
 }
 
+/* EXCEPCIÓN: Links con clases de botón mantienen sus colores de Tailwind */
+a.bg-blue-600,
+a.bg-blue-500,
+a.bg-blue-700,
+button.bg-blue-600,
+button.bg-blue-500,
+button.bg-blue-700 {
+  color: white !important;
+}
+
+a.bg-blue-600:hover,
+a.bg-blue-500:hover,
+button.bg-blue-600:hover,
+button.bg-blue-500:hover {
+  color: white !important;
+}
+
+/* Body simplificado - eliminar colores conflictivos */
 body {
   margin: 0;
-  /*display: flex;
-  place-items: center;*/
   min-width: 320px;
   min-height: 100vh;
+  /* Removido: color y background-color que interfieren con Tailwind */
 }
 
 h1 {
@@ -70,37 +86,14 @@ h1 {
   line-height: 1.1;
 }
 
+/* BOTONES: Solo estilos que NO interfieren con Tailwind */
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  /* Removido: todos los estilos de color, padding, border que interfieren */
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #0a2ced;
-  }
-}
+/* Removido el media query que cambiaba colores de botones */
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -181,4 +174,4 @@ button:focus-visible {
   body {
     @apply bg-background text-foreground;
   }
-} 
+}
