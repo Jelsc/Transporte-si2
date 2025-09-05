@@ -30,8 +30,12 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me-dev")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
-CORS_ALLOW_ALL_ORIGINS = True  # SOLO DEV. En prod: usa CORS_ALLOWED_ORIGINS.
-
+#CORS_ALLOW_ALL_ORIGINS = True  # SOLO DEV. En prod: usa CORS_ALLOWED_ORIGINS.
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+CORS_ALLOW_CREDENTIALS = True  # Por si usas sesión/cookies
 # Application definition
 
 INSTALLED_APPS = [
@@ -42,10 +46,31 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    "rest_framework.authtoken",
     'corsheaders',
 
     'users',
+        # Requisito para allauth
+    "django.contrib.sites",
+
+    # Allauth (core + cuentas + social)
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+# Configura el modelo de usuario personalizado
+
+
+    # Proveedores sociales (ej: Google)
+    "allauth.socialaccount.providers.google",
+        # dj-rest-auth (REST endpoints de login/registro/password/social)
+    "dj_rest_auth",
+    "dj_rest_auth.registration",
 ]
+
+AUTH_USER_MODEL = "users.CustomUser"
+
+SITE_ID = 1  # importante para allauth
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -53,8 +78,11 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # <-- Agrega esta línea
     'django.contrib.messages.middleware.MessageMiddleware',
+    
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -63,7 +91,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -74,6 +102,11 @@ TEMPLATES = [
             ],
         },
     },
+]
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",                   # auth normal
+    "allauth.account.auth_backends.AuthenticationBackend",         # allauth
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
@@ -141,3 +174,33 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
+
+# A dónde redirigir después de login/logout
+LOGIN_REDIRECT_URL = "/"
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+
+# Política de cuentas (ajústalo a tu gusto)
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # username o email
+ACCOUNT_EMAIL_VERIFICATION = "optional"  # "mandatory" si quieres confirmar email
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # link de confirmación hace login al abrirlo
+
+# En desarrollo, manda emails a la consola
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "no-reply@localhost"
+
+# ====== DRF + JWT ======
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+}
+REST_USE_JWT = True
+
+from datetime import timedelta
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}

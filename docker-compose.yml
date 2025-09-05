@@ -11,7 +11,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-transporte}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-transporte}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -30,7 +34,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: bash -lc "python manage.py migrate --noinput || true && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
+    command: bash -lc "python manage.py migrate --noinput || true && python create_superuser.py && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
 
