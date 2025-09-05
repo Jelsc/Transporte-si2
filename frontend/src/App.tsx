@@ -14,7 +14,9 @@ export default function App() {
     <Router>
       <div>
         <Routes>
-          {/* Página principal - usando HomePage como landing */}
+
+          {/* Página principal/landing - HomePage */}
+
           <Route path="/" element={<HomePage />} />
           
           {/* Páginas de autenticación */}

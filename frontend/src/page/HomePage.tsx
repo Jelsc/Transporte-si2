@@ -1,5 +1,6 @@
-// src/page/home/HomePage.tsx
-import Navbar from "@/components/common/Navbar";
+
+// src/pages/home/HomePage.tsx
+import  Navbar  from "@/components/common/Navbar";
 import { Hero } from "./Hero";
 import { Servicios } from "./Servicios";
 import { Choferes } from "./Choferes";
