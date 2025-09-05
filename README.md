@@ -21,10 +21,10 @@ transporte-si2/
 
 ### 0) Requisitos
 
-* Docker Desktop (o Docker Engine + Compose)
-* Git
-* (Opcional) Node 18+ si vas a tocar el frontend sin Docker
-* (Opcional) Python 3.11+ si vas a correr backend sin Docker
+- Docker Desktop (o Docker Engine + Compose)
+- Git
+- (Opcional) Node 18+ si vas a tocar el frontend sin Docker
+- (Opcional) Python 3.11+ si vas a correr backend sin Docker
 
 ### 1) Clonar y configurar variables
 
@@ -84,11 +84,9 @@ docker compose exec backend python manage.py createsuperuser
 
 ### 4) URLs
 
-* Backend (Django): [http://localhost:8000](http://localhost:8000)
-* Admin Django: [http://localhost:8000/admin](http://localhost:8000/admin)
-* Frontend (Vite): [http://localhost:5173](http://localhost:5173)
-
-
+- Backend (Django): [http://localhost:8000](http://localhost:8000)
+- Admin Django: [http://localhost:8000/admin](http://localhost:8000/admin)
+- Frontend (Vite): [http://localhost:5173](http://localhost:5173)
 
 ## 🧑‍💻 Desarrollo local (sin Docker) — opcional
 
@@ -143,15 +141,15 @@ docker compose exec backend bash
 
 ## 🩹 Troubleshooting
 
-* **Puertos ocupados**: cambia el lado izquierdo del mapeo en `docker-compose.yml`
+- **Puertos ocupados**: cambia el lado izquierdo del mapeo en `docker-compose.yml`
   (ej: `"8001:8000"`, `"5174:5173"`, `"15432:5432"`).
-* **Backend no conecta a DB en Docker**: confirma que en `compose` se fuerza `POSTGRES_HOST: db`.
-* **CORS** en dev: ya está abierto (`CORS_ALLOW_ALL_ORIGINS=True`). En prod **cerrarlo** y usar `CORS_ALLOWED_ORIGINS`.
-* **Vite no ve la API**: revisa `frontend/.env` → `VITE_API_URL=http://localhost:8000`.
+- **Backend no conecta a DB en Docker**: confirma que en `compose` se fuerza `POSTGRES_HOST: db`.
+- **CORS** en dev: ya está abierto (`CORS_ALLOW_ALL_ORIGINS=True`). En prod **cerrarlo** y usar `CORS_ALLOWED_ORIGINS`.
+- **Vite no ve la API**: revisa `frontend/.env` → `VITE_API_URL=http://localhost:8000`.
 
 ---
 
 ## 📦 Roadmap (VRP / ETA)
 
-* **VRP**: integrar `ortools` para ruteo (tareas offline con Celery + Redis).
-* **ETA**: baseline con `scikit-learn` / `xgboost` usando features de tráfico/histórico.
+- **VRP**: integrar `ortools` para ruteo (tareas offline con Celery + Redis).
+- **ETA**: baseline con `scikit-learn` / `xgboost` usando features de tráfico/histórico.

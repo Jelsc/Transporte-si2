@@ -23,7 +23,7 @@ urlpatterns = [
     # Endpoints de autenticación REST
     path('api/auth/', include('dj_rest_auth.urls')),  # login/logout/password/reset
     path('api/auth/registration/', include('dj_rest_auth.registration.urls')),  # registro
-    #path('api/auth/', include('dj_rest_auth.social_urls')),  # login social (Google, etc.)
+   # path('api/auth/social/', include('dj_rest_auth.social_urls')),  # login social (Google, etc.)
 
     # Endpoints de allauth (opcional, para login social por navegador)
     path("accounts/", include("allauth.urls")),

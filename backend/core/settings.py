@@ -57,6 +57,8 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+# Configura el modelo de usuario personalizado
+
 
     # Proveedores sociales (ej: Google)
     "allauth.socialaccount.providers.google",
@@ -64,6 +66,8 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "dj_rest_auth.registration",
 ]
+
+AUTH_USER_MODEL = "users.CustomUser"
 
 SITE_ID = 1  # importante para allauth
 
