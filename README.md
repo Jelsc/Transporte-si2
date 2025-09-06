@@ -25,6 +25,7 @@ transporte-si2/
 - Git
 - (Opcional) Node 18+ si vas a tocar el frontend sin Docker
 - (Opcional) Python 3.11+ si vas a correr backend sin Docker
+- flutter
 
 ### 1) Clonar y configurar variables
 
@@ -45,6 +46,7 @@ copy frontend\.env.example frontend\.env
 ```bash
 docker compose up -d --build
 ```
+nota: el super usuario ya esta creado las credenciales estan en el .env.example para el backend
 
 ### 2) Ejecucion
 
@@ -55,7 +57,8 @@ docker compose up -d
 
 #para generar migracion para una app especifica
 
-docker compose exec backend python manage.py makemigrations <nombreapp>
+docker compose exec backend python manage.py makemigrations users
+docker-compose exec backend python manage.py makemigrations account
 
 #para generar migraciones para todas las apps
 
@@ -65,7 +68,7 @@ docker compose exec backend python manage.py makemigrations
 
 docker compose exec backend python manage.py migrate
 
-#para parar los contenedores
+#para parar detener los contenedores
 
 docker compose stop
 ```
@@ -78,8 +81,6 @@ docker compose logs -f backend
 docker compose logs -f db
 docker compose logs -f frontend
 
-# crear superusuario (opcional para /admin)
-docker compose exec backend python manage.py createsuperuser
 ```
 
 ### 4) URLs
