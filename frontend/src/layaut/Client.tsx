@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Menu, X, Bus, Package, MapPin, Home } from "lucide-react";
+// Navbar.tsx
+import React, { useState } from "react";
+import { Menu, X, Bus, Ticket, Package, Map, Users, Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface NavLink {
   name: string;
@@ -7,23 +9,24 @@ interface NavLink {
   icon: JSX.Element;
 }
 
-export default function Client() {
+const Navbar: React.FC = () => {
   const [open, setOpen] = useState(false);
 
   const links: NavLink[] = [
     { name: "Inicio", icon: <Home size={18} />, href: "/" },
-    { name: "Pasajes", icon: <Bus size={18} />, href: "/pasajes" },
-    { name: "Encomiendas", icon: <Package size={18} />, href: "/encomiendas" },
-    { name: "Envío a Domicilio", icon: <MapPin size={18} />, href: "/envio-domicilio" },
-    { name: "Seguimiento", icon: <MapPin size={18} />, href: "/seguimiento" },
+    { name: "Servicios", icon: <Ticket size={18} />, href: "/servicios" },
+    { name: "Rutas", icon: <Map size={18} />, href: "/rutas" },
+    { name: "Choferes", icon: <Users size={18} />, href: "/choferes" },
+    { name: "Contacto", icon: <Package size={18} />, href: "/contacto" },
   ];
 
   return (
-    <nav className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 text-white shadow-lg fixed w-full z-50">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <nav className="bg-background text-foreground shadow-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
         {/* Logo */}
-        <div className="text-2xl font-extrabold tracking-wide">
-          🚍 <span className="text-yellow-300">Transporte</span> Express
+        <div className="flex items-center gap-2">
+          <Bus className="w-6 h-6 text-blue-600" />
+          <span className="hidden md:inline text-2xl font-bold text-blue-600">Transporte</span>
         </div>
 
         {/* Links en Desktop */}
@@ -32,7 +35,7 @@ export default function Client() {
             <a
               key={link.name}
               href={link.href}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-800/60 hover:text-yellow-300 transition-all"
+              className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-blue-600/20 transition"
             >
               {link.icon}
               <span>{link.name}</span>
@@ -40,10 +43,13 @@ export default function Client() {
           ))}
         </div>
 
-        {/* Botón Hamburger en Mobile */}
+        {/* Botón Login */}
+        <Button className="hidden md:inline-block">Iniciar Sesión</Button>
+
+        {/* Botón Hamburguesa Mobile */}
         <button
           onClick={() => setOpen(!open)}
-          className="md:hidden p-2 rounded focus:outline-none hover:bg-blue-800/60 transition"
+          className="md:hidden p-2 rounded text-white focus:outline-none"
           aria-label="Menu"
         >
           {open ? <X size={28} /> : <Menu size={28} />}
@@ -51,24 +57,25 @@ export default function Client() {
       </div>
 
       {/* Menú Mobile */}
-      <div
-        className={`md:hidden bg-blue-600 transition-all duration-300 overflow-hidden ${
-          open ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="px-4 pb-4 space-y-2">
-          {links.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className="flex items-center gap-2 py-3 px-3 rounded-lg hover:bg-blue-700/60 hover:text-yellow-300 transition-all"
-            >
-              {link.icon}
-              {link.name}
-            </a>
-          ))}
+      {open && (
+        <div className="md:hidden bg-background transition-all duration-300">
+          <div className="px-4 pb-4 space-y-2 flex flex-col">
+            {links.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                className="flex items-center gap-2 py-3 px-3 rounded-md hover:bg-blue-600/20 transition"
+              >
+                {link.icon}
+                <span>{link.name}</span>
+              </a>
+            ))}
+            <Button className="w-full mt-2">Iniciar Sesión</Button>
+          </div>
         </div>
-      </div>
+      )}
     </nav>
   );
-}
+};
+
+export default Navbar;
