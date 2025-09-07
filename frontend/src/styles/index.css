@@ -78,7 +78,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  /* Removido: color y background-color que interfieren con Tailwind */
+    background: #fff;
 }
 
 h1 {

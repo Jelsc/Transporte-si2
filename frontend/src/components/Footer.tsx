@@ -1,4 +1,3 @@
-// src/components/common/Footer.tsx
 export function Footer() {
   return (
     <footer id="contacto" className="bg-blue-700 text-white text-center py-8 px-6 mt-12">

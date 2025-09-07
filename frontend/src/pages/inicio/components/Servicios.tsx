@@ -1,6 +1,3 @@
-
-// src/pages/home/Servicios.tsx
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Ticket, Package, Map } from "lucide-react";
 
