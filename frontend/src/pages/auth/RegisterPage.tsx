@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import TransporteIcon from '@/components/app-logo';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Eye,
@@ -11,7 +14,7 @@ import {
   Bell,
   CreditCard,
   Users,
-  Smartphone
+  Smartphone,
 } from 'lucide-react';
 
 interface RegisterFormData {
@@ -24,7 +27,7 @@ interface RegisterFormData {
   acceptTerms: boolean;
 }
 
-const RegisterPage: React.FC = () => {
+export default function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
@@ -130,25 +133,23 @@ const RegisterPage: React.FC = () => {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/" className="text-xl font-bold text-gray-900 hover:text-gray-700">
-                🚌 Transporte-SI2
-              </Link>
+            <div className="flex items-center gap-3">
+              <TransporteIcon className="w-7 h-7" />
+              <span className="text-lg font-bold text-blue-700">MoviFleet</span>
             </div>
             <div className="flex items-center space-x-4">
-              <button 
+              <Button 
+                variant="outline"
+                type="button"
                 onClick={goBack}
                 className="flex items-center px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Volver
-              </button>
-              <Link 
-                to="/login"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Iniciar sesión
-              </Link>
+              </Button>
+              <Button asChild className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <Link to="/login">Iniciar sesión</Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -172,17 +173,16 @@ const RegisterPage: React.FC = () => {
                     <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                       Nombre
                     </label>
-                    <input
+                    <Input
                       id="firstName"
                       name="firstName"
                       type="text"
                       value={formData.firstName}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                        errors.firstName ? 'border-red-500' : 'border-gray-300'
-                      }`}
                       placeholder="Juan"
                       disabled={loading}
+                      required
+                      className={`px-4 py-3 transition-colors ${errors.firstName ? 'border-red-500' : 'border-gray-300'}`}
                     />
                     {errors.firstName && (
                       <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
@@ -193,17 +193,16 @@ const RegisterPage: React.FC = () => {
                     <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
                       Apellido
                     </label>
-                    <input
+                    <Input
                       id="lastName"
                       name="lastName"
                       type="text"
                       value={formData.lastName}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                        errors.lastName ? 'border-red-500' : 'border-gray-300'
-                      }`}
                       placeholder="Pérez"
                       disabled={loading}
+                      required
+                      className={`px-4 py-3 transition-colors ${errors.lastName ? 'border-red-500' : 'border-gray-300'}`}
                     />
                     {errors.lastName && (
                       <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
@@ -216,17 +215,16 @@ const RegisterPage: React.FC = () => {
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                     Correo electrónico
                   </label>
-                  <input
+                  <Input
                     id="email"
                     name="email"
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
                     placeholder="juan@example.com"
                     disabled={loading}
+                    required
+                    className={`px-4 py-3 transition-colors ${errors.email ? 'border-red-500' : 'border-gray-300'}`}
                   />
                   {errors.email && (
                     <p className="text-red-500 text-sm mt-1">{errors.email}</p>
@@ -238,17 +236,16 @@ const RegisterPage: React.FC = () => {
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
                     Teléfono
                   </label>
-                  <input
+                  <Input
                     id="phone"
                     name="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                      errors.phone ? 'border-red-500' : 'border-gray-300'
-                    }`}
                     placeholder="+591 700-00000"
                     disabled={loading}
+                    required
+                    className={`px-4 py-3 transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
                   />
                   {errors.phone && (
                     <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
@@ -261,29 +258,30 @@ const RegisterPage: React.FC = () => {
                     Contraseña
                   </label>
                   <div className="relative">
-                    <input
+                    <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 transition-colors ${
-                        errors.password ? 'border-red-500' : 'border-gray-300'
-                      }`}
                       placeholder="••••••••"
                       disabled={loading}
+                      required
+                      className={`px-4 py-3 pr-10 transition-colors ${errors.password ? 'border-red-500' : 'border-gray-300'}`}
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center justify-center p-0"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 transition-colors"
                     >
                       {showPassword ? (
                         <EyeOff className="h-5 w-5 text-gray-400" />
                       ) : (
                         <Eye className="h-5 w-5 text-gray-400" />
                       )}
-                    </button>
+                    </Button>
                   </div>
                   {errors.password && (
                     <p className="text-red-500 text-sm mt-1">{errors.password}</p>
@@ -296,29 +294,30 @@ const RegisterPage: React.FC = () => {
                     Confirmar contraseña
                   </label>
                   <div className="relative">
-                    <input
+                    <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 transition-colors ${
-                        errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                      }`}
                       placeholder="••••••••"
                       disabled={loading}
+                      required
+                      className={`px-4 py-3 pr-10 transition-colors ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'}`}
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center justify-center p-0"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center hover:text-gray-600 transition-colors"
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-5 w-5 text-gray-400" />
                       ) : (
                         <Eye className="h-5 w-5 text-gray-400" />
                       )}
-                    </button>
+                    </Button>
                   </div>
                   {errors.confirmPassword && (
                     <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
@@ -328,7 +327,7 @@ const RegisterPage: React.FC = () => {
                 {/* Terms and Conditions */}
                 <div>
                   <label className="flex items-start">
-                    <input
+                    <Input
                       name="acceptTerms"
                       type="checkbox"
                       checked={formData.acceptTerms}
@@ -353,7 +352,7 @@ const RegisterPage: React.FC = () => {
                 </div>
 
                 {/* Register Button */}
-                <button
+                <Button
                   type="submit"
                   disabled={loading}
                   className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -366,7 +365,7 @@ const RegisterPage: React.FC = () => {
                   ) : (
                     'Crear cuenta'
                   )}
-                </button>
+                </Button>
 
                 {/* Sign In Link */}
                 <div className="text-center">
@@ -410,21 +409,14 @@ const RegisterPage: React.FC = () => {
                 <p className="text-sm text-gray-600 mb-4">
                   La mensajería y envío de paquetes está disponible solo en la App Móvil.
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button className="flex items-center justify-center px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
+                <div className="flex items-center justify-center">
+                  <Button className="flex items-center justify-center px-4 py-3 h-12 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
                     <Smartphone className="w-4 h-4 mr-2" />
                     <div className="text-left">
                       <div className="text-xs">Disponible en</div>
                       <div className="text-sm font-semibold">Google Play</div>
                     </div>
-                  </button>
-                  <button className="flex items-center justify-center px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
-                    <Smartphone className="w-4 h-4 mr-2" />
-                    <div className="text-left">
-                      <div className="text-xs">Disponible en</div>
-                      <div className="text-sm font-semibold">App Store</div>
-                    </div>
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -433,6 +425,4 @@ const RegisterPage: React.FC = () => {
       </div>
     </div>
   );
-};
-
-export default RegisterPage;
+}

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import TransporteIcon from "./app-logo";
 import { 
   BarChart3, 
   Users, 
@@ -7,7 +8,14 @@ import {
   Settings
 } from 'lucide-react';
 
-const Sidebar = () => {
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+interface SidebarProps {
+  collapsed: boolean;
+  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const [activeModule, setActiveModule] = useState('rutas');
 
   const sidebarModules = [
@@ -21,39 +29,47 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="w-60 bg-gray-200 shadow-sm relative">
-      <div className="p-4">
-        <h1 className="text-sm font-medium text-gray-600 mb-4">Panel</h1>
-        <nav className="space-y-1">
+    <aside className={`h-full bg-sky-100 relative border-r border-gray-200 transition-all duration-300 ${collapsed ? 'w-[64px]' : 'w-[320px]'}`}>
+      <div className={`p-6 flex flex-col h-full ${collapsed ? 'items-center px-2' : ''}`}>
+        <div className={`flex items-center gap-2 mb-6 ${collapsed ? 'justify-center' : ''}`}>
+          {!collapsed && <TransporteIcon className="w-8 h-8" />}
+          {!collapsed && <span className="text-lg font-bold text-blue-700">MoviFleet</span>}
+          {collapsed && (
+            <button
+              className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center shadow transition-all duration-300"
+              onClick={() => setCollapsed(false)}
+              aria-label="Expandir sidebar"
+            >
+              <ChevronRight className="w-5 h-5 text-blue-700" />
+            </button>
+          )}
+        </div>
+        <nav className={`space-y-2 flex-1 ${collapsed ? 'w-full' : ''}`}>
           {sidebarModules.map((module) => (
             <button
               key={module.id}
               onClick={() => setActiveModule(module.id)}
-              className={`w-full flex items-center px-3 py-2 text-sm rounded-md text-left transition-colors ${
+              className={`w-full flex items-center px-2 py-2 text-sm rounded-lg text-left transition-colors ${
                 activeModule === module.id 
-                  ? 'bg-blue-500 text-white' 
-                  : 'text-gray-700 hover:bg-gray-300'
+                  ? 'bg-blue-400 text-white' 
+                  : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <module.icon className="w-4 h-4 mr-3" />
-              {module.name}
+              <module.icon className={collapsed ? 'w-6 h-6 mx-auto' : 'w-5 h-5 mr-3'} />
+              {!collapsed && module.name}
             </button>
           ))}
         </nav>
-      </div>
-      
-      {/* Bloque inferior */}
-      <div className="absolute bottom-4 left-4 right-4">
-        <div className="text-xs text-gray-600">
-          <div className="mb-2 font-medium">Monitoreo</div>
-          <button className="w-full text-left p-2 text-xs hover:bg-gray-300 rounded flex items-center">
-            <MapPin className="w-3 h-3 mr-2" />
-            Flota en mapa
+        {!collapsed && (
+          <button
+            className="absolute top-4 right-2 w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center shadow transition-all duration-300"
+            onClick={() => setCollapsed(true)}
+            aria-label="Contraer sidebar"
+          >
+            <ChevronLeft className="w-5 h-5 text-blue-700" />
           </button>
-        </div>
+        )}
       </div>
-    </div>
+    </aside>
   );
-};
-
-export default Sidebar;
+}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { ReactNode } from "react";
 import Sidebar from "@/components/admin-sidebar";
 import Header from "@/components/admin-header";
@@ -8,16 +8,24 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+  const [collapsed, setCollapsed] = useState(false);
+  const sidebarWidth = collapsed ? 64 : 320;
+
   return (
     <div>
-      <div className="fixed inset-y-0 left-0 w-[320px] z-20">
-        <Sidebar />
+      <div className={`fixed inset-y-0 left-0 z-20`} style={{ width: sidebarWidth }}>
+        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>
-      <div className="fixed top-0 left-[320px] right-0 h-16 z-30">
+      <div
+        className="fixed top-0 right-0 h-16 z-30"
+        style={{ left: sidebarWidth }}
+      >
         <Header />
       </div>
-      {/* Contenido principal con margen para no tapar sidebar ni header */}
-      <main className="ml-[320px] mt-[64px] px-[32px] py-[48px] min-h-screen">
+      <main
+        className="mt-[64px] px-[32px] py-[48px] min-h-screen transition-all duration-300"
+        style={{ marginLeft: sidebarWidth }}
+      >
         {children}
       </main>
     </div>

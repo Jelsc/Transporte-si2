@@ -1,23 +1,25 @@
-const Header= () => {
+import { Bell, HelpCircle, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { NavUserHeader } from '@/components/nav-user-header';
+
+export default function Header() {
   return (
-
-<header className="bg-white shadow-sm border-b">
-          <div className="flex items-center justify-between px-6 py-3">
-            <div className="flex items-center">
-              <span className="text-lg font-semibold text-gray-800">🚌 Transporte-SI2 • Operador</span>
+    <header className="h-[64px] bg-white border-b flex items-center justify-between px-[32px]">
+        <div className="flex items-center"></div>{ /* left????? */}
+        <div className="flex items-center  space-x-4">
+            <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="p-2 rounded-full bg-gray-100">
+                  <HelpCircle className="size-5 text-gray-500" />
+                </Button>
+                <Button variant="ghost" size="icon" className="p-2 rounded-full bg-gray-100">
+                  <Bell className="size-5 text-gray-500" />
+                </Button>
+                <Button variant="ghost" size="icon" className="p-2 rounded-full bg-gray-100">
+                  <MessageCircle className="size-5 text-gray-500" />
+                </Button>
             </div>
-            
-            <div className="flex items-center space-x-3">
-              <button className="text-sm text-gray-600 hover:text-gray-800">
-                Centro de ayuda
-              </button>
-              <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
-                Nueva operación
-              </button>
-            </div>
-          </div>
-        </header>
-          );
-};
-
-export default Header;
+            <NavUserHeader />
+        </div>
+    </header>
+  );
+}
