@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Bus, Ticket, Package, Map, Users } from "lucide-react";
+import TransporteIcon from "./app-logo";
 
 const Navbar = () => {
   return (
     <header className="flex justify-between items-center px-10 py-6 shadow-md bg-white sticky top-0 z-50">
         <h1 className="text-2xl font-bold text-blue-700 flex items-center gap-2">
-          <Bus className="w-7 h-7" /> Transporte
+          <TransporteIcon className="w-15 h-13" /> MoviFleet
         </h1>
         <nav className="space-x-6 hidden md:flex">
           <a href="#servicios" className="hover:text-blue-600">Servicios</a>

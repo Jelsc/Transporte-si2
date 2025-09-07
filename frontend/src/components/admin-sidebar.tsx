@@ -18,7 +18,6 @@ const Sidebar = () => {
     { id: 'rutas', name: 'Rutas y Tarifas', icon: MapPin },
     { id: 'ventas', name: 'Ventas y Boletos', icon: BarChart3 },
     { id: 'usuarios', name: 'Usuarios y Roles', icon: Users },
-    { id: 'configuracion', name: 'Configuración', icon: Settings },
   ];
 
   return (
