@@ -12,12 +12,12 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR.parent / ".env")
+#load_dotenv(BASE_DIR.parent / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -65,6 +65,7 @@ INSTALLED_APPS = [
         # dj-rest-auth (REST endpoints de login/registro/password/social)
     "dj_rest_auth",
     "dj_rest_auth.registration",
+    #"dj_rest_auth.jwt_auth",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
@@ -105,7 +106,7 @@ TEMPLATES = [
 ]
 
 AUTHENTICATION_BACKENDS = [
-    "django.contrib.auth.backends.ModelBackend",                   # auth normal
+    #"django.contrib.auth.backends.ModelBackend",                   # auth normal
     "allauth.account.auth_backends.AuthenticationBackend",         # allauth
 ]
 
@@ -183,11 +184,19 @@ ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # username o email
-ACCOUNT_EMAIL_VERIFICATION = "optional"  # "mandatory" si quieres confirmar email
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"  # "mandatory" si quieres confirmar email
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # link de confirmación hace login al abrirlo
+ACCOUNT_UNIQUE_EMAIL = True   # Cada email debe ser único
+LOGIN_ON_EMAIL_CONFIRMATION = True
+
+ACCOUNT_EMAIL_VERIFICATION_METHOD = "link" # Opciones: "link" (clásico) o "code" (moderno)
+
+
 
 # En desarrollo, manda emails a la consola
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mailhog'  # Asegúrate que este es el nombre del servicio en tu docker-compose.yml
+EMAIL_PORT = 1025
 DEFAULT_FROM_EMAIL = "no-reply@localhost"
 
 # ====== DRF + JWT ======
@@ -196,7 +205,14 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
 }
-REST_USE_JWT = True
+#REST_USE_JWT = True
+
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'jwt-auth-cookie',
+    'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh-cookie',
+    'JWT_AUTH_HTTPONLY': True, # True para que la cookie no sea accesible por JS
+}
 
 from datetime import timedelta
 SIMPLE_JWT = {

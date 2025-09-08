@@ -46,6 +46,7 @@ copy frontend\.env.example frontend\.env
 ```bash
 docker compose up -d --build
 ```
+
 nota: el super usuario ya esta creado las credenciales estan en el .env.example para el backend
 
 ### 2) Ejecucion
@@ -88,6 +89,7 @@ docker compose logs -f frontend
 - Backend (Django): [http://localhost:8000](http://localhost:8000)
 - Admin Django: [http://localhost:8000/admin](http://localhost:8000/admin)
 - Frontend (Vite): [http://localhost:5173](http://localhost:5173)
+- MailHog: [http://localhost:8025](http://localhost:8025/)
 
 ## 🧑‍💻 Desarrollo local (sin Docker) — opcional
 
