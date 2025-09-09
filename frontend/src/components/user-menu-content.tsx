@@ -1,47 +1,78 @@
-import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { UserInfo } from '@/components/user-info';
-import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { type User } from '@/types';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, Settings } from 'lucide-react';
+import {
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { UserInfo } from "@/components/user-info";
+import { useMobileNavigation } from "@/hooks/use-mobile-navigation";
+import { type User } from "@/types";
+import { Link, useNavigate } from "react-router-dom";
+import { LogOut, Settings } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface UserMenuContentProps {
-    user: User;
+  user: User;
 }
 
 export function UserMenuContent({ user }: UserMenuContentProps) {
-    const cleanup = useMobileNavigation();
-    const navigate = useNavigate();
+  const cleanup = useMobileNavigation();
+  const navigate = useNavigate();
+  const { logout, adminLogout, isAdmin } = useAuth();
 
-    const handleLogout = () => {
-        cleanup();
-        // Aquí deberías limpiar el estado de usuario y redirigir
-        // Por ejemplo, navigate('/login');
-    };
+  const handleLogout = async () => {
+    try {
+      cleanup();
+      // Usar el logout apropiado según el tipo de usuario
+      if (isAdmin) {
+        await adminLogout();
+      } else {
+        await logout();
+      }
+      // Redirigir al login después del logout exitoso
+      navigate("/login");
+    } catch (error) {
+      console.error("Error durante el logout:", error);
 
-    return (
-        <>
-            <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <UserInfo user={user} showEmail={true} />
-                </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                    <Link className="block w-full" to="/profile/edit" onClick={cleanup}>
-                        <Settings className="mr-2" />
-                        Settings
-                    </Link>
-                </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <button className="block w-full" onClick={handleLogout}>
-                        <LogOut className="mr-2" />
-                        Log out
-                    </button>
-                </DropdownMenuItem>
-        </>
-    );
+      // Aunque falle el logout en el backend, limpiar el estado local
+      // para evitar que el usuario quede en un estado inconsistente
+      try {
+        // Forzar limpieza local de tokens
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
+      } catch (localError) {
+        console.error("Error limpiando tokens locales:", localError);
+      }
+
+      // Redirigir al login de todas formas
+      navigate("/login");
+    }
+  };
+
+  return (
+    <>
+      <DropdownMenuLabel className="p-0 font-normal">
+        <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+          <UserInfo user={user} showEmail={true} />
+        </div>
+      </DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      <DropdownMenuGroup>
+        <DropdownMenuItem asChild>
+          <Link className="block w-full" to="/profile/edit" onClick={cleanup}>
+            <Settings className="mr-2" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem asChild>
+        <button className="block w-full" onClick={handleLogout}>
+          <LogOut className="mr-2" />
+          Cerrar sesión
+        </button>
+      </DropdownMenuItem>
+    </>
+  );
 }

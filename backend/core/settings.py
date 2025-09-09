@@ -12,12 +12,13 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
-#from dotenv import load_dotenv
+from datetime import timedelta
+# from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-#load_dotenv(BASE_DIR.parent / ".env")
+# load_dotenv(BASE_DIR.parent / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -30,42 +31,44 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me-dev")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
-#CORS_ALLOW_ALL_ORIGINS = True  # SOLO DEV. En prod: usa CORS_ALLOWED_ORIGINS.
+
+# Configuración de URLs del frontend
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL_ALT = os.getenv("FRONTEND_URL_ALT", "http://127.0.0.1:5173")
+
+# CORS_ALLOW_ALL_ORIGINS = True  # SOLO DEV. En prod: usa CORS_ALLOWED_ORIGINS.
+# Configuración de CORS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    FRONTEND_URL,
+    FRONTEND_URL_ALT,
 ]
 CORS_ALLOW_CREDENTIALS = True  # Por si usas sesión/cookies
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "rest_framework",
     "rest_framework.authtoken",
-    'corsheaders',
-
-    'users',
-        # Requisito para allauth
+    "corsheaders",
+    "users",
+    # Requisito para allauth
     "django.contrib.sites",
-
     # Allauth (core + cuentas + social)
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-# Configura el modelo de usuario personalizado
-
-
+    # Configura el modelo de usuario personalizado
     # Proveedores sociales (ej: Google)
     "allauth.socialaccount.providers.google",
-        # dj-rest-auth (REST endpoints de login/registro/password/social)
+    # dj-rest-auth (REST endpoints de login/registro/password/social)
     "dj_rest_auth",
     "dj_rest_auth.registration",
-    #"dj_rest_auth.jwt_auth",
+    # "dj_rest_auth.jwt_auth",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
@@ -74,43 +77,42 @@ SITE_ID = 1  # importante para allauth
 
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'allauth.account.middleware.AccountMiddleware',  # <-- Agrega esta línea
-    'django.contrib.messages.middleware.MessageMiddleware',
-    
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",  # <-- Agrega esta línea
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'core.urls'
+ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.i18n",
             ],
         },
     },
 ]
 
 AUTHENTICATION_BACKENDS = [
-    #"django.contrib.auth.backends.ModelBackend",                   # auth normal
-    "allauth.account.auth_backends.AuthenticationBackend",         # allauth
+    "django.contrib.auth.backends.ModelBackend",  # auth normal
+    "allauth.account.auth_backends.AuthenticationBackend",  # allauth
 ]
 
-WSGI_APPLICATION = 'core.wsgi.application'
+WSGI_APPLICATION = "core.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
@@ -132,16 +134,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -149,9 +151,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
-LANGUAGE_CODE = 'es'
+LANGUAGE_CODE = "es"
 
-TIME_ZONE = 'America/La_Paz'
+TIME_ZONE = "America/La_Paz"
 
 USE_I18N = True
 
@@ -161,7 +163,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -169,16 +171,25 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    FRONTEND_URL,
+    FRONTEND_URL_ALT,
 ]
 
 # A dónde redirigir después de login/logout
 LOGIN_REDIRECT_URL = "/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+
+# URLs de redirección para verificación de email
+ACCOUNT_EMAIL_CONFIRMATION_AUTO_LOGIN = True
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = (
+    f"{FRONTEND_URL}/email-verification?verified=true"
+)
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = (
+    f"{FRONTEND_URL}/email-verification?verified=true"
+)
 
 # Política de cuentas (ajústalo a tu gusto)
 ACCOUNT_EMAIL_REQUIRED = True
@@ -186,16 +197,19 @@ ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # username o email
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"  # "mandatory" si quieres confirmar email
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # link de confirmación hace login al abrirlo
-ACCOUNT_UNIQUE_EMAIL = True   # Cada email debe ser único
+ACCOUNT_UNIQUE_EMAIL = True  # Cada email debe ser único
 LOGIN_ON_EMAIL_CONFIRMATION = True
 
-ACCOUNT_EMAIL_VERIFICATION_METHOD = "link" # Opciones: "link" (clásico) o "code" (moderno)
-
+ACCOUNT_EMAIL_VERIFICATION_METHOD = (
+    "link"  # Opciones: "link" (clásico) o "code" (moderno)
+)
 
 
 # En desarrollo, manda emails a la consola
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'mailhog'  # Asegúrate que este es el nombre del servicio en tu docker-compose.yml
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = (
+    "mailhog"  # Asegúrate que este es el nombre del servicio en tu docker-compose.yml
+)
 EMAIL_PORT = 1025
 DEFAULT_FROM_EMAIL = "no-reply@localhost"
 
@@ -203,20 +217,45 @@ DEFAULT_FROM_EMAIL = "no-reply@localhost"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
 }
-#REST_USE_JWT = True
+# REST_USE_JWT = True
 
 REST_AUTH = {
-    'USE_JWT': True,
-    'JWT_AUTH_COOKIE': 'jwt-auth-cookie',
-    'JWT_AUTH_REFRESH_COOKIE': 'jwt-refresh-cookie',
-    'JWT_AUTH_HTTPONLY': True, # True para que la cookie no sea accesible por JS
+    "USE_JWT": True,
+    "JWT_AUTH_COOKIE": "jwt-auth-cookie",
+    "JWT_AUTH_REFRESH_COOKIE": "jwt-refresh-cookie",
+    "JWT_AUTH_HTTPONLY": True,  # True para que la cookie no sea accesible por JS
+    "REGISTER_SERIALIZER": "users.serializers.CustomRegisterSerializer",
 }
 
-from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
+
+# ====== GOOGLE OAUTH CONFIGURATION ======
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+        "OAUTH_PKCE_ENABLED": True,
+    }
+}
+
+# Configuración de Google OAuth
+GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_OAUTH2_CLIENT_ID", "")
+GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET", "")
+
+# Configuración de sitios para allauth
+SITE_ID = 1
