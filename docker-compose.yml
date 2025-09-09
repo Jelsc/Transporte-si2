@@ -25,16 +25,19 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: transporte_backend
-    env_file: .env
     environment:
       DJANGO_DEBUG: "1"
       POSTGRES_HOST: db
+      FRONTEND_URL: "http://localhost:5173"
+      FRONTEND_URL_ALT: "http://127.0.0.1:5173"
+      GOOGLE_OAUTH2_CLIENT_ID: ${GOOGLE_OAUTH2_CLIENT_ID:-}
+      GOOGLE_OAUTH2_CLIENT_SECRET: ${GOOGLE_OAUTH2_CLIENT_SECRET:-}
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: bash -lc "python manage.py migrate --noinput || true && python create_superuser.py && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
+    command: bash -lc "python manage.py migrate --noinput || true && python create_superuser.py && python populate_initial_data.py && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
 
@@ -46,6 +49,7 @@ services:
     working_dir: /app
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
       # Vite necesita HOST para exponer en 0.0.0.0
     volumes:
       - ./frontend:/app
