@@ -10,10 +10,6 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
-  User,
-  Mail,
-  Phone,
-  Calendar,
   Bell,
   CreditCard,
   Users,
@@ -418,7 +414,6 @@ export default function RegisterPage() {
                       type={showPassword ? "text" : "password"}
                       value={formData.password1}
                       onChange={handleInputChange}
-                      placeholder="••••••••"
                       disabled={isSubmitting}
                       required
                       className={`px-4 py-3 pr-10 transition-colors ${
@@ -444,6 +439,12 @@ export default function RegisterPage() {
                       {errors.password1}
                     </p>
                   )}
+                  <label
+                    htmlFor="password2"
+                    className="block text-sm text-gray-500 mb-1"
+                  >
+                    la contraseña debe tener al menos 8 caracteres, incluyendo una mayúscula, una minúscula y un número.
+                  </label>
                 </div>
 
                 {/* Confirm Password Field */}
@@ -461,7 +462,6 @@ export default function RegisterPage() {
                       type={showConfirmPassword ? "text" : "password"}
                       value={formData.password2}
                       onChange={handleInputChange}
-                      placeholder="••••••••"
                       disabled={isSubmitting}
                       required
                       className={`px-4 py-3 pr-10 transition-colors ${

@@ -1,5 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export const useGoogleAuth = () => {
   const { loginWithGoogle } = useAuth();
@@ -9,53 +10,56 @@ export const useGoogleAuth = () => {
     try {
       console.log("Google login response:", response);
 
-      // Verificar si es un token de prueba
+      // Ya no permitimos tokens de prueba
       if (response.credential === "mock_google_token_for_testing") {
-        // Usar datos de prueba
-        const mockPayload = {
-          email: "test@example.com",
-          given_name: "Usuario",
-          family_name: "Prueba",
-        };
+        console.error("No se permite usar tokens de prueba en producción");
+        toast.error("Configuración de Google inválida");
+        return;
+      }
 
-        console.log("Modo prueba - Usando datos simulados:", mockPayload);
-
-        await loginWithGoogle({
-          username: mockPayload.email,
-          password: "",
-          isGoogleAuth: true,
-          googleToken: response.credential,
-        });
-
-        navigate("/");
+      if (!response.credential) {
+        toast.error("No se recibió credencial de Google");
         return;
       }
 
       // Decodificar el JWT token de Google real
       const token = response.credential;
-      const payload = JSON.parse(atob(token.split(".")[1]));
+      
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        console.log("Google user info:", payload);
 
-      console.log("Google user info:", payload);
+        if (!payload.email) {
+          toast.error("No se pudo obtener el email de Google");
+          return;
+        }
 
-      // Usar el contexto de autenticación para manejar el login con Google
-      await loginWithGoogle({
-        username: payload.email,
-        password: "", // No necesitamos password para OAuth
-        isGoogleAuth: true,
-        googleToken: token,
-      });
+        // Usar el contexto de autenticación para manejar el login con Google
+        await loginWithGoogle({
+          username: payload.email,
+          password: "", // No necesitamos password para OAuth
+          isGoogleAuth: true,
+          googleToken: token,
+        });
 
-      // Redirigir al dashboard o página principal
-      navigate("/");
+        // Redirigir al dashboard o página principal
+        navigate("/");
+      } catch (decodeError) {
+        console.error("Error al decodificar token de Google:", decodeError);
+        toast.error("Error al procesar la respuesta de Google");
+      }
     } catch (error) {
       console.error("Error en Google login:", error);
-      throw error;
+      toast.error("Error al iniciar sesión con Google");
     }
   };
 
   const handleGoogleError = (error: any) => {
     console.error("Error de Google:", error);
-    throw new Error("Error al iniciar sesión con Google");
+    // En lugar de lanzar un error, podemos mostrar una notificación al usuario
+    // y manejar el error de manera más amigable
+    toast.error(error?.error || "Error al iniciar sesión con Google");
+    return; // No lanzamos un error, solo devolvemos
   };
 
   return {
