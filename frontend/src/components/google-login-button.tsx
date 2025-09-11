@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
+import toast from "react-hot-toast";
 
 interface GoogleLoginButtonProps {
   onSuccess?: (response: any) => void;
@@ -23,6 +24,11 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Depuración de las variables de entorno
+  useEffect(() => {
+    console.log("VITE_GOOGLE_CLIENT_ID:", import.meta.env.VITE_GOOGLE_CLIENT_ID);
+  }, []);
 
   useEffect(() => {
     // Cargar el script de Google Identity Services
@@ -48,17 +54,15 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 
   const handleGoogleLogin = () => {
     if (!isLoaded || !window.google) {
-      onError?.({ error: "Google Identity Services no está cargado" });
+      toast.error("Google Identity Services no está cargado");
       return;
     }
 
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    console.log("Intentando iniciar sesión con Google. Client ID:", clientId);
 
-    if (!clientId || clientId === "your_google_client_id_here") {
-      onError?.({
-        error:
-          "Google Client ID no configurado. Por favor configura VITE_GOOGLE_CLIENT_ID",
-      });
+    if (!clientId) {
+      toast.error("Google Client ID no está configurado. Contacta al administrador.");
       return;
     }
 
@@ -73,14 +77,63 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
         },
         error_callback: (error: any) => {
           setIsLoading(false);
-          onError?.(error);
+          toast.error("Error al autenticar con Google");
+          console.error("Error de autenticación de Google:", error);
         },
+        ux_mode: 'popup',  // Usar pop-up en lugar de redirección
+        auto_select: false // No seleccionar automáticamente
       });
 
-      window.google.accounts.id.prompt();
+      // Mostrar el popup de Google directamente
+      window.google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed()) {
+          console.warn('Google One-Tap no se pudo mostrar', notification);
+          setIsLoading(false);
+          
+          if (notification.getNotDisplayedReason() === 'suppressed_by_user') {
+            toast('Has desactivado los inicios de sesión automáticos de Google');
+          } else {
+            toast('No se pudo mostrar el inicio de sesión automático de Google');
+          }
+          
+          // Intento alternativo: renderizar un botón explícito
+        } else if (notification.isSkippedMoment()) {
+          console.warn('Google One-Tap fue omitido', notification);
+          setIsLoading(false);
+          toast('Inicio de sesión de Google omitido');
+          return; // El usuario cerró o canceló intencionalmente
+          try {
+            const googleDiv = document.createElement('div');
+            googleDiv.style.display = 'none';
+            document.body.appendChild(googleDiv);
+            
+            window.google.accounts.id.renderButton(googleDiv, {
+              type: 'standard',
+              theme: 'outline',
+              size: 'large'
+            });
+            
+            // Simular un clic en el botón renderizado
+            const googleButton = googleDiv.querySelector('div[role="button"]');
+            if (googleButton) {
+              (googleButton as HTMLElement).click();
+            }
+            
+            // Limpiar después
+            setTimeout(() => {
+              document.body.removeChild(googleDiv);
+            }, 1000);
+          } catch (renderError) {
+            console.error('Error al renderizar botón alternativo', renderError);
+            setIsLoading(false);
+            toast.error('No se pudo mostrar el inicio de sesión de Google');
+          }
+        }
+      });
     } catch (error) {
       setIsLoading(false);
-      onError?.(error);
+      console.error("Error al inicializar Google Identity Services", error);
+      toast.error("Error al inicializar la autenticación de Google");
     }
   };
 
@@ -94,15 +147,14 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
 
   // Botón de prueba si no hay Client ID configurado
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  if (!clientId || clientId === "your_google_client_id_here") {
+  console.log("Renderizando botón de Google. Client ID:", clientId);
+  
+  if (!clientId) {
     return (
       <Button
         type="button"
         onClick={() => {
-          // Redirigir a Google OAuth real usando allauth
-          window.location.href = `${
-            import.meta.env.VITE_API_URL
-          }/accounts/google/login/`;
+          toast.error("Client ID de Google no configurado. Contacta al administrador.");
         }}
         disabled={disabled || isLoading}
         className={`w-full bg-blue-500 hover:bg-blue-600 text-white border border-blue-600 ${className}`}
@@ -130,7 +182,7 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
               d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
             />
           </svg>
-          Continuar con Google (OAuth Real)
+          Continuar con Google (No configurado)
         </div>
       </Button>
     );

@@ -189,7 +189,6 @@ export default function LoginPage() {
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={handleInputChange}
-                      placeholder="••••••••"
                       required
                       disabled={isSubmitting}
                       className="px-4 py-3 pr-10"
@@ -277,10 +276,7 @@ export default function LoginPage() {
                   <span className="text-sm text-gray-600">
                     ¿No tienes cuenta?{" "}
                   </span>
-                  <Link
-                    to="/register"
-                    className="text-sm text-blue-600 hover:text-blue-500 font-medium"
-                  >
+                  <Link to="/register" className="text-sm text-blue-600 hover:text-blue-500 font-medium">
                     Crear cuenta
                   </Link>
                 </div>
