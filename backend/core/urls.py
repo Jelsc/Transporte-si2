@@ -18,20 +18,30 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+# Endpoints principales del sistema
 urlpatterns = [
+    # Panel de administración de Django
     path("admin/", admin.site.urls),
-    # Endpoints de autenticación REST
-    path(
-        "api/auth/", include("dj_rest_auth.urls")
-    ),  # login/logout/password/reset para clientes
-    path(
-        "api/auth/registration/", include("dj_rest_auth.registration.urls")
-    ),  # registro de clientes
-    # path('api/auth/social/', include('dj_rest_auth.social_urls')),  # login social (Google, etc.)
-    # Endpoints de allauth (opcional, para login social por navegador)
-    path("accounts/", include("allauth.urls")),
-    # API administrativa
+    
+    # ENDPOINTS DE API (todos bajo /api/)
+    
+    # Auth: login/logout/password/reset para clientes
+    path("api/auth/", include("dj_rest_auth.urls")),
+    
+    # Auth: registro de clientes
+    path("api/auth/registration/", include("dj_rest_auth.registration.urls")),
+    
+    # Admin: gestión de usuarios, roles y permisos
     path("api/admin/", include("users.urls")),
-    # Servicios de IA/ML
+    
+    # ML: servicios de inteligencia artificial
     path("api/ml/", include("services.urls")),
+    
+    # Aquí puedes añadir nuevas apps cuando las crees, por ejemplo:
+    # path("api/vehiculos/", include("vehiculos.urls")),
+    # path("api/rutas/", include("rutas.urls")),
+    # path("api/viajes/", include("viajes.urls")),
+    
+    # Auth social: endpoints para login social (navegador)
+    path("accounts/", include("allauth.urls")),
 ]

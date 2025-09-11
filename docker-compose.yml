@@ -37,7 +37,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: bash -lc "python manage.py migrate --noinput || true && python create_superuser.py && python populate_initial_data.py && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
+    command: bash -lc "python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
 
