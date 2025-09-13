@@ -1,0 +1,360 @@
+import React, { useState } from "react";
+import { Plus, Edit2, Trash2, Loader2, Search, Users, Mail, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+interface Usuario {
+  id: number;
+  nombre: string;
+  email: string;
+  rol: string;
+}
+
+interface UsuarioForm {
+  nombre: string;
+  email: string;
+  rol: string;
+}
+
+export default function UsuariosCRUD() {
+  const [usuarios, setUsuarios] = useState<Usuario[]>([
+    { id: 1, nombre: "Juan Pérez", email: "juan@example.com", rol: "Cliente" },
+    { id: 2, nombre: "Ana López", email: "ana@example.com", rol: "Administrador" },
+    { id: 3, nombre: "Carlos Ruiz", email: "carlos@example.com", rol: "Supervisor" },
+    { id: 4, nombre: "María González", email: "maria@example.com", rol: "Operador" },
+  ]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [form, setForm] = useState<UsuarioForm>({ nombre: "", email: "", rol: "" });
+
+  // Filtrar usuarios por búsqueda
+  const filteredUsuarios = usuarios.filter(usuario =>
+    usuario.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    usuario.rol.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleOpenModal = (usuario?: Usuario) => {
+    if (usuario) {
+      setEditingUsuario(usuario);
+      setForm({ nombre: usuario.nombre, email: usuario.email, rol: usuario.rol });
+    } else {
+      setEditingUsuario(null);
+      setForm({ nombre: "", email: "", rol: "" });
+    }
+    setShowModal(true);
+  };
+
+  const handleSave = () => {
+    if (!form.nombre || !form.email || !form.rol) {
+      alert("Todos los campos son obligatorios");
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      if (editingUsuario) {
+        setUsuarios(
+          usuarios.map((u) =>
+            u.id === editingUsuario.id ? { ...form, id: u.id } : u
+          )
+        );
+      } else {
+        setUsuarios([...usuarios, { ...form, id: Date.now() }]);
+      }
+      setLoading(false);
+      setShowModal(false);
+    }, 800);
+  };
+
+  const handleDelete = (id: number) => {
+    if (window.confirm("¿Seguro que deseas eliminar este usuario?")) {
+      setUsuarios(usuarios.filter((u) => u.id !== id));
+    }
+  };
+
+  // Obtener iniciales del nombre
+  const getInitials = (nombre: string): string => {
+    return nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  // Obtener color del rol
+  const getRolColor = (rol: string): string => {
+    const colors: Record<string, string> = {
+      'Administrador': 'bg-red-100 text-red-800',
+      'Supervisor': 'bg-blue-100 text-blue-800',
+      'Operador': 'bg-green-100 text-green-800',
+      'Cliente': 'bg-gray-100 text-gray-800',
+    };
+    return colors[rol] || 'bg-gray-100 text-gray-800';
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <Users className="text-blue-600" size={28} />
+                Gestión de Usuarios
+              </h1>
+            </div>
+            <div className="text-right">
+              <div className="text-lg font-semibold text-blue-600">{usuarios.length}</div>
+              <div className="text-sm text-gray-500">Total usuarios</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Barra de búsqueda y botón */}
+        <div className="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+              <Input
+                type="text"
+                placeholder="Buscar usuarios..."
+                className="pl-10 pr-4 py-3 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-3 items-center">
+              <span className="text-sm text-gray-600 px-3 py-2 bg-gray-100 rounded-lg">
+                {filteredUsuarios.length} de {usuarios.length}
+              </span>
+              <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
+                <Plus size={16} className="mr-2" />
+                Nuevo Usuario
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Grid de tarjetas de usuarios */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          {filteredUsuarios.map((usuario) => (
+            <Card key={usuario.id} className="hover:shadow-lg transition-all duration-200">
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-700 font-semibold text-sm">
+                      {getInitials(usuario.nombre)}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{usuario.nombre}</h3>
+                    <div className="flex items-center gap-1 text-gray-600 text-sm mb-2">
+                      <Mail size={14} />
+                      <span>{usuario.email}</span>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRolColor(usuario.rol)}`}>
+                      {usuario.rol}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 pt-4 border-t border-gray-100">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenModal(usuario)}
+                    className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
+                    <Edit2 size={14} className="mr-1" />
+                    Editar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(usuario.id)}
+                    className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 size={14} className="mr-1" />
+                    Eliminar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Tabla tradicional */}
+        <Card className="shadow-sm border border-gray-200">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Nombre</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Email</th>
+                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Rol</th>
+                    <th className="px-6 py-4 text-center text-sm font-medium text-gray-700">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredUsuarios.map((u) => (
+                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-700 font-medium text-xs">
+                              {getInitials(u.nombre)}
+                            </span>
+                          </div>
+                          <span className="font-medium text-gray-900">{u.nombre}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">{u.email}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRolColor(u.rol)}`}>
+                          {u.rol}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenModal(u)}
+                            className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                          >
+                            <Edit2 size={14} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(u.id)}
+                            className="border-red-200 text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Estado vacío */}
+        {filteredUsuarios.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200 mt-8">
+            <Users size={64} className="mx-auto text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-600 mb-2">
+              {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios registrados'}
+            </h3>
+            <p className="text-gray-500 mb-4">
+              {searchTerm 
+                ? 'Intenta con otros términos de búsqueda' 
+                : 'Comienza creando tu primer usuario'
+              }
+            </p>
+            {!searchTerm && (
+              <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
+                <Plus size={16} className="mr-2" />
+                Crear Primer Usuario
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">
+                {editingUsuario ? "Editar Usuario" : "Nuevo Usuario"}
+              </h3>
+              <Button 
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="nombre" className="text-sm font-medium text-gray-700">
+                  Nombre *
+                </Label>
+                <Input
+                  id="nombre"
+                  className="mt-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Nombre completo"
+                  value={form.nombre}
+                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email *
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  className="mt-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="correo@ejemplo.com"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="rol" className="text-sm font-medium text-gray-700">
+                  Rol *
+                </Label>
+                <select
+                  id="rol"
+                  className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
+                  value={form.rol}
+                  onChange={(e) => setForm({ ...form, rol: e.target.value })}
+                >
+                  <option value="">Seleccionar rol</option>
+                  <option value="Cliente">Cliente</option>
+                  <option value="Operador">Operador</option>
+                  <option value="Supervisor">Supervisor</option>
+                  <option value="Administrador">Administrador</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setShowModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-2" size={16} />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

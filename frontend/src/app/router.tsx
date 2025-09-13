@@ -6,12 +6,23 @@ import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import AdminPage from "../pages/admin/admin.page";
 import AdminLoginPage from "@/pages/auth/AdminLoginPage";
 import ProtectedRoute from "@/app/auth/ProtectedRoute";
+import PermisosList from "../pages/roles-permisos/permiso";
+import RolForm from "../pages/roles-permisos/rol";
+import UsuariosCRUD from "../pages/registro-usuarios-choferes/UsuariosCRUD";
+import ChoferesCRUD from "../pages/registro-usuarios-choferes/ChoferesCRUD";
+
+
+
 
 export default function AppRouter() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/rol" element={<RolForm />} />
+        <Route path="/permiso" element={<PermisosList/>} />
+        <Route path="/UsuariosCRUD" element={<UsuariosCRUD />} />
+        <Route path="/ChoferesCRUD" element={<ChoferesCRUD />} />
 
         {/* auth */}
         <Route path="/login" element={<LoginPage />} />
