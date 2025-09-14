@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import TransporteIcon from "./app-logo";
 import { 
   BarChart3, 
@@ -17,7 +17,19 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
+  const navigate = useNavigate();
   const location = useLocation();
+  const currentPath = location.pathname;
+        
+  // Función para verificar si una ruta está activa
+  const isRouteActive = (route: string) => {
+    // Caso especial para dashboard
+    if (route === "/admin/dashboard") {
+      return currentPath === "/admin/dashboard" || currentPath === "/admin";
+    }
+    // Para otras rutas, verificar si la ruta actual comienza con la ruta del módulo
+    return currentPath.startsWith(route);
+  };
   
   const sidebarModules = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/admin/dashboard' },
@@ -30,16 +42,17 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     { id: 'usuarios', name: 'Gestión de Roles', icon: Users, path: '/admin/roles-permisos/rol' }, // Ruta absoluta
     { id: 'usuarios', name: 'Gestión de Usuarios', icon: Users, path: '/admin/registro-usuarios-choferes/UsuariosCRUD' }, // Ruta absoluta
     { id: 'usuarios', name: 'Gestión de Choferes', icon: Users, path: '/admin/registro-usuarios-choferes/ChoferesCRUD' }, // Ruta absoluta
+    { id: 'bitacora', name: 'Bitacora', icon: BarChart3, route: "/admin/bitacora" },
   ];
 
   return (
     <aside className={`h-full bg-sky-100 relative border-r border-gray-200 transition-all duration-300 ${collapsed ? 'w-[64px]' : 'w-[320px]'}`}>
       <div className={`p-6 flex flex-col h-full ${collapsed ? 'items-center px-2' : ''}`}>
         <div className={`flex items-center gap-2 mb-6 ${collapsed ? 'justify-center' : ''}`}>
-          {!collapsed && <TransporteIcon className="w-8 h-8" />}
           {!collapsed && (
-            <Link to="/admin/dashboard" className="text-lg font-bold text-blue-700 hover:text-blue-800">
-              MoviFleet
+            <Link to="/admin/home" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <TransporteIcon className="w-8 h-8" />
+              <span className="text-lg font-bold text-blue-700">MoviFleet</span>
             </Link>
           )}
           {collapsed && (
@@ -56,9 +69,9 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           {sidebarModules.map((module) => (
             <Link
               key={module.id}
-              to={module.path}
-              className={`w-full flex items-center px-2 py-2 text-sm rounded-lg transition-colors ${
-                location.pathname === module.path
+              onClick={() => navigate(module.route)}
+              className={`w-full flex items-center px-2 py-2 text-sm rounded-lg text-left transition-colors ${
+                isRouteActive(module.route) 
                   ? 'bg-blue-400 text-white' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}

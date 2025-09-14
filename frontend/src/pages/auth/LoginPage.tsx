@@ -18,6 +18,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useGoogleAuth } from "@/hooks/use-google-auth";
 import { GoogleLoginButton } from "@/components/google-login-button";
+import toast from "react-hot-toast";
 
 interface LoginFormData {
   email: string;
@@ -264,12 +265,14 @@ export default function LoginPage() {
                 </div>
 
                 {/* Social Login Buttons */}
-                <GoogleLoginButton
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  disabled={isSubmitting}
-                  className="py-3 px-4 font-medium"
-                />
+                <div className="flex flex-col gap-3">
+                  <GoogleLoginButton
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    disabled={isSubmitting}
+                    className="py-3 px-4 font-medium"
+                  />
+                </div>
 
                 {/* Sign Up Link */}
                 <div className="text-center">

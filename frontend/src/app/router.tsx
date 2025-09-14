@@ -10,6 +10,8 @@ import PermisosCRUD from "../pages/roles-permisos/permiso";
 import RolForm from "../pages/roles-permisos/rol";
 import UsuariosCRUD from "../pages/registro-usuarios-choferes/UsuariosCRUD";
 import ChoferesCRUD from "../pages/registro-usuarios-choferes/ChoferesCRUD";
+import BitacoraPage from "@/pages/admin/BitacoraPage";
+
 
 export default function AppRouter() {
   return (
@@ -31,8 +33,9 @@ export default function AppRouter() {
 
         {/* admin */}
         <Route path="/admin" element={<AdminLoginPage />} />
+        <Route path="/admin/bitacora" element={<BitacoraPage />} />
         <Route 
-          path="/admin/dashboard" 
+          path="/admin/home" 
           element={
             <ProtectedRoute requireAdmin={true}>
               <AdminPage />

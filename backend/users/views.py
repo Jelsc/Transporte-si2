@@ -3,12 +3,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from dj_rest_auth.views import LoginView, LogoutView
+from dj_rest_auth.registration.views import RegisterView
+from bitacora.utils import registrar_bitacora
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.db.models import Q
-from django.conf import settings
 import requests
-import json
 from .models import Rol
 from .serializers import (
     UserSerializer,
@@ -33,8 +34,17 @@ class AdminTokenObtainPairView(TokenObtainPairView):
         user = serializer.validated_data["user"]
         refresh = RefreshToken.for_user(user)
 
-        # Actualizar último acceso
         user.fecha_ultimo_acceso = timezone.now()
+        
+        #BITACORA
+        registrar_bitacora(
+        request=request,
+        usuario=user,
+        accion="Login",
+        descripcion="Administrador inicio sesion",
+        modulo="ADMINISTRACION"
+        )    
+        
         user.save(update_fields=["fecha_ultimo_acceso"])
 
         return Response(
@@ -45,7 +55,6 @@ class AdminTokenObtainPairView(TokenObtainPairView):
             }
         )
 
-
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
 def admin_logout(request):
@@ -53,11 +62,43 @@ def admin_logout(request):
     try:
         refresh_token = request.data["refresh"]
         token = RefreshToken(refresh_token)
+        user = request.user
+        user.fecha_ultimo_acceso = timezone.now()
+        user.save(update_fields=["fecha_ultimo_acceso"])
+        
         token.blacklist()
         return Response(
             {"message": "Logout exitoso"}, status=status.HTTP_205_RESET_CONTENT
         )
     except Exception as e:
+        return Response({"error": "Token inválido"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def client_logout(request):
+    """Logout para clientes (invalidar token)"""
+    try:
+        refresh_token = request.data["refresh"]
+        token = RefreshToken(refresh_token)
+        
+        # Actualizar fecha de último acceso
+        user = request.user
+        user.fecha_ultimo_acceso = timezone.now()
+        user.save(update_fields=["fecha_ultimo_acceso"])
+        
+        token.blacklist()
+        return Response(
+            {"message": "Logout exitoso"}, status=status.HTTP_205_RESET_CONTENT
+        )
+    
+    except Exception as e:
+        registrar_bitacora(
+        request=request,
+        accion="Logout",
+        descripcion="Administrador cerro sesion",
+        modulo="ADMINISTRACION"
+        )   
         return Response({"error": "Token inválido"}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -74,6 +115,7 @@ class AdminRegistrationView(generics.CreateAPIView):
             raise permissions.PermissionDenied(
                 "Solo superusuarios pueden crear usuarios administrativos"
             )
+        
         serializer.save()
 
 
@@ -115,7 +157,6 @@ class ChangePasswordView(generics.UpdateAPIView):
                 {"message": "Contraseña actualizada exitosamente"},
                 status=status.HTTP_200_OK,
             )
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -250,7 +291,10 @@ def google_auth(request):
                 )
                 user.rol = cliente_rol
                 user.save()
-
+        # Actualizar último acceso
+        user.fecha_ultimo_acceso = timezone.now()
+        user.save(update_fields=["fecha_ultimo_acceso"])
+        
         # Generar tokens JWT
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
@@ -268,3 +312,74 @@ def google_auth(request):
             {"error": f"Error en autenticación con Google: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+###PRUEBAS####
+User = get_user_model()
+
+class CustomLoginView(LoginView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        # Obtener usuario autenticado real
+        username = response.data.get('user', {}).get('username')
+        user = User.objects.filter(username=username).first() if username else None
+
+        if user:
+            registrar_bitacora(
+                request=request,
+                accion="Login",
+                descripcion=f"El usuario {user.username} inició sesión",
+                modulo="AUTENTICACION"
+            )
+
+        return response
+
+
+class CustomLogoutView(LogoutView):
+    def post(self, request, *args, **kwargs):
+        user = None
+
+        
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            try:
+                jwt_auth = JWTAuthentication()
+                token_str = auth_header.split()[1]  # Bearer <token>
+                validated_token = jwt_auth.get_validated_token(token_str)
+                user = jwt_auth.get_user(validated_token)
+            except Exception:
+                user = None
+
+        response = super().post(request, *args, **kwargs)
+
+        if user:
+            registrar_bitacora(
+                request=request,
+                usuario=user,
+                accion="Logout",
+                descripcion=f"El usuario {user.username} cerró sesión.",
+                modulo="AUTENTICACION"
+            )
+
+        return response
+
+
+class CustomRegisterView(RegisterView):
+    """Registro con bitácora"""
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+
+        # Obtener usuario recién creado desde el email (campo único)
+        email = request.data.get('email')
+        user = User.objects.filter(email=email).first() if email else None
+
+        if user:
+            registrar_bitacora(
+                request=request,
+                usuario=user,
+                accion="Registro",
+                descripcion=f"Se registró el usuario {user.username}",
+                modulo="AUTENTICACION"
+            )
+
+        return response

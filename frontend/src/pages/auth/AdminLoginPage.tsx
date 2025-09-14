@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
   // Redirigir si ya está autenticado como admin
   useEffect(() => {
     if (isAuthenticated && isAdmin && !isLoading) {
-      navigate("/admin/dashboard");
+      navigate("/admin/home");
     }
   }, [isAuthenticated, isAdmin, isLoading, navigate]);
 
@@ -125,7 +125,6 @@ export default function AdminLoginPage() {
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="••••••••"
                 disabled={isSubmitting}
                 required
                 className="px-4 py-3 pr-10"

@@ -58,7 +58,6 @@ class AdminLoginSerializer(serializers.Serializer):
             attrs["user"] = user
         else:
             raise serializers.ValidationError("Debe proporcionar username y password")
-
         return attrs
 
 
@@ -170,6 +169,10 @@ class CustomRegisterSerializer(RegisterSerializer):
 
         # Crear el usuario con el rol de cliente
         user = super().save(request)
+        
+        # Agregar el teléfono y otros campos adicionales
         user.rol = cliente_rol
+        user.telefono = self.validated_data.get('telefono', '')
         user.save()
+        
         return user

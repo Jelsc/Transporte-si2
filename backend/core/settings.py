@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "dj_rest_auth.registration",
     # "dj_rest_auth.jwt_auth",
+
+    "bitacora",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
@@ -158,7 +160,9 @@ TIME_ZONE = "America/La_Paz"
 
 USE_I18N = True
 
-USE_TZ = True
+# Desactivamos el soporte de zona horaria para usar la hora local directamente
+# Esto evita que Django realice conversiones automáticas
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -223,6 +227,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    # --- NUEVO ---
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,  # registros por página
 }
 # REST_USE_JWT = True
 
