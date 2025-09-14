@@ -6,6 +6,7 @@ import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import AdminPage from "../pages/admin/admin.page";
 import AdminLoginPage from "@/pages/auth/AdminLoginPage";
 import ProtectedRoute from "@/app/auth/ProtectedRoute";
+import FlotasPage from "@/pages/admin/flotas.page";
 
 export default function AppRouter() {
   return (
@@ -31,6 +32,14 @@ export default function AppRouter() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+              path="/admin/flotas" 
+             element={
+              <ProtectedRoute requireAdmin={true}>
+                <FlotasPage />
+              </ProtectedRoute>
+          } 
+             />
 
           {/* rutas protegidas de usuario */}
           <Route

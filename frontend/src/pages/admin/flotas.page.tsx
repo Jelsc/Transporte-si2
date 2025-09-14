@@ -1,65 +1,113 @@
-import { useEffect, useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import VehiculoForm from "@/components/VehiculoForm"
-import type { Vehiculo } from "@/services/vehiculo"
-import { vehiculoService } from "@/services/vehiculo"
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import VehiculoForm from "@/components/VehiculoForm";
+import type { Vehiculo } from "@/services/vehiculo";
+import { vehiculoService } from "@/services/vehiculo";
 
 export default function FlotasPage() {
-  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
-  const [search, setSearch] = useState("")
-  const [selected, setSelected] = useState<Vehiculo | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editMode, setEditMode] = useState(false)
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Vehiculo | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
-    fetchVehiculos()
-  }, [])
+    fetchVehiculos();
+  }, []);
 
   const fetchVehiculos = () => {
-    vehiculoService.getVehiculos().then((res) => {
-      if (res.success && res.data) {
-        setVehiculos(res.data)
-      }
-    })
-  }
+    vehiculoService
+      .getVehiculos()
+      .then((res) => {
+        if (res.success && res.data) setVehiculos(res.data);
+      })
+      .catch((err) => console.error("Error al obtener vehículos:", err));
+  };
 
+  // Filtrar vehículos por placa o modelo
   const filtered = vehiculos.filter(
     (v) =>
       v.placa.toLowerCase().includes(search.toLowerCase()) ||
       v.modelo.toLowerCase().includes(search.toLowerCase())
-  )
+  );
 
+  // Crear vehículo y seleccionarlo automáticamente
   const handleCreate = (data: Vehiculo) => {
-    vehiculoService.createVehiculo(data).then(() => {
-      fetchVehiculos()
-      setModalOpen(false)
-    })
-  }
-
-  const handleUpdate = (data: Vehiculo) => {
-    if (!data.id) return
-    vehiculoService.updateVehiculo(data.id, data).then(() => {
-      fetchVehiculos()
-      setModalOpen(false)
-    })
-  }
-
-  const handleDelete = (id?: number) => {
-    if (!id) return
-    if (confirm("¿Seguro que deseas eliminar este vehículo?")) {
-      vehiculoService.deleteVehiculo(id).then(() => {
-        fetchVehiculos()
-        setSelected(null)
+    vehiculoService
+      .createVehiculo(data)
+      .then((res) => {
+        if (res.success && res.data) {
+          // agregar al listado
+          const newVehiculos = [...vehiculos, res.data];
+          setVehiculos(newVehiculos);
+          setSelected(res.data); // seleccionar automáticamente
+          setModalOpen(false);
+        } else {
+          alert("Error al crear vehículo: " + res.message);
+        }
       })
+      .catch((err) => {
+        console.error(err);
+        alert("Error de conexión al crear vehículo");
+      });
+  };
+
+  // Actualizar vehículo
+  const handleUpdate = (data: Vehiculo) => {
+    if (!data.id) {
+      alert("ID del vehículo no existe");
+      return;
     }
-  }
+    vehiculoService
+      .updateVehiculo(data.id, data)
+      .then((res) => {
+        if (res.success && res.data) {
+          // actualizar listado
+          const updated = vehiculos.map((v) => (v.id === data.id ? res.data! : v));
+          setVehiculos(updated);
+          setSelected(res.data); // actualizar ficha
+          setModalOpen(false);
+        } else {
+          alert("Error al actualizar vehículo: " + res.message);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Error de conexión al actualizar vehículo");
+      });
+  };
+
+  // Eliminar vehículo
+  const handleDelete = (id?: number) => {
+    if (!id) return;
+    if (confirm("¿Seguro que deseas eliminar este vehículo?")) {
+      vehiculoService
+        .deleteVehiculo(id)
+        .then((res) => {
+          if (res.success) {
+            setVehiculos(vehiculos.filter((v) => v.id !== id));
+            setSelected(null);
+          } else {
+            alert("Error al eliminar vehículo: " + res.message);
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          alert("Error de conexión al eliminar vehículo");
+        });
+    }
+  };
+
+  const handleSubmit = (data: Vehiculo) => {
+    editMode ? handleUpdate(data) : handleCreate(data);
+  };
 
   return (
     <div className="p-6 grid grid-cols-12 gap-4">
-      {/* Lista */}
+      {/* Lista de vehículos */}
       <div className="col-span-5 space-y-3">
         <div className="flex gap-2">
           <Input
@@ -69,9 +117,9 @@ export default function FlotasPage() {
           />
           <Button
             onClick={() => {
-              setEditMode(false)
-              setSelected(null)
-              setModalOpen(true)
+              setEditMode(false);
+              setSelected(null);
+              setModalOpen(true);
             }}
           >
             + Nuevo vehículo
@@ -112,39 +160,27 @@ export default function FlotasPage() {
         </Card>
       </div>
 
-      {/* Detalle */}
+      {/* Detalle del vehículo */}
       <div className="col-span-7">
         {selected ? (
           <Card>
             <CardContent className="p-4 space-y-4">
               <h2 className="text-xl font-bold">Ficha del vehículo</h2>
               <div className="grid grid-cols-2 gap-2">
-                <p>
-                  <b>Placa:</b> {selected.placa}
-                </p>
-                <p>
-                  <b>Modelo:</b> {selected.modelo}
-                </p>
-                <p>
-                  <b>Año:</b> {selected.anio}
-                </p>
-                <p>
-                  <b>VIN:</b> {selected.vin}
-                </p>
-                <p>
-                  <b>Seguro:</b>{" "}
-                  {selected.seguro_vigente ? "Vigente ✅" : "No vigente ❌"}
-                </p>
-                <p>
-                  <b>Estado:</b> {selected.estado}
-                </p>
+                <p><b>Placa:</b> {selected.placa}</p>
+                <p><b>Modelo:</b> {selected.modelo}</p>
+                <p><b>Año:</b> {selected.anio}</p>
+                <p><b>VIN:</b> {selected.vin}</p>
+                <p><b>Seguro:</b> {selected.seguro_vigente ? "Vigente ✅" : "No vigente ❌"}</p>
+                <p><b>Estado:</b> {selected.estado}</p>
               </div>
               <div className="flex gap-2 mt-4">
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setEditMode(true)
-                    setModalOpen(true)
+                    if (!selected) return;
+                    setEditMode(true);
+                    setModalOpen(true);
                   }}
                 >
                   Editar
@@ -171,17 +207,15 @@ export default function FlotasPage() {
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {editMode ? "Editar vehículo" : "Nuevo vehículo"}
-            </DialogTitle>
+            <DialogTitle>{editMode ? "Editar vehículo" : "Nuevo vehículo"}</DialogTitle>
           </DialogHeader>
           <VehiculoForm
             initialData={editMode ? selected ?? undefined : undefined}
-            onSubmit={editMode ? handleUpdate : handleCreate}
+            onSubmit={handleSubmit}
             onCancel={() => setModalOpen(false)}
           />
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
