@@ -1,10 +1,22 @@
 import React, { useState } from "react";
-import { Plus, Edit2, Trash2, Loader2, Search, Lock, X, Tag, CheckCircle, XCircle } from "lucide-react";
+import { Link, useLocation } from 'react-router-dom';
+import { 
+  Plus, Edit2, Trash2, Loader2, Search, Lock, X, Tag, CheckCircle, XCircle,
+  BarChart3, Users, Truck, MapPin, Settings, ChevronLeft, ChevronRight
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// Componente del logo (simplificado)
+const TransporteIcon = ({ className }: { className?: string }) => (
+  <div className={`${className} bg-blue-600 rounded flex items-center justify-center`}>
+    <Truck className="text-white" size={20} />
+  </div>
+);
+
+// Interfaces
 interface Permiso {
   id: number;
   codigo: string;
@@ -23,6 +35,75 @@ interface PermisoForm {
   es_activo: boolean;
 }
 
+interface SidebarProps {
+  collapsed: boolean;
+  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+// Componente Sidebar
+function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
+  const location = useLocation();
+  
+  const sidebarModules = [
+    { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/admin/dashboard' },
+    { id: 'flotas', name: 'Flotas', icon: Truck, path: '/admin/flotas' },
+    { id: 'conductores', name: 'Conductores', icon: Users, path: '/admin/conductores' },
+    { id: 'mantenimiento', name: 'Mantenimiento', icon: Settings, path: '/admin/mantenimiento' },
+    { id: 'rutas', name: 'Rutas y Tarifas', icon: MapPin, path: '/admin/rutas' },
+    { id: 'ventas', name: 'Ventas y Boletos', icon: BarChart3, path: '/admin/ventas' },
+    { id: 'usuarios', name: 'Gestión de Permisos', icon: Users, path: '/admin/roles-permisos/permisos' },
+  ];
+
+  return (
+    <aside className={`h-full bg-sky-100 relative border-r border-gray-200 transition-all duration-300 ${collapsed ? 'w-[64px]' : 'w-[320px]'}`}>
+      <div className={`p-6 flex flex-col h-full ${collapsed ? 'items-center px-2' : ''}`}>
+        <div className={`flex items-center gap-2 mb-6 ${collapsed ? 'justify-center' : ''}`}>
+          {!collapsed && <TransporteIcon className="w-8 h-8" />}
+          {!collapsed && (
+            <Link to="/admin/dashboard" className="text-lg font-bold text-blue-700 hover:text-blue-800">
+              MoviFleet
+            </Link>
+          )}
+          {collapsed && (
+            <button
+              className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center shadow transition-all duration-300"
+              onClick={() => setCollapsed(false)}
+              aria-label="Expandir sidebar"
+            >
+              <ChevronRight className="w-5 h-5 text-blue-700" />
+            </button>
+          )}
+        </div>
+        <nav className={`space-y-2 flex-1 ${collapsed ? 'w-full' : ''}`}>
+          {sidebarModules.map((module) => (
+            <Link
+              key={module.id}
+              to={module.path}
+              className={`w-full flex items-center px-2 py-2 text-sm rounded-lg transition-colors ${
+                location.pathname === module.path
+                  ? 'bg-blue-400 text-white' 
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <module.icon className={collapsed ? 'w-6 h-6 mx-auto' : 'w-5 h-5 mr-3'} />
+              {!collapsed && module.name}
+            </Link>
+          ))}
+        </nav>
+        {!collapsed && (
+          <button
+            className="absolute top-4 right-2 w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center shadow transition-all duration-300"
+            onClick={() => setCollapsed(true)}
+            aria-label="Contraer sidebar"
+          >
+            <ChevronLeft className="w-5 h-5 text-blue-700" />
+          </button>
+        )}
+      </div>
+    </aside>
+  );
+}
+
 const categorias = [
   'Gestión de Usuarios',
   'Operaciones',
@@ -33,6 +114,10 @@ const categorias = [
 ] as const;
 
 export default function PermisosCRUD() {
+  // Estados del sidebar
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Estados del componente de permisos
   const [permisos, setPermisos] = useState<Permiso[]>([
     { id: 1, codigo: 'crear', nombre: 'Crear', descripcion: 'Permite crear registros', categoria: 'Operaciones', es_activo: true, fecha_creacion: '2024-01-15' },
     { id: 2, codigo: 'editar', nombre: 'Editar', descripcion: 'Permite editar registros', categoria: 'Operaciones', es_activo: true, fecha_creacion: '2024-01-15' },
@@ -148,223 +233,231 @@ export default function PermisosCRUD() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                <Lock className="text-blue-600" size={28} />
-                Gestión de Permisos
-              </h1>
-            </div>
-            <div className="text-right">
-              <div className="text-lg font-semibold text-blue-600">{permisos.length}</div>
-              <div className="text-sm text-gray-500">Total permisos</div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Barra de búsqueda y botón */}
-        <div className="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-            <div className="flex flex-col sm:flex-row gap-4 flex-1">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                <Input
-                  type="text"
-                  placeholder="Buscar permisos..."
-                  className="pl-10 pr-4 py-3 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+      
+      {/* Contenido Principal */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 flex-shrink-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                  <Lock className="text-blue-600" size={28} />
+                  Gestión de Permisos
+                </h1>
               </div>
-              
-              <select
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                <option value="">Todas las categorías</option>
-                {categorias.map(categoria => (
-                  <option key={categoria} value={categoria}>{categoria}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-3 items-center">
-              <span className="text-sm text-gray-600 px-3 py-2 bg-gray-100 rounded-lg">
-                {filteredPermisos.length} de {permisos.length}
-              </span>
-              <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
-                <Plus size={16} className="mr-2" />
-                Nuevo Permiso
-              </Button>
+              <div className="text-right">
+                <div className="text-lg font-semibold text-blue-600">{permisos.length}</div>
+                <div className="text-sm text-gray-500">Total permisos</div>
+              </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Grid de tarjetas de permisos */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          {filteredPermisos.map((permiso) => (
-            <Card key={permiso.id} className="hover:shadow-lg transition-all duration-200">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-700 font-semibold text-sm">
-                      {getInitials(permiso.nombre)}
-                    </span>
+        {/* Main Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Barra de búsqueda y botón */}
+            <div className="mb-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                <div className="flex flex-col sm:flex-row gap-4 flex-1">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <Input
+                      type="text"
+                      placeholder="Buscar permisos..."
+                      className="pl-10 pr-4 py-3 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{permiso.nombre}</h3>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${
-                        permiso.es_activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {permiso.es_activo ? <CheckCircle size={10} /> : <XCircle size={10} />}
-                        {permiso.es_activo ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </div>
-                    <p className="text-gray-600 text-sm mb-2">{permiso.descripcion}</p>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-gray-600 text-sm">
-                        <code className="bg-gray-100 px-2 py-1 rounded font-mono text-xs">{permiso.codigo}</code>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-600 text-sm">
-                        <Tag size={14} />
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(permiso.categoria)}`}>
-                          {permiso.categoria}
+                  
+                  <select
+                    className="px-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                  >
+                    <option value="">Todas las categorías</option>
+                    {categorias.map(categoria => (
+                      <option key={categoria} value={categoria}>{categoria}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3 items-center">
+                  <span className="text-sm text-gray-600 px-3 py-2 bg-gray-100 rounded-lg">
+                    {filteredPermisos.length} de {permisos.length}
+                  </span>
+                  <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus size={16} className="mr-2" />
+                    Nuevo Permiso
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Grid de tarjetas de permisos */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+              {filteredPermisos.map((permiso) => (
+                <Card key={permiso.id} className="hover:shadow-lg transition-all duration-200">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-700 font-semibold text-sm">
+                          {getInitials(permiso.nombre)}
                         </span>
                       </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{permiso.nombre}</h3>
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1 ${
+                            permiso.es_activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {permiso.es_activo ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                            {permiso.es_activo ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </div>
+                        <p className="text-gray-600 text-sm mb-2">{permiso.descripcion}</p>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-gray-600 text-sm">
+                            <code className="bg-gray-100 px-2 py-1 rounded font-mono text-xs">{permiso.codigo}</code>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600 text-sm">
+                            <Tag size={14} />
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(permiso.categoria)}`}>
+                              {permiso.categoria}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2 pt-4 border-t border-gray-100">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleOpenModal(permiso)}
-                    className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
-                  >
-                    <Edit2 size={14} className="mr-1" />
-                    Editar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(permiso.id)}
-                    className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 size={14} className="mr-1" />
-                    Eliminar
-                  </Button>
+                    
+                    <div className="flex gap-2 pt-4 border-t border-gray-100">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenModal(permiso)}
+                        className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50"
+                      >
+                        <Edit2 size={14} className="mr-1" />
+                        Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(permiso.id)}
+                        className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 size={14} className="mr-1" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Tabla tradicional */}
+            <Card className="shadow-sm border border-gray-200">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Nombre</th>
+                        <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Código</th>
+                        <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Categoría</th>
+                        <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Estado</th>
+                        <th className="px-6 py-4 text-center text-sm font-medium text-gray-700">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredPermisos.map((p) => (
+                        <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-blue-700 font-medium text-xs">
+                                  {getInitials(p.nombre)}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-900">{p.nombre}</span>
+                                <p className="text-xs text-gray-500 max-w-xs truncate">{p.descripcion}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="font-mono text-gray-700 bg-gray-100 px-2 py-1 rounded text-sm">
+                              {p.codigo}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(p.categoria)}`}>
+                              {p.categoria}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium gap-1 ${
+                              p.es_activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {p.es_activo ? <CheckCircle size={10} /> : <XCircle size={10} />}
+                              {p.es_activo ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div className="flex justify-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenModal(p)}
+                                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                              >
+                                <Edit2 size={14} />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(p.id)}
+                                className="border-red-200 text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
 
-        {/* Tabla tradicional */}
-        <Card className="shadow-sm border border-gray-200">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Nombre</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Código</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Categoría</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Estado</th>
-                    <th className="px-6 py-4 text-center text-sm font-medium text-gray-700">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredPermisos.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-blue-700 font-medium text-xs">
-                              {getInitials(p.nombre)}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-900">{p.nombre}</span>
-                            <p className="text-xs text-gray-500 max-w-xs truncate">{p.descripcion}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-gray-700 bg-gray-100 px-2 py-1 rounded text-sm">
-                          {p.codigo}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(p.categoria)}`}>
-                          {p.categoria}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium gap-1 ${
-                          p.es_activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {p.es_activo ? <CheckCircle size={10} /> : <XCircle size={10} />}
-                          {p.es_activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex justify-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenModal(p)}
-                            className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                          >
-                            <Edit2 size={14} />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(p.id)}
-                            className="border-red-200 text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Estado vacío */}
-        {filteredPermisos.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200 mt-8">
-            <Lock size={64} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-600 mb-2">
-              {searchTerm || selectedCategory ? 'No se encontraron permisos' : 'No hay permisos registrados'}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {searchTerm || selectedCategory
-                ? 'Intenta con otros términos de búsqueda o filtros' 
-                : 'Comienza creando tu primer permiso'
-              }
-            </p>
-            {!searchTerm && !selectedCategory && (
-              <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
-                <Plus size={16} className="mr-2" />
-                Crear Primer Permiso
-              </Button>
+            {/* Estado vacío */}
+            {filteredPermisos.length === 0 && (
+              <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200 mt-8">
+                <Lock size={64} className="mx-auto text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-600 mb-2">
+                  {searchTerm || selectedCategory ? 'No se encontraron permisos' : 'No hay permisos registrados'}
+                </h3>
+                <p className="text-gray-500 mb-4">
+                  {searchTerm || selectedCategory
+                    ? 'Intenta con otros términos de búsqueda o filtros' 
+                    : 'Comienza creando tu primer permiso'
+                  }
+                </p>
+                {!searchTerm && !selectedCategory && (
+                  <Button onClick={() => handleOpenModal()} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus size={16} className="mr-2" />
+                    Crear Primer Permiso
+                  </Button>
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Modal */}
