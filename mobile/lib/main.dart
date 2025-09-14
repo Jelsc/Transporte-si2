@@ -7,17 +7,16 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Transporte-SI2',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-      ),
+      title: 'TransBolivia',
       debugShowCheckedModeBanner: false,
-      home: const LoginScreen(), // 👈 Pantalla inicial
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: false,
+      ),
+      home: const LoginScreen(),
     );
   }
 }

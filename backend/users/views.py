@@ -7,6 +7,10 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db.models import Q
 from django.conf import settings
+from rest_framework import viewsets
+from .models import Vehiculo
+from .serializers import VehiculoSerializer
+
 import requests
 import json
 from .models import Rol
@@ -268,3 +272,6 @@ def google_auth(request):
             {"error": f"Error en autenticación con Google: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+

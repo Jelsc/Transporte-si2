@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from .models import CustomUser, Rol
-
+from .models import Vehiculo
 
 class RolSerializer(serializers.ModelSerializer):
     class Meta:
@@ -173,3 +173,4 @@ class CustomRegisterSerializer(RegisterSerializer):
         user.rol = cliente_rol
         user.save()
         return user
+

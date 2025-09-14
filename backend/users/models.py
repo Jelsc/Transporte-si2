@@ -107,3 +107,6 @@ class CustomUser(AbstractUser):
         if not self.rol:
             return []
         return self.rol.permisos
+    
+    
+    

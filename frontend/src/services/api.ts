@@ -62,6 +62,17 @@ export interface AdminAuthResponse {
   refresh: string;
   user: User;
 }
+export interface Vehiculo {
+   id?: number;
+  placa: string;
+  modelo: string;
+  anio: number;
+  capacidad_pasajeros: number;
+  capacidad_carga: number;
+  vin: string;
+  seguro_vigente: boolean;
+  estado: "Disponible" | "En mantenimiento" | "Fuera de servicio";
+  }
 
 // Clase para manejar errores de API
 export class ApiError extends Error {
@@ -72,7 +83,7 @@ export class ApiError extends Error {
 }
 
 // Función para hacer peticiones HTTP
-async function apiRequest<T>(
+ export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
