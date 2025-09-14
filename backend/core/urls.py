@@ -18,12 +18,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+
 # Endpoints principales del sistema
 urlpatterns = [
     # Panel de administración de Django
     path("admin/", admin.site.urls),
     
     # ENDPOINTS DE API (todos bajo /api/)
+    
+    path("api/", include("users.urls")),
     
     # Auth: login/logout/password/reset para clientes
     path("api/auth/", include("dj_rest_auth.urls")),
@@ -42,6 +45,10 @@ urlpatterns = [
     # path("api/rutas/", include("rutas.urls")),
     # path("api/viajes/", include("viajes.urls")),
     
+    path("api/bitacora/", include("bitacora.urls")),
+
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
+    
+    
 ]

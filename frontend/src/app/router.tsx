@@ -6,6 +6,7 @@ import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import AdminPage from "../pages/admin/admin.page";
 import AdminLoginPage from "@/pages/auth/AdminLoginPage";
 import ProtectedRoute from "@/app/auth/ProtectedRoute";
+import BitacoraPage from "@/pages/admin/BitacoraPage";
 
 export default function AppRouter() {
   return (
@@ -23,6 +24,7 @@ export default function AppRouter() {
 
           {/* admin */}
           <Route path="/admin" element={<AdminLoginPage />} />
+          <Route path="/admin/bitacora" element={<BitacoraPage />} />
           <Route 
             path="/admin/dashboard" 
             element={

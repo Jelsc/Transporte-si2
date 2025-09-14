@@ -58,7 +58,6 @@ class AdminLoginSerializer(serializers.Serializer):
             attrs["user"] = user
         else:
             raise serializers.ValidationError("Debe proporcionar username y password")
-
         return attrs
 
 

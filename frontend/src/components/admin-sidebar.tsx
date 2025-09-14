@@ -26,6 +26,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     { id: 'rutas', name: 'Rutas y Tarifas', icon: MapPin },
     { id: 'ventas', name: 'Ventas y Boletos', icon: BarChart3 },
     { id: 'usuarios', name: 'Usuarios y Roles', icon: Users },
+    { id: 'bitacora', name: 'Bitacora', icon: BarChart3 },
   ];
 
   return (

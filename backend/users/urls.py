@@ -1,6 +1,7 @@
-from django.urls import path
+from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
+from .views import CustomLoginView, CustomRegisterView, CustomLogoutView
 
 # Endpoints para la gestión de usuarios y autenticación administrativa
 # Todos estos endpoints están bajo /api/admin/ en la URL completa
@@ -40,4 +41,14 @@ urlpatterns = [
     # ===== AUTENTICACIÓN SOCIAL =====
     # Autenticación con Google (POST: token_id)
     path("google/", views.google_auth, name="google_auth"),
+
+
+   #pruebas
+    # Login / Logout con bitácora
+    path("auth/login/", CustomLoginView.as_view(), name="custom_login"),
+    path("auth/logout/", CustomLogoutView.as_view(), name="custom_logout"),
+
+    # Registro con bitácora
+    path("auth/registration/", CustomRegisterView.as_view(), name="custom_register"),
+    
 ]

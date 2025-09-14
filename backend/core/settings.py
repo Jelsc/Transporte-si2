@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "dj_rest_auth.registration",
     # "dj_rest_auth.jwt_auth",
+
+    "bitacora",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
@@ -223,6 +225,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    # --- NUEVO ---
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,  # registros por página
 }
 # REST_USE_JWT = True
 
