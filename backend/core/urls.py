@@ -17,6 +17,7 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from users.views import client_logout
 
 # Endpoints principales del sistema
 urlpatterns = [
@@ -26,6 +27,9 @@ urlpatterns = [
     # ENDPOINTS DE API (todos bajo /api/)
     
     # Auth: login/logout/password/reset para clientes
+    # Ruta personalizada para logout
+    path("api/auth/logout/", client_logout, name='rest_logout'),
+    # Resto de rutas de autenticación
     path("api/auth/", include("dj_rest_auth.urls")),
     
     # Auth: registro de clientes

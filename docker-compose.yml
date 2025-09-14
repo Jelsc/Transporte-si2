@@ -6,6 +6,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-transporte}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      TZ: "America/La_Paz"
+      PGTZ: "America/La_Paz"
     ports:
       - "5432:5432"
     volumes:
