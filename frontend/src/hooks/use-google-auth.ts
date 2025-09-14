@@ -10,23 +10,28 @@ export const useGoogleAuth = () => {
     try {
       console.log("Google login response:", response);
 
-      // Ya no permitimos tokens de prueba
-      if (response.credential === "mock_google_token_for_testing") {
-        console.error("No se permite usar tokens de prueba en producción");
-        toast.error("Configuración de Google inválida");
+      // Validación de respuesta de Google
+      if (!response || !response.credential) {
+        console.error("Respuesta de Google inválida:", response);
+        toast.error("No se pudo obtener información de Google");
         return;
       }
 
-      if (!response.credential) {
-        toast.error("No se recibió credencial de Google");
-        return;
-      }
-
-      // Decodificar el JWT token de Google real
+      // Decodificar el JWT token de Google
       const token = response.credential;
       
       try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
+        // Decodificar el payload del token JWT (segunda parte del token)
+        const base64Url = token.split(".")[1];
+        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+            .join("")
+        );
+        
+        const payload = JSON.parse(jsonPayload);
         console.log("Google user info:", payload);
 
         if (!payload.email) {
@@ -34,7 +39,7 @@ export const useGoogleAuth = () => {
           return;
         }
 
-        // Usar el contexto de autenticación para manejar el login con Google
+        // Llamamos a loginWithGoogle con los datos obtenidos
         await loginWithGoogle({
           username: payload.email,
           password: "", // No necesitamos password para OAuth
@@ -42,7 +47,8 @@ export const useGoogleAuth = () => {
           googleToken: token,
         });
 
-        // Redirigir al dashboard o página principal
+        // Redirigimos al usuario al dashboard
+        toast.success(`¡Bienvenido ${payload.name || payload.email}!`);
         navigate("/");
       } catch (decodeError) {
         console.error("Error al decodificar token de Google:", decodeError);

@@ -160,7 +160,9 @@ TIME_ZONE = "America/La_Paz"
 
 USE_I18N = True
 
-USE_TZ = True
+# Desactivamos el soporte de zona horaria para usar la hora local directamente
+# Esto evita que Django realice conversiones automáticas
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)

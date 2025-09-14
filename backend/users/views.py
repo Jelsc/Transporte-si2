@@ -3,23 +3,17 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-
 from bitacora.utils import registrar_bitacora
-
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-
 from dj_rest_auth.views import LoginView, LogoutView
 from dj_rest_auth.registration.views import RegisterView
 from django.utils.timezone import now
-
-
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db.models import Q
 from django.conf import settings
 import requests
-import json
 from .models import Rol
 from .serializers import (
     UserSerializer,
@@ -44,7 +38,6 @@ class AdminTokenObtainPairView(TokenObtainPairView):
         user = serializer.validated_data["user"]
         refresh = RefreshToken.for_user(user)
 
-        # Actualizar último acceso
         user.fecha_ultimo_acceso = timezone.now()
         
         #BITACORA
@@ -74,6 +67,31 @@ def admin_logout(request):
     try:
         refresh_token = request.data["refresh"]
         token = RefreshToken(refresh_token)
+        user = request.user
+        user.fecha_ultimo_acceso = timezone.now()
+        user.save(update_fields=["fecha_ultimo_acceso"])
+        
+        token.blacklist()
+        return Response(
+            {"message": "Logout exitoso"}, status=status.HTTP_205_RESET_CONTENT
+        )
+    except Exception as e:
+        return Response({"error": "Token inválido"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def client_logout(request):
+    """Logout para clientes (invalidar token)"""
+    try:
+        refresh_token = request.data["refresh"]
+        token = RefreshToken(refresh_token)
+        
+        # Actualizar fecha de último acceso
+        user = request.user
+        user.fecha_ultimo_acceso = timezone.now()
+        user.save(update_fields=["fecha_ultimo_acceso"])
+        
         token.blacklist()
         return Response(
             {"message": "Logout exitoso"}, status=status.HTTP_205_RESET_CONTENT
@@ -278,7 +296,10 @@ def google_auth(request):
                 )
                 user.rol = cliente_rol
                 user.save()
-
+        # Actualizar último acceso
+        user.fecha_ultimo_acceso = timezone.now()
+        user.save(update_fields=["fecha_ultimo_acceso"])
+        
         # Generar tokens JWT
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
@@ -296,7 +317,6 @@ def google_auth(request):
             {"error": f"Error en autenticación con Google: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-
 
 ###PRUEBAS####
 User = get_user_model()

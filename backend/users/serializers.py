@@ -169,6 +169,10 @@ class CustomRegisterSerializer(RegisterSerializer):
 
         # Crear el usuario con el rol de cliente
         user = super().save(request)
+        
+        # Agregar el teléfono y otros campos adicionales
         user.rol = cliente_rol
+        user.telefono = self.validated_data.get('telefono', '')
         user.save()
+        
         return user
