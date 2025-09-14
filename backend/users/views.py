@@ -8,9 +8,7 @@ from django.utils import timezone
 from django.db.models import Q
 from django.conf import settings
 from rest_framework import viewsets
-from .models import Vehiculo
-from .serializers import VehiculoSerializer
-
+from flotas.models import Vehiculo
 import requests
 import json
 from .models import Rol

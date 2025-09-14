@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "core",
     "users",
+    "flotas", 
     # Requisito para allauth
     "django.contrib.sites",
     # Allauth (core + cuentas + social)

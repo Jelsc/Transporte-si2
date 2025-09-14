@@ -43,8 +43,8 @@ copy frontend\.env.example frontend\.env
 
 ### 2) Levantar servicios
 
-```bash
-docker compose up -d --build
+```bashdocker compose up -d --build
+
 ```
 
 Nota: El superusuario y otros datos iniciales se crean automáticamente durante el arranque del contenedor usando el sistema de seeders. Las credenciales están definidas en el archivo `.env` (variables `DJANGO_SUPERUSER_*`).
