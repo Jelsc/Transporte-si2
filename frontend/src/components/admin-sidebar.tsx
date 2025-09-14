@@ -32,16 +32,15 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   };
   
   const sidebarModules = [
-    { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/admin/dashboard' },
-    { id: 'flotas', name: 'Flotas', icon: Truck, path: '/admin/flotas' },
-    // { id: 'conductores', name: 'Conductores', icon: Users, path: '/admin/conductores' },
-    { id: 'mantenimiento', name: 'Mantenimiento', icon: Settings, path: '/admin/mantenimiento' },
-    { id: 'rutas', name: 'Rutas y Tarifas', icon: MapPin, path: '/admin/rutas' },
-    { id: 'ventas', name: 'Ventas y Boletos', icon: BarChart3, path: '/admin/ventas' },
-    { id: 'usuarios', name: 'Gestión de Permisos', icon: Users, path: '/admin/roles-permisos/permisos' }, // Ruta absoluta
-    { id: 'usuarios', name: 'Gestión de Roles', icon: Users, path: '/admin/roles-permisos/rol' }, // Ruta absoluta
-    { id: 'usuarios', name: 'Gestión de Usuarios', icon: Users, path: '/admin/registro-usuarios-choferes/UsuariosCRUD' }, // Ruta absoluta
-    { id: 'usuarios', name: 'Gestión de Choferes', icon: Users, path: '/admin/registro-usuarios-choferes/ChoferesCRUD' }, // Ruta absoluta
+    { id: 'dashboard', name: 'Dashboard', icon: BarChart3, route: '/admin/dashboard' },
+    { id: 'flotas', name: 'Flotas', icon: Truck, route: '/admin/flotas' },
+    { id: 'mantenimiento', name: 'Mantenimiento', icon: Settings, route: '/admin/mantenimiento' },
+    { id: 'rutas', name: 'Rutas y Tarifas', icon: MapPin, route: '/admin/rutas' },
+    { id: 'ventas', name: 'Ventas y Boletos', icon: BarChart3, route: '/admin/ventas' },
+    { id: 'permisos', name: 'Gestión de Permisos', icon: Users, route: '/admin/roles-permisos/permisos' },
+    { id: 'roles', name: 'Gestión de Roles', icon: Users, route: '/admin/roles-permisos/rol' },
+    { id: 'usuarios', name: 'Gestión de Usuarios', icon: Users, route: '/admin/registro-usuarios-choferes/UsuariosCRUD' },
+    { id: 'choferes', name: 'Gestión de Choferes', icon: Users, route: '/admin/registro-usuarios-choferes/ChoferesCRUD' },
     { id: 'bitacora', name: 'Bitacora', icon: BarChart3, route: "/admin/bitacora" },
   ];
 
@@ -67,10 +66,10 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
         </div>
         <nav className={`space-y-2 flex-1 ${collapsed ? 'w-full' : ''}`}>
           {sidebarModules.map((module) => (
-            <Link
+            <button
               key={module.id}
               onClick={() => navigate(module.route)}
-              className={`w-full flex items-center px-2 py-2 text-sm rounded-lg text-left transition-colors ${
+              className={`w-full flex items-center px-2 py-2 text-sm rounded-lg text-left transition-colors ${ 
                 isRouteActive(module.route) 
                   ? 'bg-blue-400 text-white' 
                   : 'text-gray-700 hover:bg-gray-100'
@@ -78,7 +77,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
             >
               <module.icon className={collapsed ? 'w-6 h-6 mx-auto' : 'w-5 h-5 mr-3'} />
               {!collapsed && module.name}
-            </Link>
+            </button>
           ))}
         </nav>
         {!collapsed && (

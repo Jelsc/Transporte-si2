@@ -6,11 +6,11 @@ import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import AdminPage from "../pages/admin/admin.page";
 import AdminLoginPage from "@/pages/auth/AdminLoginPage";
 import ProtectedRoute from "@/app/auth/ProtectedRoute";
-import PermisosCRUD from "../pages/roles-permisos/permiso";
-import RolForm from "../pages/roles-permisos/rol";
-import UsuariosCRUD from "../pages/registro-usuarios-choferes/UsuariosCRUD";
-import ChoferesCRUD from "../pages/registro-usuarios-choferes/ChoferesCRUD";
-import BitacoraPage from "@/pages/admin/BitacoraPage";
+import PermisosCRUD from "../pages/admin/Usuarios/roles-permisos/permiso";
+import RolForm from "../pages/admin/Usuarios/roles-permisos/rol";
+import UsuariosCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/UsuariosCRUD";
+import ChoferesCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/ChoferesCRUD";
+import BitacoraPage from "@/pages/admin/bitacora.page";
 
 
 export default function AppRouter() {

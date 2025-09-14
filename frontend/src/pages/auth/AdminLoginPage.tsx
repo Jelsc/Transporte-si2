@@ -97,7 +97,7 @@ export default function AdminLoginPage() {
               htmlFor="username"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Usuario
+              Usuario o Correo Electrónico
             </label>
             <Input
               id="username"
