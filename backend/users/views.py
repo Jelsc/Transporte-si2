@@ -3,16 +3,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from bitacora.utils import registrar_bitacora
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from dj_rest_auth.views import LoginView, LogoutView
 from dj_rest_auth.registration.views import RegisterView
-from django.utils.timezone import now
+from bitacora.utils import registrar_bitacora
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.db.models import Q
-from django.conf import settings
 import requests
 from .models import Rol
 from .serializers import (
@@ -58,7 +54,6 @@ class AdminTokenObtainPairView(TokenObtainPairView):
                 "user": UserSerializer(user).data,
             }
         )
-
 
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])

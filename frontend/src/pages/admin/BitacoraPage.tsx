@@ -13,6 +13,15 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { getBitacora } from "@/services/bitacoraService";
 import type { BitacoraLog } from "@/types/bitacora";
 
@@ -24,12 +33,14 @@ const BitacoraPage: React.FC = () => {
   const [page, setPage] = useState<number>(1);
   const [total, setTotal] = useState<number>(0);
   const [search, setSearch] = useState<string>("");
-  const [rol, setRol] = useState<string>(""); // filtro de rol
+  const [rol, setRol] = useState<string>("all");
 
-  const fetchLogs = async (pageNumber = 1, searchQuery = "", rolFilter = "") => {
+  const fetchLogs = async (pageNumber = 1, searchQuery = "", rolFilter = "all") => {
     setLoading(true);
     try {
-      const data = await getBitacora(pageNumber, searchQuery, rolFilter);
+      // Convertir "all" a cadena vacía para el backend
+      const actualRolFilter = rolFilter === "all" ? "" : rolFilter;
+      const data = await getBitacora(pageNumber, searchQuery, actualRolFilter);
       setLogs(data.results);
       setTotal(data.count);
       setPage(pageNumber);
@@ -57,25 +68,32 @@ const BitacoraPage: React.FC = () => {
         <CardContent>
           {/* Buscador + Filtro */}
           <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <input
-              type="text"
-              placeholder="Buscar por usuario, acción, rol..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="border rounded p-2 w-full md:w-2/3"
-            />
+            <div className="w-full md:w-2/3">
+              <Input
+                type="text"
+                placeholder="Buscar por usuario, acción, rol..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
 
-            <select
-              value={rol}
-              onChange={(e) => setRol(e.target.value)}
-              className="border rounded p-2 w-full md:w-1/3"
-            >
-              <option value="">Todos los roles</option>
-              <option value="Cliente">Cliente</option>
-              <option value="Administrador">Administrador</option>
-              <option value="Operador">Operador</option>
-              <option value="Conductor">Conductor</option>
-            </select>
+            <div className="w-full md:w-1/3">
+              <Select
+                value={rol}
+                onValueChange={(value: string) => setRol(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona un rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los roles</SelectItem>
+                  <SelectItem value="Cliente">Cliente</SelectItem>
+                  <SelectItem value="Administrador">Administrador</SelectItem>
+                  <SelectItem value="Operador">Operador</SelectItem>
+                  <SelectItem value="Conductor">Conductor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {loading ? (
@@ -131,31 +149,32 @@ const BitacoraPage: React.FC = () => {
 
               {/* Paginación */}
               <div className="flex justify-center mt-4 gap-2 flex-wrap">
-                <button
+                <Button
                   onClick={() => fetchLogs(page - 1, search, rol)}
                   disabled={page === 1}
-                  className="px-2 py-1 text-sm border rounded disabled:opacity-50"
+                  variant="outline"
+                  size="sm"
                 >
                   Anterior
-                </button>
+                </Button>
                 {Array.from({ length: totalPages }, (_, i) => (
-                  <button
+                  <Button
                     key={i + 1}
                     onClick={() => fetchLogs(i + 1, search, rol)}
-                    className={`px-2 py-1 text-sm border rounded ${
-                      i + 1 === page ? "bg-blue-500 text-white" : ""
-                    }`}
+                    variant={i + 1 === page ? "default" : "outline"}
+                    size="sm"
                   >
                     {i + 1}
-                  </button>
+                  </Button>
                 ))}
-                <button
+                <Button
                   onClick={() => fetchLogs(page + 1, search, rol)}
                   disabled={page === totalPages}
-                  className="px-2 py-1 text-sm border rounded disabled:opacity-50"
+                  variant="outline"
+                  size="sm"
                 >
                   Siguiente
-                </button>
+                </Button>
               </div>
             </>
           )}

@@ -26,7 +26,7 @@ export default function AppRouter() {
           <Route path="/admin" element={<AdminLoginPage />} />
           <Route path="/admin/bitacora" element={<BitacoraPage />} />
           <Route 
-            path="/admin/dashboard" 
+            path="/admin/home" 
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminPage />

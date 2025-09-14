@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import TransporteIcon from "./app-logo";
 import { 
   BarChart3, 
@@ -16,25 +17,41 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
-  const [activeModule, setActiveModule] = useState('rutas');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
+  
+  // Función para verificar si una ruta está activa
+  const isRouteActive = (route: string) => {
+    // Caso especial para dashboard
+    if (route === "/admin/dashboard") {
+      return currentPath === "/admin/dashboard" || currentPath === "/admin";
+    }
+    // Para otras rutas, verificar si la ruta actual comienza con la ruta del módulo
+    return currentPath.startsWith(route);
+  };
 
   const sidebarModules = [
-    { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
-    { id: 'flotas', name: 'Flotas', icon: Truck },
-    { id: 'conductores', name: 'Conductores', icon: Users },
-    { id: 'mantenimiento', name: 'Mantenimiento', icon: Settings },
-    { id: 'rutas', name: 'Rutas y Tarifas', icon: MapPin },
-    { id: 'ventas', name: 'Ventas y Boletos', icon: BarChart3 },
-    { id: 'usuarios', name: 'Usuarios y Roles', icon: Users },
-    { id: 'bitacora', name: 'Bitacora', icon: BarChart3 },
+    { id: 'dashboard', name: 'Dashboard', icon: BarChart3, route: "/admin/dashboard" },
+    { id: 'flotas', name: 'Flotas', icon: Truck, route: "/admin/flotas" },
+    { id: 'conductores', name: 'Conductores', icon: Users, route: "/admin/conductores" },
+    { id: 'mantenimiento', name: 'Mantenimiento', icon: Settings, route: "/admin/mantenimiento" },
+    { id: 'rutas', name: 'Rutas y Tarifas', icon: MapPin, route: "/admin/rutas" },
+    { id: 'ventas', name: 'Ventas y Boletos', icon: BarChart3, route: "/admin/ventas" },
+    { id: 'usuarios', name: 'Usuarios y Roles', icon: Users, route: "/admin/usuarios" },
+    { id: 'bitacora', name: 'Bitacora', icon: BarChart3, route: "/admin/bitacora" },
   ];
 
   return (
     <aside className={`h-full bg-sky-100 relative border-r border-gray-200 transition-all duration-300 ${collapsed ? 'w-[64px]' : 'w-[320px]'}`}>
       <div className={`p-6 flex flex-col h-full ${collapsed ? 'items-center px-2' : ''}`}>
         <div className={`flex items-center gap-2 mb-6 ${collapsed ? 'justify-center' : ''}`}>
-          {!collapsed && <TransporteIcon className="w-8 h-8" />}
-          {!collapsed && <span className="text-lg font-bold text-blue-700">MoviFleet</span>}
+          {!collapsed && (
+            <Link to="/admin/home" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <TransporteIcon className="w-8 h-8" />
+              <span className="text-lg font-bold text-blue-700">MoviFleet</span>
+            </Link>
+          )}
           {collapsed && (
             <button
               className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center shadow transition-all duration-300"
@@ -49,9 +66,9 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           {sidebarModules.map((module) => (
             <button
               key={module.id}
-              onClick={() => setActiveModule(module.id)}
+              onClick={() => navigate(module.route)}
               className={`w-full flex items-center px-2 py-2 text-sm rounded-lg text-left transition-colors ${
-                activeModule === module.id 
+                isRouteActive(module.route) 
                   ? 'bg-blue-400 text-white' 
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
