@@ -46,30 +46,42 @@ copy frontend\.env.example frontend\.env
 ```bash
 docker compose up -d --build
 ```
-nota: el super usuario ya esta creado las credenciales estan en el .env.example para el backend
 
-### 2) Ejecucion
+Nota: El superusuario y otros datos iniciales se crean automáticamente durante el arranque del contenedor usando el sistema de seeders. Las credenciales están definidas en el archivo `.env` (variables `DJANGO_SUPERUSER_*`).
+
+### 3) Ejecución
 
 ```bash
-#para iniciar los contenedores
-
+# para iniciar los contenedores
 docker compose up -d
 
-#para generar migracion para una app especifica
-
-docker compose exec backend python manage.py makemigrations users
-docker-compose exec backend python manage.py makemigrations account
-
-#para generar migraciones para todas las apps
-
+# MIGRACIONES (importante seguir este orden):
+# 1. Primero generar archivos de migración (detecta cambios en modelos)
+#    Para todas las apps:
 docker compose exec backend python manage.py makemigrations
 
-#para aplicar migraciones a Postgres
+#    O para apps específicas:
+docker compose exec backend python manage.py makemigrations users
+docker compose exec backend python manage.py makemigrations account
 
+# 2. Luego aplicar migraciones a la base de datos
 docker compose exec backend python manage.py migrate
 
-#para parar detener los contenedores
+# SEEDERS:
+# Para ejecutar todos los seeders automáticamente:
+docker compose exec backend python manage.py seed
 
+# Para ejecutar seeders específicos (por nombre, sin el sufijo "_seeder"):
+docker compose exec backend python manage.py seed user rol
+
+# Para ejecutar un nuevo seeder que acabas de crear (ejemplo: vehiculo_seeder.py):
+docker compose exec backend python manage.py seed vehiculo
+
+# Para forzar la ejecución aunque should_run() devuelva False:
+docker compose exec backend python manage.py seed --force
+docker compose exec backend python manage.py seed vehiculo --force
+
+#para parar detener los contenedores
 docker compose stop
 ```
 
@@ -88,6 +100,7 @@ docker compose logs -f frontend
 - Backend (Django): [http://localhost:8000](http://localhost:8000)
 - Admin Django: [http://localhost:8000/admin](http://localhost:8000/admin)
 - Frontend (Vite): [http://localhost:5173](http://localhost:5173)
+- MailHog: [http://localhost:8025](http://localhost:8025/)
 
 ## 🧑‍💻 Desarrollo local (sin Docker) — opcional
 
