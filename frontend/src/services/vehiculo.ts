@@ -15,20 +15,20 @@ export interface Vehiculo {
   
  export const vehiculoService = {
   getVehiculos: (): Promise<ApiResponse<Vehiculo[]>> =>
-    apiRequest<Vehiculo[]>("/api/vehiculos/"),
+    apiRequest<Vehiculo[]>("/api/flotas/vehiculos/"),
 
   createVehiculo: (data: Vehiculo): Promise<ApiResponse<Vehiculo>> =>
-    apiRequest<Vehiculo>("/api/vehiculos/", {
+    apiRequest<Vehiculo>("/api/flotas/vehiculos/", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   updateVehiculo: (id: number, data: Vehiculo): Promise<ApiResponse<Vehiculo>> =>
-    apiRequest<Vehiculo>(`/api/vehiculos/${id}/`, {
+    apiRequest<Vehiculo>(`/api/flotas/vehiculos/${id}/`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
 
   deleteVehiculo: (id: number): Promise<ApiResponse<void>> =>
-    apiRequest<void>(`/api/vehiculos/${id}/`, { method: "DELETE" }),
+    apiRequest<void>(`/api/flotas/vehiculos/${id}/`, { method: "DELETE" }),
 };

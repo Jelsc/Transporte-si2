@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 const sidebarModules = [
 	{ id: "dashboard", name: "Dashboard", icon: BarChart3, route: "/admin/dashboard" },
-  { id: "flotas", name: "Flotas", icon: Truck, route: "/admin/flotas" },
+  { id: "flotas", name: "Flotas", icon: Truck, route: "/admin/vehiculo" },
   { id: "conductores", name: "Conductores", icon: Users, route: "/admin/conductores" },
   { id: "mantenimiento", name: "Mantenimiento", icon: Settings, route: "/admin/mantenimiento" },
   { id: "rutas", name: "Rutas y Tarifas", icon: MapPin, route: "/admin/rutas" },
