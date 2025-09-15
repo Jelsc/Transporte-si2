@@ -102,3 +102,39 @@ def requiere_rol_administrativo(view_func):
         # Si tiene rol administrativo, ejecutar la vista
         return view_func(request, *args, **kwargs)
     return _wrapped_view
+
+
+def requiere_permisos_viewset(permisos):
+    """
+    Decorador que verifica si el usuario tiene los permisos necesarios para ViewSets.
+    
+    Args:
+        permisos (list): Lista de permisos requeridos
+        
+    Returns:
+        function: Decorador que verifica permisos para ViewSets
+    """
+    def decorator(view_method):
+        @wraps(view_method)
+        def _wrapped_view(self, request, *args, **kwargs):
+            # Verificar si el usuario está autenticado
+            if not request.user.is_authenticated:
+                from rest_framework.response import Response
+                from rest_framework import status
+                return Response(
+                    {"error": "Debes iniciar sesión para acceder a esta funcionalidad"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Verificar si el usuario tiene todos los permisos requeridos
+            if not request.user.tiene_permisos(permisos):
+                from rest_framework.response import Response
+                from rest_framework import status
+                return Response(
+                    {"error": "No tienes los permisos necesarios para acceder a esta funcionalidad"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            return view_method(self, request, *args, **kwargs)
+        return _wrapped_view
+    return decorator

@@ -12,6 +12,22 @@ PERMISOS_SISTEMA = [
     ('ver_dashboard_admin', 'Ver dashboard administrativo'),
     ('gestionar_configuracion', 'Gestionar configuración del sistema'),
     
+    # Permisos para conductores
+    ('gestionar_conductores', 'Gestionar conductores del sistema'),
+    ('crear_conductor', 'Crear nuevos conductores'),
+    ('editar_conductor', 'Editar información de conductores'),
+    ('eliminar_conductor', 'Eliminar conductores'),
+    ('ver_conductores', 'Ver lista de conductores'),
+    ('asignar_vehiculo_conductor', 'Asignar vehículos a conductores'),
+    
+    # Permisos para personal de empresa
+    ('gestionar_personal', 'Gestionar personal de empresa'),
+    ('crear_personal', 'Crear nuevo personal de empresa'),
+    ('editar_personal', 'Editar información del personal'),
+    ('eliminar_personal', 'Eliminar personal de empresa'),
+    ('ver_personal', 'Ver lista de personal de empresa'),
+    ('gestionar_departamentos', 'Gestionar departamentos'),
+    
     # Permisos para vehículos
     ('crear_vehiculo', 'Crear nuevos vehículos'),
     ('editar_vehiculo', 'Editar información de vehículos'),
@@ -63,13 +79,15 @@ PERMISOS_SISTEMA = [
 GRUPOS_PERMISOS = {
     'administrador': [
         'gestionar_usuarios', 'gestionar_roles', 'ver_dashboard_admin', 
-        'gestionar_configuracion', 'ver_reportes_avanzados', 'exportar_reportes',
+        'gestionar_configuracion', 'gestionar_conductores', 'gestionar_personal',
+        'gestionar_departamentos', 'ver_reportes_avanzados', 'exportar_reportes',
         'generar_reportes_personalizados'
     ],
     'supervisor': [
-        'ver_vehiculos', 'ver_rutas', 'gestionar_viajes', 'monitorear_vehiculos',
-        'monitorear_conductores', 'monitorear_rutas', 'ver_estadisticas_tiempo_real',
-        'ver_reportes_basicos', 'gestionar_mantenimiento'
+        'ver_conductores', 'ver_personal', 'ver_vehiculos', 'ver_rutas', 
+        'gestionar_viajes', 'monitorear_vehiculos', 'monitorear_conductores', 
+        'monitorear_rutas', 'ver_estadisticas_tiempo_real', 'ver_reportes_basicos', 
+        'gestionar_mantenimiento'
     ],
     'conductor': [
         'ver_viajes_asignados', 'actualizar_estado', 'iniciar_viaje', 
@@ -80,7 +98,8 @@ GRUPOS_PERMISOS = {
         'ver_perfil', 'editar_perfil'
     ],
     'operador': [
-        'asignar_viajes', 'monitorear_vehiculos', 'monitorear_conductores',
-        'ver_rutas', 'ver_vehiculos', 'ver_reportes_basicos'
+        'ver_conductores', 'asignar_viajes', 'monitorear_vehiculos', 
+        'monitorear_conductores', 'ver_rutas', 'ver_vehiculos', 
+        'ver_reportes_basicos'
     ]
 }

@@ -41,6 +41,12 @@ urlpatterns = [
     # Admin: gestión de usuarios, roles y permisos
     path("api/admin/", include("users.urls")),
     
+    # Conductores: gestión de conductores
+    path("api/conductores/", include("conductores.urls")),
+    
+    # Personal: gestión de personal de empresa
+    path("api/personal/", include("personal.urls")),
+    
     # ML: servicios de inteligencia artificial
     path("api/ml/", include("services.urls")),
     

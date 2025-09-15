@@ -1,11 +1,13 @@
-from rest_framework import generics, status, permissions
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework import generics, status, permissions, viewsets, filters
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from dj_rest_auth.views import LoginView, LogoutView
 from dj_rest_auth.registration.views import RegisterView
+from django_filters.rest_framework import DjangoFilterBackend
+from django.db import models
 from bitacora.utils import registrar_bitacora
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -18,6 +20,8 @@ from .serializers import (
     ChangePasswordSerializer,
     RolSerializer,
 )
+from .constants import PERMISOS_SISTEMA, GRUPOS_PERMISOS
+from .decorators import requiere_permisos, requiere_permisos_viewset
 
 User = get_user_model()
 
@@ -160,31 +164,230 @@ class ChangePasswordView(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class RolListCreateView(generics.ListCreateAPIView):
-    """Lista y creación de roles"""
-
+class RolViewSet(viewsets.ModelViewSet):
+    """ViewSet para el CRUD de roles"""
+    
     queryset = Rol.objects.all()
     serializer_class = RolSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['es_administrativo']
+    search_fields = ['nombre', 'descripcion']
+    ordering_fields = ['nombre', 'fecha_creacion']
+    ordering = ['nombre']
+    
+    def get_queryset(self):
+        """Filtra el queryset según los permisos del usuario"""
+        # Solo administradores pueden ver todos los roles
+        if not self.request.user.tiene_permiso('gestionar_roles'):
+            return Rol.objects.none()
+        return super().get_queryset()
+    
+    @requiere_permisos_viewset(['gestionar_roles'])
+    def create(self, request, *args, **kwargs):
+        """Crear un nuevo rol"""
+        return super().create(request, *args, **kwargs)
+    
+    @requiere_permisos_viewset(['gestionar_roles'])
+    def update(self, request, *args, **kwargs):
+        """Actualizar un rol"""
+        return super().update(request, *args, **kwargs)
+    
+    @requiere_permisos_viewset(['gestionar_roles'])
+    def destroy(self, request, *args, **kwargs):
+        """Eliminar un rol"""
+        return super().destroy(request, *args, **kwargs)
+    
+    @action(detail=False, methods=['get'])
+    def permisos_disponibles(self, request):
+        """Lista todos los permisos disponibles en el sistema"""
+        if not request.user.tiene_permiso('gestionar_roles'):
+            return Response(
+                {'error': 'No tienes permisos para ver los permisos'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return Response({
+            'permisos': PERMISOS_SISTEMA,
+            'grupos_permisos': GRUPOS_PERMISOS
+        })
+    
+    @action(detail=True, methods=['post'])
+    def asignar_permisos(self, request, pk=None):
+        """Asignar permisos a un rol"""
+        rol = self.get_object()
+        
+        if not request.user.tiene_permiso('gestionar_roles'):
+            return Response(
+                {'error': 'No tienes permisos para gestionar roles'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        permisos = request.data.get('permisos', [])
+        
+        # Validar que los permisos existan
+        permisos_validos = [permiso[0] for permiso in PERMISOS_SISTEMA]
+        permisos_invalidos = [p for p in permisos if p not in permisos_validos]
+        
+        if permisos_invalidos:
+            return Response(
+                {'error': f'Permisos inválidos: {", ".join(permisos_invalidos)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        rol.asignar_permisos(permisos)
+        return Response({'message': 'Permisos asignados correctamente'})
+    
+    @action(detail=True, methods=['post'])
+    def agregar_permiso(self, request, pk=None):
+        """Agregar un permiso a un rol"""
+        rol = self.get_object()
+        
+        if not request.user.tiene_permiso('gestionar_roles'):
+            return Response(
+                {'error': 'No tienes permisos para gestionar roles'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        permiso = request.data.get('permiso')
+        if not permiso:
+            return Response(
+                {'error': 'Permiso requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar que el permiso exista
+        permisos_validos = [permiso[0] for permiso in PERMISOS_SISTEMA]
+        if permiso not in permisos_validos:
+            return Response(
+                {'error': 'Permiso inválido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if rol.agregar_permiso(permiso):
+            return Response({'message': 'Permiso agregado correctamente'})
+        else:
+            return Response({'message': 'El permiso ya estaba asignado'})
+    
+    @action(detail=True, methods=['post'])
+    def quitar_permiso(self, request, pk=None):
+        """Quitar un permiso de un rol"""
+        rol = self.get_object()
+        
+        if not request.user.tiene_permiso('gestionar_roles'):
+            return Response(
+                {'error': 'No tienes permisos para gestionar roles'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        permiso = request.data.get('permiso')
+        if not permiso:
+            return Response(
+                {'error': 'Permiso requerido'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if rol.quitar_permiso(permiso):
+            return Response({'message': 'Permiso quitado correctamente'})
+        else:
+            return Response({'message': 'El permiso no estaba asignado'})
+    
+    @action(detail=False, methods=['get'])
+    def estadisticas(self, request):
+        """Estadísticas de roles"""
+        if not request.user.tiene_permiso('gestionar_roles'):
+            return Response(
+                {'error': 'No tienes permisos para ver estadísticas'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        queryset = self.get_queryset()
+        
+        stats = {
+            'total_roles': queryset.count(),
+            'roles_administrativos': queryset.filter(es_administrativo=True).count(),
+            'roles_clientes': queryset.filter(es_administrativo=False).count(),
+            'permisos_por_rol': [
+                {
+                    'rol': rol.nombre,
+                    'permisos_count': len(rol.permisos),
+                    'permisos': rol.permisos
+                }
+                for rol in queryset
+            ]
+        }
+        
+        return Response(stats)
 
 
-class UserListCreateView(generics.ListCreateAPIView):
-    """Lista y creación de usuarios (solo administrativos)"""
-
+class UserViewSet(viewsets.ModelViewSet):
+    """ViewSet para el CRUD de usuarios"""
+    
+    queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['rol', 'is_active', 'es_activo']
+    search_fields = [
+        'username',
+        'email',
+        'first_name',
+        'last_name',
+        'codigo_empleado'
+    ]
+    ordering_fields = ['username', 'email', 'fecha_creacion']
+    ordering = ['-fecha_creacion']
+    
     def get_queryset(self):
-        # Solo mostrar usuarios administrativos
-        return User.objects.filter(rol__es_administrativo=True)
-
-    def perform_create(self, serializer):
-        # Solo superusuarios pueden crear usuarios
-        if not self.request.user.is_superuser:
-            raise permissions.PermissionDenied(
-                "Solo superusuarios pueden crear usuarios"
+        """Filtra el queryset según los permisos del usuario"""
+        queryset = super().get_queryset()
+        
+        # Si el usuario no tiene permisos para gestionar usuarios, solo puede ver su propio perfil
+        if not self.request.user.tiene_permiso('gestionar_usuarios'):
+            return queryset.filter(id=self.request.user.id)
+        
+        return queryset.select_related('rol')
+    
+    @requiere_permisos_viewset(['gestionar_usuarios'])
+    def create(self, request, *args, **kwargs):
+        """Crear un nuevo usuario"""
+        return super().create(request, *args, **kwargs)
+    
+    @requiere_permisos_viewset(['gestionar_usuarios'])
+    def update(self, request, *args, **kwargs):
+        """Actualizar un usuario"""
+        return super().update(request, *args, **kwargs)
+    
+    @requiere_permisos_viewset(['gestionar_usuarios'])
+    def destroy(self, request, *args, **kwargs):
+        """Eliminar un usuario"""
+        return super().destroy(request, *args, **kwargs)
+    
+    @action(detail=False, methods=['get'])
+    def estadisticas(self, request):
+        """Estadísticas de usuarios"""
+        if not request.user.tiene_permiso('gestionar_usuarios'):
+            return Response(
+                {'error': 'No tienes permisos para ver estadísticas'},
+                status=status.HTTP_403_FORBIDDEN
             )
-        serializer.save()
+        
+        queryset = self.get_queryset()
+        
+        stats = {
+            'total': queryset.count(),
+            'activos': queryset.filter(is_active=True).count(),
+            'administrativos': queryset.filter(rol__es_administrativo=True).count(),
+            'clientes': queryset.filter(rol__es_administrativo=False).count(),
+            'por_rol': dict(queryset.values('rol__nombre').annotate(
+                count=models.Count('id')
+            ).values_list('rol__nombre', 'count')),
+            'nuevos_este_mes': queryset.filter(
+                fecha_creacion__gte=timezone.now().replace(day=1)
+            ).count()
+        }
+        
+        return Response(stats)
 
 
 @api_view(["GET"])

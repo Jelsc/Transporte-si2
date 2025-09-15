@@ -14,6 +14,7 @@ class RolSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     rol = RolSerializer(read_only=True)
     rol_id = serializers.IntegerField(write_only=True, required=False)
+    password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = CustomUser
@@ -27,6 +28,7 @@ class UserSerializer(serializers.ModelSerializer):
             "direccion",
             "rol",
             "rol_id",
+            "password",
             "es_activo",
             "fecha_creacion",
             "fecha_ultimo_acceso",
@@ -35,6 +37,50 @@ class UserSerializer(serializers.ModelSerializer):
             "departamento",
         ]
         read_only_fields = ["id", "fecha_creacion", "fecha_ultimo_acceso"]
+
+    def create(self, validated_data):
+        """Crear un nuevo usuario"""
+        password = validated_data.pop('password', None)
+        rol_id = validated_data.pop('rol_id', None)
+        
+        user = CustomUser.objects.create_user(**validated_data)
+        
+        if password:
+            user.set_password(password)
+        
+        if rol_id:
+            try:
+                rol = Rol.objects.get(id=rol_id)
+                user.rol = rol
+            except Rol.DoesNotExist:
+                pass
+        
+        user.save()
+        return user
+
+    def update(self, instance, validated_data):
+        """Actualizar un usuario existente"""
+        password = validated_data.pop('password', None)
+        rol_id = validated_data.pop('rol_id', None)
+        
+        # Actualizar campos básicos
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Actualizar contraseña si se proporciona
+        if password:
+            instance.set_password(password)
+        
+        # Actualizar rol si se proporciona
+        if rol_id:
+            try:
+                rol = Rol.objects.get(id=rol_id)
+                instance.rol = rol
+            except Rol.DoesNotExist:
+                pass
+        
+        instance.save()
+        return instance
 
 
 class AdminLoginSerializer(serializers.Serializer):

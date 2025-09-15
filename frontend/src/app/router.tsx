@@ -10,6 +10,7 @@ import PermisosCRUD from "../pages/admin/Usuarios/roles-permisos/permiso";
 import RolForm from "../pages/admin/Usuarios/roles-permisos/rol";
 import UsuariosCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/UsuariosCRUD";
 import ChoferesCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/ChoferesCRUD";
+import PersonalCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/PersonalCRUD";
 import BitacoraPage from "@/pages/admin/bitacora.page";
 
 
@@ -18,11 +19,55 @@ export default function AppRouter() {
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />        
-        {/* Ruta principal para permisos desde el admin */}
-        <Route path="/admin/roles-permisos/permisos" element={<PermisosCRUD />} />
-        <Route path="/admin/roles-permisos/rol" element={<RolForm />} />
-        <Route path="/admin/registro-usuarios-choferes/ChoferesCRUD" element={<ChoferesCRUD />} />
-        <Route path="/admin/registro-usuarios-choferes/UsuariosCRUD" element={<UsuariosCRUD />} />
+        {/* Rutas protegidas de administración */}
+        <Route 
+          path="/admin/roles-permisos/permisos" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <PermisosCRUD />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/roles-permisos/rol" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <RolForm />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/registro-usuarios-choferes/ChoferesCRUD" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ChoferesCRUD />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/registro-usuarios-choferes/UsuariosCRUD" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <UsuariosCRUD />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/registro-usuarios-choferes/PersonalCRUD" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <PersonalCRUD />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/bitacora" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <BitacoraPage />
+            </ProtectedRoute>
+          } 
+        />
         {/* auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -33,7 +78,6 @@ export default function AppRouter() {
 
         {/* admin */}
         <Route path="/admin" element={<AdminLoginPage />} />
-        <Route path="/admin/bitacora" element={<BitacoraPage />} />
         <Route 
           path="/admin/home" 
           element={
@@ -43,12 +87,47 @@ export default function AppRouter() {
           } 
         />
 
-        {/* Agregar otras rutas de admin si las necesitas */}
-        <Route path="/admin/flotas" element={<div>Flotas (por implementar)</div>} />
-        <Route path="/admin/conductores" element={<div>Conductores (por implementar)</div>} />
-        <Route path="/admin/mantenimiento" element={<div>Mantenimiento (por implementar)</div>} />
-        <Route path="/admin/rutas" element={<div>Rutas (por implementar)</div>} />
-        <Route path="/admin/ventas" element={<div>Ventas (por implementar)</div>} />
+        {/* Otras rutas de admin protegidas */}
+        <Route 
+          path="/admin/flotas" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <div>Flotas (por implementar)</div>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/conductores" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <div>Conductores (por implementar)</div>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/mantenimiento" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <div>Mantenimiento (por implementar)</div>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/rutas" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <div>Rutas (por implementar)</div>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/ventas" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <div>Ventas (por implementar)</div>
+            </ProtectedRoute>
+          } 
+        />
 
         {/* rutas protegidas de usuario */}
         <Route

@@ -106,4 +106,5 @@ class CustomUser(AbstractUser):
             return ["*"]  # Asterisco indica todos los permisos
         if not self.rol:
             return []
-        return self.rol.permisos
+        return self.r
+        ol.permisos
