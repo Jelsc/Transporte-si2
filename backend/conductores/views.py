@@ -1,12 +1,10 @@
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q
+from django.db import models
 from django.utils import timezone
-from datetime import timedelta
-
+from bitacora.utils import registrar_bitacora
 from .models import Conductor
 from .serializers import (
     ConductorSerializer,
@@ -15,7 +13,6 @@ from .serializers import (
     ConductorUbicacionSerializer,
     ConductorEstadoSerializer
 )
-from users.decorators import requiere_permisos
 
 
 class ConductorViewSet(viewsets.ModelViewSet):
@@ -23,17 +20,17 @@ class ConductorViewSet(viewsets.ModelViewSet):
     
     queryset = Conductor.objects.all()
     serializer_class = ConductorSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['estado', 'tipo_licencia', 'es_activo']
+    filterset_fields = ['estado', 'es_activo', 'tipo_licencia']
     search_fields = [
-        'usuario__username',
-        'usuario__first_name',
-        'usuario__last_name',
-        'usuario__email',
-        'numero_licencia'
+        'nombre',
+        'apellido',
+        'email',
+        'ci',
+        'nro_licencia'
     ]
-    ordering_fields = ['fecha_creacion', 'experiencia_anos', 'numero_licencia']
+    ordering_fields = ['nombre', 'fecha_creacion', 'fecha_venc_licencia']
     ordering = ['-fecha_creacion']
     
     def get_serializer_class(self):
@@ -42,139 +39,218 @@ class ConductorViewSet(viewsets.ModelViewSet):
             return ConductorCreateSerializer
         elif self.action in ['update', 'partial_update']:
             return ConductorUpdateSerializer
+        elif self.action == 'actualizar_ubicacion':
+            return ConductorUbicacionSerializer
+        elif self.action == 'cambiar_estado':
+            return ConductorEstadoSerializer
         return ConductorSerializer
     
     def get_queryset(self):
         """Filtra el queryset según los permisos del usuario"""
         queryset = super().get_queryset()
         
-        # Si el usuario es conductor, solo puede ver su propio perfil
-        if self.request.user.rol and self.request.user.rol.nombre == 'conductor':
-            try:
-                return queryset.filter(usuario=self.request.user)
-            except Conductor.DoesNotExist:
+        # Si el usuario no tiene permisos para gestionar conductores, solo puede ver su propio perfil
+        if not self.request.user.tiene_permiso('gestionar_conductores'):
+            if hasattr(self.request.user, 'conductor_profile'):
+                return queryset.filter(id=self.request.user.conductor_profile.id)
+            else:
                 return queryset.none()
         
-        # Otros usuarios pueden ver todos los conductores
         return queryset.select_related('usuario')
     
-    def create(self, request, *args, **kwargs):
+    def perform_create(self, serializer):
         """Crear un nuevo conductor"""
-        return super().create(request, *args, **kwargs)
+        if not self.request.user.tiene_permiso('gestionar_conductores'):
+            raise permissions.PermissionDenied("No tienes permisos para crear conductores")
+        
+        conductor = serializer.save()
+        
+        # Registrar en bitácora
+        registrar_bitacora(
+            request=self.request,
+            usuario=self.request.user,
+            accion="Crear",
+            descripcion=f"Se creó el conductor {conductor.nombre_completo}",
+            modulo="CONDUCTORES"
+        )
     
-    def update(self, request, *args, **kwargs):
+    def perform_update(self, serializer):
         """Actualizar un conductor"""
-        return super().update(request, *args, **kwargs)
+        if not self.request.user.tiene_permiso('gestionar_conductores'):
+            raise permissions.PermissionDenied("No tienes permisos para actualizar conductores")
+        
+        conductor = serializer.save()
+        
+        # Registrar en bitácora
+        registrar_bitacora(
+            request=self.request,
+            usuario=self.request.user,
+            accion="Actualizar",
+            descripcion=f"Se actualizó el conductor {conductor.nombre_completo}",
+            modulo="CONDUCTORES"
+        )
     
-    def destroy(self, request, *args, **kwargs):
+    def perform_destroy(self, instance):
         """Eliminar un conductor"""
-        return super().destroy(request, *args, **kwargs)
-    
-    @action(detail=False, methods=['get'])
-    def disponibles(self, request):
-        """Lista conductores disponibles"""
-        queryset = self.get_queryset().filter(
-            estado='disponible',
-            es_activo=True,
-            fecha_vencimiento_licencia__gt=timezone.now().date()
+        if not self.request.user.tiene_permiso('gestionar_conductores'):
+            raise permissions.PermissionDenied("No tienes permisos para eliminar conductores")
+        
+        nombre_conductor = instance.nombre_completo
+        instance.delete()
+        
+        # Registrar en bitácora
+        registrar_bitacora(
+            request=self.request,
+            usuario=self.request.user,
+            accion="Eliminar",
+            descripcion=f"Se eliminó el conductor {nombre_conductor}",
+            modulo="CONDUCTORES"
         )
-        
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
     
-    @action(detail=False, methods=['get'])
-    def licencias_por_vencer(self, request):
-        """Lista conductores con licencias que vencen pronto"""
-        dias = request.query_params.get('dias', 30)
-        try:
-            dias = int(dias)
-        except ValueError:
-            dias = 30
+    @action(detail=True, methods=['post'])
+    def cambiar_estado(self, request, pk=None):
+        """Cambiar estado del conductor"""
+        if not request.user.tiene_permiso('gestionar_conductores'):
+            return Response(
+                {'error': 'No tienes permisos para cambiar el estado de conductores'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         
-        fecha_limite = timezone.now().date() + timedelta(days=dias)
-        queryset = self.get_queryset().filter(
-            fecha_vencimiento_licencia__lte=fecha_limite,
-            fecha_vencimiento_licencia__gt=timezone.now().date()
-        )
+        conductor = self.get_object()
+        serializer = self.get_serializer(conductor, data=request.data)
         
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'])
-    def licencias_vencidas(self, request):
-        """Lista conductores con licencias vencidas"""
-        queryset = self.get_queryset().filter(
-            fecha_vencimiento_licencia__lt=timezone.now().date()
-        )
+        if serializer.is_valid():
+            conductor = serializer.save()
+            
+            # Registrar en bitácora
+            registrar_bitacora(
+                request=request,
+                usuario=request.user,
+                accion="Cambiar Estado",
+                descripcion=f"Se cambió el estado del conductor {conductor.nombre_completo} a {conductor.estado}",
+                modulo="CONDUCTORES"
+            )
+            
+            return Response({
+                'message': f'Estado del conductor {conductor.nombre_completo} actualizado a {conductor.estado}',
+                'conductor': ConductorSerializer(conductor).data
+            })
         
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'])
     def actualizar_ubicacion(self, request, pk=None):
         """Actualizar ubicación del conductor"""
         conductor = self.get_object()
+        serializer = self.get_serializer(conductor, data=request.data)
         
-        # Solo el propio conductor puede actualizar su ubicación
-        if conductor.usuario != request.user and not request.user.tiene_permiso('monitorear_conductores'):
-            return Response(
-                {'error': 'No tienes permisos para actualizar esta ubicación'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        serializer = ConductorUbicacionSerializer(conductor, data=request.data)
         if serializer.is_valid():
+            conductor = serializer.save()
             conductor.actualizar_ubicacion(
                 serializer.validated_data['ultima_ubicacion_lat'],
                 serializer.validated_data['ultima_ubicacion_lng']
             )
-            return Response({'message': 'Ubicación actualizada correctamente'})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=True, methods=['post'])
-    def cambiar_estado(self, request, pk=None):
-        """Cambiar estado del conductor"""
-        conductor = self.get_object()
+            
+            return Response({
+                'message': 'Ubicación actualizada correctamente',
+                'conductor': ConductorSerializer(conductor).data
+            })
         
-        # Solo el propio conductor puede cambiar su estado (excepto inactivo)
-        if (conductor.usuario != request.user and 
-            not request.user.tiene_permiso('gestionar_conductores')):
-            return Response(
-                {'error': 'No tienes permisos para cambiar este estado'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        serializer = ConductorEstadoSerializer(conductor, data=request.data)
-        if serializer.is_valid():
-            nuevo_estado = serializer.validated_data['estado']
-            if conductor.cambiar_estado(nuevo_estado):
-                return Response({'message': f'Estado cambiado a {nuevo_estado}'})
-            else:
-                return Response(
-                    {'error': 'Estado inválido'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'])
     def estadisticas(self, request):
         """Estadísticas de conductores"""
+        if not request.user.tiene_permiso('gestionar_conductores'):
+            return Response(
+                {'error': 'No tienes permisos para ver estadísticas'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         queryset = self.get_queryset()
         
         stats = {
             'total': queryset.count(),
             'activos': queryset.filter(es_activo=True).count(),
-            'disponibles': queryset.filter(estado='disponible', es_activo=True).count(),
-            'ocupados': queryset.filter(estado='ocupado', es_activo=True).count(),
-            'en_descanso': queryset.filter(estado='descanso', es_activo=True).count(),
-            'inactivos': queryset.filter(estado='inactivo').count(),
+            'inactivos': queryset.filter(es_activo=False).count(),
+            'por_estado': dict(queryset.values('estado').annotate(
+                count=models.Count('id')
+            ).values_list('estado', 'count')),
+            'por_tipo_licencia': dict(queryset.values('tipo_licencia').annotate(
+                count=models.Count('id')
+            ).values_list('tipo_licencia', 'count')),
             'licencias_vencidas': queryset.filter(
-                fecha_vencimiento_licencia__lt=timezone.now().date()
+                fecha_venc_licencia__lt=timezone.now().date()
             ).count(),
             'licencias_por_vencer': queryset.filter(
-                fecha_vencimiento_licencia__lte=timezone.now().date() + timedelta(days=30),
-                fecha_vencimiento_licencia__gt=timezone.now().date()
+                fecha_venc_licencia__lte=timezone.now().date() + timezone.timedelta(days=30),
+                fecha_venc_licencia__gte=timezone.now().date()
+            ).count(),
+            'nuevos_este_mes': queryset.filter(
+                fecha_creacion__gte=timezone.now().replace(day=1)
             ).count()
         }
         
         return Response(stats)
+    
+    @action(detail=False, methods=['get'])
+    def disponibles_para_usuario(self, request):
+        """Lista conductores disponibles para vincular con usuarios"""
+        if not request.user.tiene_permiso('gestionar_usuarios'):
+            return Response(
+                {'error': 'No tienes permisos para ver conductores disponibles'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Conductores que no tienen usuario vinculado
+        conductores_disponibles = Conductor.objects.filter(
+            usuario__isnull=True,
+            es_activo=True
+        ).values(
+            'id',
+            'nombre',
+            'apellido',
+            'email',
+            'ci',
+            'telefono',
+            'nro_licencia'
+        )
+        
+        return Response(list(conductores_disponibles))
+    
+    @action(detail=False, methods=['get'])
+    def licencias_por_vencer(self, request):
+        """Lista conductores con licencias próximas a vencer"""
+        if not request.user.tiene_permiso('gestionar_conductores'):
+            return Response(
+                {'error': 'No tienes permisos para ver licencias por vencer'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Conductores con licencias que vencen en los próximos 30 días
+        conductores = Conductor.objects.filter(
+            fecha_venc_licencia__lte=timezone.now().date() + timezone.timedelta(days=30),
+            fecha_venc_licencia__gte=timezone.now().date(),
+            es_activo=True
+        )
+        
+        serializer = self.get_serializer(conductores, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def licencias_vencidas(self, request):
+        """Lista conductores con licencias vencidas"""
+        if not request.user.tiene_permiso('gestionar_conductores'):
+            return Response(
+                {'error': 'No tienes permisos para ver licencias vencidas'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Conductores con licencias vencidas
+        conductores = Conductor.objects.filter(
+            fecha_venc_licencia__lt=timezone.now().date(),
+            es_activo=True
+        )
+        
+        serializer = self.get_serializer(conductores, many=True)
+        return Response(serializer.data)

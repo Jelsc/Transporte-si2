@@ -2,17 +2,16 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from .models import PersonalEmpresa, Departamento
+from .models import Personal, Departamento
 
 
-@admin.register(PersonalEmpresa)
-class PersonalEmpresaAdmin(admin.ModelAdmin):
+@admin.register(Personal)
+class PersonalAdmin(admin.ModelAdmin):
     list_display = [
         'nombre_completo',
-        'codigo_empleado',
-        'tipo_personal',
+        'ci',
+        'email',
         'departamento',
-        'cargo',
         'estado',
         'es_activo',
         'anos_antiguedad',
@@ -20,7 +19,6 @@ class PersonalEmpresaAdmin(admin.ModelAdmin):
     ]
     
     list_filter = [
-        'tipo_personal',
         'departamento',
         'estado',
         'es_activo',
@@ -29,13 +27,11 @@ class PersonalEmpresaAdmin(admin.ModelAdmin):
     ]
     
     search_fields = [
-        'usuario__username',
-        'usuario__first_name',
-        'usuario__last_name',
-        'usuario__email',
-        'codigo_empleado',
-        'departamento',
-        'cargo'
+        'nombre',
+        'apellido',
+        'email',
+        'ci',
+        'departamento'
     ]
     
     readonly_fields = [
@@ -46,15 +42,19 @@ class PersonalEmpresaAdmin(admin.ModelAdmin):
     ]
     
     fieldsets = [
-        ('Información del Usuario', {
-            'fields': ['usuario']
+        ('Información Personal', {
+            'fields': [
+                'nombre',
+                'apellido',
+                'ci',
+                'email',
+                'telefono',
+                'fecha_nacimiento'
+            ]
         }),
         ('Información Laboral', {
             'fields': [
-                'tipo_personal',
-                'codigo_empleado',
                 'departamento',
-                'cargo',
                 'fecha_ingreso',
                 'anos_antiguedad'
             ]
@@ -66,9 +66,8 @@ class PersonalEmpresaAdmin(admin.ModelAdmin):
                 'es_activo'
             ]
         }),
-        ('Información Económica', {
+        ('Información Laboral Adicional', {
             'fields': [
-                'salario',
                 'horario_trabajo'
             ],
             'classes': ['collapse']
@@ -94,7 +93,7 @@ class PersonalEmpresaAdmin(admin.ModelAdmin):
         """Muestra el nombre completo del empleado"""
         return obj.nombre_completo
     nombre_completo.short_description = "Nombre Completo"
-    nombre_completo.admin_order_field = 'usuario__first_name'
+    nombre_completo.admin_order_field = 'nombre'
     
     def anos_antiguedad(self, obj):
         """Muestra los años de antigüedad"""
@@ -103,20 +102,10 @@ class PersonalEmpresaAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimiza las consultas"""
-        return super().get_queryset(request).select_related('usuario', 'supervisor')
+        return super().get_queryset(request).select_related('supervisor')
     
     def save_model(self, request, obj, form, change):
         """Personaliza el guardado del modelo"""
-        # Si es un nuevo empleado, asegurar que el usuario tenga el rol apropiado
-        if not change and obj.usuario:
-            from users.models import Rol
-            try:
-                rol = Rol.objects.get(nombre=obj.tipo_personal)
-                obj.usuario.rol = rol
-                obj.usuario.save(update_fields=['rol'])
-            except Rol.DoesNotExist:
-                pass  # El rol se creará con los seeders
-        
         super().save_model(request, obj, form, change)
     
     actions = ['activar_empleados', 'desactivar_empleados', 'marcar_vacaciones']
@@ -168,8 +157,8 @@ class DepartamentoAdmin(admin.ModelAdmin):
     search_fields = [
         'nombre',
         'descripcion',
-        'jefe_departamento__usuario__first_name',
-        'jefe_departamento__usuario__last_name'
+        'jefe_departamento__nombre',
+        'jefe_departamento__apellido'
     ]
     
     readonly_fields = [
@@ -205,7 +194,7 @@ class DepartamentoAdmin(admin.ModelAdmin):
         """Muestra el número de empleados del departamento"""
         count = obj.get_empleados_count()
         if count > 0:
-            url = reverse('admin:personal_personalempresa_changelist')
+            url = reverse('admin:personal_personal_changelist')
             return format_html(
                 '<a href="{}?departamento__exact={}">{} empleado(s)</a>',
                 url,
@@ -217,4 +206,4 @@ class DepartamentoAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimiza las consultas"""
-        return super().get_queryset(request).select_related('jefe_departamento__usuario')
+        return super().get_queryset(request).select_related('jefe_departamento')

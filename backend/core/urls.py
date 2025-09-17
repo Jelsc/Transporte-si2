@@ -27,8 +27,6 @@ urlpatterns = [
     
     # ENDPOINTS DE API (todos bajo /api/)
     
-    path("api/", include("users.urls")),
-    
     # Auth: login/logout/password/reset para clientes
     # Ruta personalizada para logout
     path("api/auth/logout/", client_logout, name='rest_logout'),

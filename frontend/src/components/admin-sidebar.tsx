@@ -39,9 +39,9 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
     { id: 'ventas', name: 'Ventas y Boletos', icon: BarChart3, route: '/admin/ventas' },
     { id: 'permisos', name: 'Gestión de Permisos', icon: Users, route: '/admin/roles-permisos/permisos' },
     { id: 'roles', name: 'Gestión de Roles', icon: Users, route: '/admin/roles-permisos/rol' },
-    { id: 'usuarios', name: 'Gestión de Usuarios', icon: Users, route: '/admin/registro-usuarios-choferes/UsuariosCRUD' },
-    { id: 'personal', name: 'Gestión de Personal', icon: Users, route: '/admin/registro-usuarios-choferes/PersonalCRUD' },
-    { id: 'choferes', name: 'Gestión de Choferes', icon: Users, route: '/admin/registro-usuarios-choferes/ChoferesCRUD' },
+    { id: 'usuarios', name: 'Gestión de Usuarios', icon: Users, route: '/admin/usuarios' },
+    { id: 'personal', name: 'Gestión de Personal', icon: Users, route: '/admin/personal' },
+    { id: 'choferes', name: 'Gestión de Choferes', icon: Users, route: '/admin/conductores' },
     { id: 'bitacora', name: 'Bitacora', icon: BarChart3, route: "/admin/bitacora" },
   ];
 

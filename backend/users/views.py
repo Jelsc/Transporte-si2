@@ -178,8 +178,9 @@ class RolViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Filtra el queryset según los permisos del usuario"""
-        # Solo administradores pueden ver todos los roles
-        if not self.request.user.tiene_permiso('gestionar_roles'):
+        # Permitir a cualquier usuario autenticado ver los roles
+        # Los permisos específicos se controlan en los métodos individuales
+        if not self.request.user.is_authenticated:
             return Rol.objects.none()
         return super().get_queryset()
     
@@ -201,10 +202,12 @@ class RolViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def permisos_disponibles(self, request):
         """Lista todos los permisos disponibles en el sistema"""
-        if not request.user.tiene_permiso('gestionar_roles'):
+        # Permitir a cualquier usuario autenticado ver los permisos disponibles
+        # Esto es necesario para que el frontend pueda mostrar las opciones
+        if not request.user.is_authenticated:
             return Response(
-                {'error': 'No tienes permisos para ver los permisos'},
-                status=status.HTTP_403_FORBIDDEN
+                {'error': 'Debes estar autenticado para ver los permisos'},
+                status=status.HTTP_401_UNAUTHORIZED
             )
         
         return Response({
@@ -379,6 +382,7 @@ class UserViewSet(viewsets.ModelViewSet):
             'activos': queryset.filter(is_active=True).count(),
             'administrativos': queryset.filter(rol__es_administrativo=True).count(),
             'clientes': queryset.filter(rol__es_administrativo=False).count(),
+            'con_acceso_admin': queryset.filter(is_admin_portal=True).count(),
             'por_rol': dict(queryset.values('rol__nombre').annotate(
                 count=models.Count('id')
             ).values_list('rol__nombre', 'count')),
@@ -388,6 +392,56 @@ class UserViewSet(viewsets.ModelViewSet):
         }
         
         return Response(stats)
+    
+    @action(detail=False, methods=['get'])
+    def personal_disponible(self, request):
+        """Lista personal disponible para vincular con usuarios"""
+        if not request.user.tiene_permiso('gestionar_usuarios'):
+            return Response(
+                {'error': 'No tienes permisos para ver personal disponible'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            from personal.models import Personal
+            # Personal que no tiene usuario vinculado
+            personal_disponible = Personal.objects.filter(
+                usuario__isnull=True,
+                es_activo=True
+            ).values('id', 'nombre', 'apellido', 'email', 'ci', 'telefono')
+            
+            return Response(list(personal_disponible))
+        except ImportError:
+            return Response([])
+    
+    @action(detail=False, methods=['get'])
+    def conductores_disponibles(self, request):
+        """Lista conductores disponibles para vincular con usuarios"""
+        if not request.user.tiene_permiso('gestionar_usuarios'):
+            return Response(
+                {'error': 'No tienes permisos para ver conductores disponibles'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            from conductores.models import Conductor
+            # Conductores que no tienen usuario vinculado
+            conductores_disponibles = Conductor.objects.filter(
+                usuario__isnull=True,
+                es_activo=True
+            ).select_related('personal').values(
+                'id',
+                'personal__nombre',
+                'personal__apellido',
+                'personal__email',
+                'personal__ci',
+                'personal__telefono',
+                'nro_licencia'
+            )
+            
+            return Response(list(conductores_disponibles))
+        except ImportError:
+            return Response([])
 
 
 @api_view(["GET"])

@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UserInfo } from "@/components/user-info";
 import { useMobileNavigation } from "@/hooks/use-mobile-navigation";
-import { type User } from "@/types";
+import { type User } from "@/services/api";
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";

@@ -36,6 +36,10 @@ export function NavUserHeader() {
               last_name: "",
               telefono: "",
               direccion: "",
+              ci: "",
+              fecha_nacimiento: "",
+              is_admin_portal: false,
+              puede_acceder_admin: false,
               rol: {
                 id: 0,
                 nombre: "Invitado",
@@ -45,7 +49,6 @@ export function NavUserHeader() {
               es_activo: false,
               fecha_creacion: "",
               fecha_ultimo_acceso: "",
-              fecha_nacimiento: "",
               codigo_empleado: "",
               departamento: "",
             }

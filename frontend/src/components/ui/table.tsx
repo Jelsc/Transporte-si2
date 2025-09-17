@@ -16,6 +16,10 @@ export const TableRow = ({ children }: { children: React.ReactNode }) => (
   <tr className="border-b last:border-none hover:bg-gray-50">{children}</tr>
 );
 
-export const TableCell = ({ children }: { children: React.ReactNode }) => (
-  <td className="p-3 text-left text-sm text-gray-700">{children}</td>
+export const TableCell = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <td className={`p-3 text-left text-sm text-gray-700 ${className || ''}`}>{children}</td>
+);
+
+export const TableHead = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+  <th className={`p-3 text-left text-sm font-medium text-gray-900 bg-gray-50 ${className || ''}`}>{children}</th>
 );
