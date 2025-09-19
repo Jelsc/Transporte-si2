@@ -6,12 +6,13 @@ import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
 import AdminPage from "../pages/admin/admin.page";
 import AdminLoginPage from "@/pages/auth/AdminLoginPage";
 import ProtectedRoute from "@/app/auth/ProtectedRoute";
-import PermisosCRUD from "../pages/admin/Usuarios/roles-permisos/permiso";
-import RolForm from "../pages/admin/Usuarios/roles-permisos/rol";
-import UsuariosCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/UsuariosCRUD";
-import ChoferesCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/ChoferesCRUD";
-import PersonalCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/PersonalCRUD";
+import PermisosCRUD from "../pages/admin/usuarios/roles-permisos/permiso";
+import RolForm from "../pages/admin/usuarios/roles-permisos/rol";
 import BitacoraPage from "@/pages/admin/bitacora.page";
+// Nuevas páginas refactorizadas
+import PersonalPage from "../pages/admin/personal/personal.page";
+import ConductoresPage from "../pages/admin/conductores/driver.page";
+import UsuariosPage from "../pages/admin/usuarios/users.page";
 
 
 export default function AppRouter() {
@@ -33,30 +34,6 @@ export default function AppRouter() {
           element={
             <ProtectedRoute requireAdmin={true}>
               <RolForm />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/registro-usuarios-choferes/ChoferesCRUD" 
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <ChoferesCRUD />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/registro-usuarios-choferes/UsuariosCRUD" 
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <UsuariosCRUD />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/admin/registro-usuarios-choferes/PersonalCRUD" 
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <PersonalCRUD />
             </ProtectedRoute>
           } 
         />
@@ -100,7 +77,23 @@ export default function AppRouter() {
           path="/admin/conductores" 
           element={
             <ProtectedRoute requireAdmin={true}>
-              <div>Conductores (por implementar)</div>
+              <ConductoresPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/personal" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <PersonalPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin/usuarios" 
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <UsuariosPage />
             </ProtectedRoute>
           } 
         />

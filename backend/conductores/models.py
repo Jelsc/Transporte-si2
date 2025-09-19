@@ -23,42 +23,66 @@ class Conductor(models.Model):
         ('E', 'Tipo E - Vehículos de transporte público'),
     ]
     
+    # Datos personales básicos (obligatorios)
+    nombre = models.CharField(
+        max_length=100,
+        verbose_name="Nombre",
+        default=""
+    )
+    
+    apellido = models.CharField(
+        max_length=100,
+        verbose_name="Apellido",
+        default=""
+    )
+    
+    fecha_nacimiento = models.DateField(
+        verbose_name="Fecha de Nacimiento",
+        null=True,
+        blank=True
+    )
+    
+    telefono = models.CharField(
+        max_length=20,
+        verbose_name="Teléfono",
+        default=""
+    )
+    
+    email = models.EmailField(
+        unique=True,
+        verbose_name="Email",
+        default=""
+    )
+    
+    ci = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Cédula de Identidad",
+        default=""
+    )
+    
+    # Relación con Personal (opcional)
+    personal = models.OneToOneField(
+        'personal.Personal',
+        on_delete=models.SET_NULL,
+        related_name='conductor_profile',
+        verbose_name="Personal",
+        null=True,
+        blank=True
+    )
+    
     # Relación con el usuario (opcional)
     usuario = models.OneToOneField(
         User, 
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='conductor_profile',
         verbose_name="Usuario",
         null=True,
         blank=True
     )
     
-    # Datos personales básicos (para cuando no hay usuario vinculado)
-    first_name = models.CharField(
-        max_length=30,
-        blank=True,
-        verbose_name="Nombre"
-    )
-    
-    last_name = models.CharField(
-        max_length=150,
-        blank=True,
-        verbose_name="Apellido"
-    )
-    
-    email = models.EmailField(
-        blank=True,
-        verbose_name="Email"
-    )
-    
-    telefono = models.CharField(
-        max_length=20,
-        blank=True,
-        verbose_name="Teléfono"
-    )
-    
     # Información específica del conductor
-    numero_licencia = models.CharField(
+    nro_licencia = models.CharField(
         max_length=20,
         unique=True,
         validators=[RegexValidator(
@@ -74,7 +98,7 @@ class Conductor(models.Model):
         verbose_name="Tipo de Licencia"
     )
     
-    fecha_vencimiento_licencia = models.DateField(
+    fecha_venc_licencia = models.DateField(
         verbose_name="Fecha de Vencimiento de Licencia"
     )
     
@@ -87,7 +111,7 @@ class Conductor(models.Model):
     )
     
     # Información adicional
-    experiencia_anos = models.PositiveIntegerField(
+    experiencia_anios = models.PositiveIntegerField(
         default=0,
         verbose_name="Años de Experiencia"
     )
@@ -149,19 +173,17 @@ class Conductor(models.Model):
         verbose_name = "Conductor"
         verbose_name_plural = "Conductores"
         ordering = ['-fecha_creacion']
+        indexes = [
+            models.Index(fields=['nro_licencia']),
+            models.Index(fields=['fecha_venc_licencia']),
+        ]
     
     def __str__(self):
-        if self.usuario:
-            return f"{self.usuario.get_full_name()} - {self.numero_licencia}"
-        else:
-            return f"{self.get_full_name()} - {self.numero_licencia}"
+        return f"{self.get_full_name()} - {self.nro_licencia}"
     
     def get_full_name(self):
         """Retorna el nombre completo del conductor"""
-        if self.usuario:
-            return self.usuario.get_full_name() or self.usuario.username
-        else:
-            return f"{self.first_name} {self.last_name}".strip() or "Sin nombre"
+        return f"{self.nombre} {self.apellido}".strip()
     
     @property
     def nombre_completo(self):
@@ -172,7 +194,7 @@ class Conductor(models.Model):
     def licencia_vencida(self):
         """Verifica si la licencia está vencida"""
         from django.utils import timezone
-        return self.fecha_vencimiento_licencia < timezone.now().date()
+        return self.fecha_venc_licencia < timezone.now().date()
     
     @property
     def dias_para_vencer_licencia(self):
@@ -181,7 +203,7 @@ class Conductor(models.Model):
         from datetime import timedelta
         
         hoy = timezone.now().date()
-        dias_restantes = (self.fecha_vencimiento_licencia - hoy).days
+        dias_restantes = (self.fecha_venc_licencia - hoy).days
         return dias_restantes
     
     def cambiar_estado(self, nuevo_estado):

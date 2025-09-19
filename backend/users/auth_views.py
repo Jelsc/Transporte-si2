@@ -397,11 +397,11 @@ def _get_admin_stats(user):
     # Estadísticas de personal
     if user.tiene_permiso('ver_personal'):
         try:
-            from personal.models import PersonalEmpresa
+            from personal.models import Personal
             stats['personal'] = {
-                'total': PersonalEmpresa.objects.count(),
-                'activos': PersonalEmpresa.objects.filter(es_activo=True).count(),
-                'por_tipo': dict(PersonalEmpresa.objects.values('tipo_personal').annotate(
+                'total': Personal.objects.count(),
+                'activos': Personal.objects.filter(es_activo=True).count(),
+                'por_tipo': dict(Personal.objects.values('tipo_personal').annotate(
                     count=models.Count('id')
                 ).values_list('tipo_personal', 'count'))
             }

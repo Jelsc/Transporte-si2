@@ -5,7 +5,7 @@ from django.core.validators import RegexValidator
 User = get_user_model()
 
 
-class PersonalEmpresa(models.Model):
+class Personal(models.Model):
     """Modelo para personal de la empresa (operadores, administradores, supervisores)"""
     
     TIPOS_PERSONAL_CHOICES = [
@@ -21,48 +21,48 @@ class PersonalEmpresa(models.Model):
         ('vacaciones', 'En Vacaciones'),
     ]
     
+    # Datos personales básicos (obligatorios)
+    nombre = models.CharField(
+        max_length=100,
+        verbose_name="Nombre"
+    )
+    
+    apellido = models.CharField(
+        max_length=100,
+        verbose_name="Apellido"
+    )
+    
+    fecha_nacimiento = models.DateField(
+        verbose_name="Fecha de Nacimiento"
+    )
+    
+    telefono = models.CharField(
+        max_length=20,
+        verbose_name="Teléfono"
+    )
+    
+    email = models.EmailField(
+        unique=True,
+        verbose_name="Email"
+    )
+    
+    ci = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Cédula de Identidad"
+    )
+    
     # Relación con el usuario (opcional)
     usuario = models.OneToOneField(
         User, 
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='personal_profile',
         verbose_name="Usuario",
         null=True,
         blank=True
     )
     
-    # Datos personales básicos (para cuando no hay usuario vinculado)
-    first_name = models.CharField(
-        max_length=30,
-        blank=True,
-        verbose_name="Nombre"
-    )
-    
-    last_name = models.CharField(
-        max_length=150,
-        blank=True,
-        verbose_name="Apellido"
-    )
-    
-    email = models.EmailField(
-        blank=True,
-        verbose_name="Email"
-    )
-    
-    telefono = models.CharField(
-        max_length=20,
-        blank=True,
-        verbose_name="Teléfono"
-    )
-    
     # Información específica del personal
-    tipo_personal = models.CharField(
-        max_length=20,
-        choices=TIPOS_PERSONAL_CHOICES,
-        blank=True,
-        verbose_name="Tipo de Personal"
-    )
-    
     codigo_empleado = models.CharField(
         max_length=20,
         unique=True,
@@ -79,22 +79,9 @@ class PersonalEmpresa(models.Model):
         verbose_name="Departamento"
     )
     
-    cargo = models.CharField(
-        max_length=100,
-        verbose_name="Cargo"
-    )
-    
     # Información laboral
     fecha_ingreso = models.DateField(
         verbose_name="Fecha de Ingreso"
-    )
-    
-    salario = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name="Salario"
     )
     
     horario_trabajo = models.CharField(
@@ -160,22 +147,20 @@ class PersonalEmpresa(models.Model):
     )
     
     class Meta:
-        verbose_name = "Personal de Empresa"
-        verbose_name_plural = "Personal de Empresa"
+        verbose_name = "Personal"
+        verbose_name_plural = "Personal"
         ordering = ['-fecha_creacion']
+        indexes = [
+            models.Index(fields=['ci']),
+            models.Index(fields=['email']),
+        ]
     
     def __str__(self):
-        if self.usuario:
-            return f"{self.usuario.get_full_name()} - {self.codigo_empleado} ({self.tipo_personal})"
-        else:
-            return f"{self.get_full_name()} - {self.codigo_empleado} ({self.tipo_personal})"
+        return f"{self.get_full_name()} - {self.codigo_empleado}"
     
     def get_full_name(self):
         """Retorna el nombre completo del empleado"""
-        if self.usuario:
-            return self.usuario.get_full_name() or self.usuario.username
-        else:
-            return f"{self.first_name} {self.last_name}".strip() or "Sin nombre"
+        return f"{self.nombre} {self.apellido}".strip()
     
     @property
     def nombre_completo(self):
@@ -272,7 +257,7 @@ class Departamento(models.Model):
     )
     
     jefe_departamento = models.ForeignKey(
-        PersonalEmpresa,
+        'Personal',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -313,7 +298,7 @@ class Departamento(models.Model):
     
     def get_empleados(self):
         """Retorna todos los empleados del departamento"""
-        return PersonalEmpresa.objects.filter(
+        return Personal.objects.filter(
             departamento=self.nombre,
             es_activo=True
         )

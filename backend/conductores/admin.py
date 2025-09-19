@@ -9,12 +9,12 @@ from .models import Conductor
 class ConductorAdmin(admin.ModelAdmin):
     list_display = [
         'nombre_completo',
-        'numero_licencia',
+        'nro_licencia',
         'tipo_licencia',
         'estado',
         'es_activo',
         'licencia_status',
-        'experiencia_anos',
+        'experiencia_anios',
         'fecha_creacion'
     ]
     
@@ -23,16 +23,15 @@ class ConductorAdmin(admin.ModelAdmin):
         'tipo_licencia',
         'es_activo',
         'fecha_creacion',
-        'fecha_vencimiento_licencia'
+        'fecha_venc_licencia'
     ]
     
     search_fields = [
-        'usuario__username',
-        'usuario__first_name',
-        'usuario__last_name',
-        'usuario__email',
-        'numero_licencia',
-        'usuario__telefono'
+        'personal__nombre',
+        'personal__apellido',
+        'personal__email',
+        'personal__telefono',
+        'nro_licencia'
     ]
     
     readonly_fields = [
@@ -44,14 +43,14 @@ class ConductorAdmin(admin.ModelAdmin):
     ]
     
     fieldsets = [
-        ('Información del Usuario', {
-            'fields': ['usuario']
+        ('Información del Personal', {
+            'fields': ['personal']
         }),
         ('Información de Licencia', {
             'fields': [
-                'numero_licencia',
+                'nro_licencia',
                 'tipo_licencia',
-                'fecha_vencimiento_licencia',
+                'fecha_venc_licencia',
                 'licencia_status',
                 'dias_para_vencer_licencia'
             ]
@@ -59,7 +58,7 @@ class ConductorAdmin(admin.ModelAdmin):
         ('Estado y Experiencia', {
             'fields': [
                 'estado',
-                'experiencia_anos',
+                'experiencia_anios',
                 'es_activo'
             ]
         }),
@@ -91,7 +90,7 @@ class ConductorAdmin(admin.ModelAdmin):
         """Muestra el nombre completo del conductor"""
         return obj.nombre_completo
     nombre_completo.short_description = "Nombre Completo"
-    nombre_completo.admin_order_field = 'usuario__first_name'
+    nombre_completo.admin_order_field = 'personal__nombre'
     
     def licencia_status(self, obj):
         """Muestra el estado de la licencia con colores"""
@@ -113,20 +112,10 @@ class ConductorAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimiza las consultas"""
-        return super().get_queryset(request).select_related('usuario')
+        return super().get_queryset(request).select_related('personal')
     
     def save_model(self, request, obj, form, change):
         """Personaliza el guardado del modelo"""
-        # Si es un nuevo conductor, asegurar que el usuario tenga el rol de conductor
-        if not change and obj.usuario:
-            from users.models import Rol
-            try:
-                rol_conductor = Rol.objects.get(nombre='conductor')
-                obj.usuario.rol = rol_conductor
-                obj.usuario.save(update_fields=['rol'])
-            except Rol.DoesNotExist:
-                pass  # El rol se creará con los seeders
-        
         super().save_model(request, obj, form, change)
     
     actions = ['activar_conductores', 'desactivar_conductores', 'marcar_disponibles']
