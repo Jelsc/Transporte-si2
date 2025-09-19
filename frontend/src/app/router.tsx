@@ -9,11 +9,10 @@ import ProtectedRoute from "@/app/auth/ProtectedRoute";
 import PermisosCRUD from "../pages/admin/usuarios/roles-permisos/permiso";
 import RolForm from "../pages/admin/usuarios/roles-permisos/rol";
 import BitacoraPage from "@/pages/admin/bitacora.page";
-
 // Nuevas páginas refactorizadas
-import PersonalPage from "../pages/admin/personal/page";
-import ConductoresPage from "../pages/admin/conductores/page";
-import UsuariosPage from "../pages/admin/usuarios/page";
+import PersonalPage from "../pages/admin/personal/personal.page";
+import ConductoresPage from "../pages/admin/conductores/driver.page";
+import UsuariosPage from "../pages/admin/usuarios/users.page";
 
 
 export default function AppRouter() {

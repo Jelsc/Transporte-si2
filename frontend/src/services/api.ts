@@ -250,7 +250,8 @@ export const adminAuthService = {
 
   // Logout de administrador
   async logout(refreshToken: string): Promise<ApiResponse> {
-    return apiRequest("/api/admin/admin/logout/", {
+    // Backend expone /api/admin/logout/ (users.urls -> logout_view)
+    return apiRequest("/api/admin/logout/", {
       method: "POST",
       body: JSON.stringify({ refresh: refreshToken }),
     });
@@ -260,7 +261,8 @@ export const adminAuthService = {
   async refreshToken(
     refreshToken: string
   ): Promise<ApiResponse<{ access: string }>> {
-    return apiRequest("/api/admin/admin/token/refresh/", {
+    // Backend expone /api/admin/token/refresh/
+    return apiRequest("/api/admin/token/refresh/", {
       method: "POST",
       body: JSON.stringify({ refresh: refreshToken }),
     });

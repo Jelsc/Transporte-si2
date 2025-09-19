@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { rolesService } from "@/services/api";
-import { Role } from "@/types";
+import type { Role } from "@/types/index";
 import { toast } from "sonner";
 
 export function useRoles() {

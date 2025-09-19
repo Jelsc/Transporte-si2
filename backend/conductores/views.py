@@ -56,6 +56,16 @@ class ConductorViewSet(viewsets.ModelViewSet):
             else:
                 return queryset.none()
         
+        # Filtro adicional: licencia_vencida=true/false
+        licencia_vencida = self.request.query_params.get('licencia_vencida')
+        if licencia_vencida is not None:
+            from django.utils import timezone
+            hoy = timezone.now().date()
+            if licencia_vencida.lower() == 'true':
+                queryset = queryset.filter(fecha_venc_licencia__lt=hoy)
+            elif licencia_vencida.lower() == 'false':
+                queryset = queryset.filter(fecha_venc_licencia__gte=hoy)
+
         return queryset.select_related('usuario')
     
     def perform_create(self, serializer):

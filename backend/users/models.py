@@ -63,10 +63,6 @@ class CustomUser(AbstractUser):
     es_activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_ultimo_acceso = models.DateTimeField(null=True, blank=True)
-
-    # Campos específicos para administrativos
-    codigo_empleado = models.CharField(max_length=20, blank=True, null=True)
-    departamento = models.CharField(max_length=100, blank=True, null=True)
     
     # Relaciones opcionales con personal y conductores
     personal = models.OneToOneField('personal.Personal', on_delete=models.SET_NULL, null=True, blank=True, related_name='usuario_personal')

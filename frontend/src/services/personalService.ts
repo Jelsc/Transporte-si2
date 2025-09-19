@@ -1,80 +1,170 @@
-import { apiRequest, type ApiResponse } from './api';
-import type { Personal } from '@/types';
+import { apiRequest } from './api';
+import type { 
+  Personal, 
+  PersonalFormData, 
+  PersonalFilters, 
+  PaginatedResponse, 
+  ApiResponse,
+  PersonalOption 
+} from '@/types';
 
-// Servicios para gestión de personal
-export const personalService = {
-  // Obtener todos los empleados
-  async getPersonal(params?: Record<string, any>): Promise<ApiResponse<{
-    count: number;
-    next: string | null;
-    previous: string | null;
-    results: Personal[];
-  }>> {
-    const query = params ? new URLSearchParams(params).toString() : '';
-    return apiRequest(`/api/personal/${query ? `?${query}` : ''}`);
+// Mappers para convertir entre formatos del frontend y backend
+const toDTO = (data: PersonalFormData) => ({
+  nombre: data.nombre,
+  apellido: data.apellido,
+  fecha_nacimiento: data.fecha_nacimiento ? data.fecha_nacimiento.toISOString().split('T')[0] : undefined,
+  telefono: data.telefono,
+  email: data.email,
+  ci: data.ci,
+  codigo_empleado: data.codigo_empleado,
+  fecha_ingreso: data.fecha_ingreso ? data.fecha_ingreso.toISOString().split('T')[0] : undefined,
+  departamento: data.departamento,
+  horario_trabajo: data.horario_trabajo,
+  supervisor: data.supervisor,
+  telefono_emergencia: data.telefono_emergencia,
+  contacto_emergencia: data.contacto_emergencia,
+  es_activo: data.es_activo ?? true,
+});
+
+const fromDTO = (data: any): Personal => ({
+  id: data.id,
+  nombre: data.nombre,
+  apellido: data.apellido,
+  fecha_nacimiento: data.fecha_nacimiento,
+  telefono: data.telefono,
+  email: data.email,
+  ci: data.ci,
+  codigo_empleado: data.codigo_empleado,
+  departamento: data.departamento,
+  created_at: data.created_at || data.fecha_creacion,
+  updated_at: data.updated_at || data.fecha_actualizacion,
+  fecha_ingreso: data.fecha_ingreso,
+  horario_trabajo: data.horario_trabajo,
+  estado: data.estado,
+  supervisor: data.supervisor,
+  supervisor_nombre: data.supervisor_nombre,
+  supervisor_codigo: data.supervisor_codigo,
+  telefono_emergencia: data.telefono_emergencia,
+  contacto_emergencia: data.contacto_emergencia,
+  es_activo: data.es_activo,
+  nombre_completo: data.nombre_completo,
+  anos_antiguedad: data.anos_antiguedad,
+  puede_acceder_sistema: data.puede_acceder_sistema,
+  ultimo_acceso: data.ultimo_acceso,
+  fecha_creacion: data.fecha_creacion,
+  fecha_actualizacion: data.fecha_actualizacion,
+  usuario: data.usuario,
+  username: data.username,
+});
+
+export const personalApi = {
+  // Listar personal con filtros y paginación
+  async list(filters?: PersonalFilters): Promise<ApiResponse<PaginatedResponse<Personal>>> {
+    const params = new URLSearchParams();
+    
+    if (filters?.search) params.append('search', filters.search);
+  if (filters?.departamento) params.append('departamento', filters.departamento);
+    if (filters?.estado) params.append('estado', filters.estado);
+    if (filters?.es_activo !== undefined) params.append('es_activo', filters.es_activo.toString());
+    
+    const query = params.toString();
+    const response = await apiRequest(`/api/personal/${query ? `?${query}` : ''}`);
+    
+    if (response.success && response.data) {
+      const data = response.data as any;
+      return {
+        success: true,
+        data: {
+          count: data.count,
+          next: data.next,
+          previous: data.previous,
+          results: data.results.map(fromDTO),
+        },
+      };
+    }
+    
+    return response as ApiResponse<PaginatedResponse<Personal>>;
   },
 
-  // Obtener un empleado específico
-  async getPersonalById(id: number): Promise<ApiResponse<Personal>> {
-    return apiRequest(`/api/personal/${id}/`);
+  // Obtener personal por ID
+  async get(id: number): Promise<ApiResponse<Personal>> {
+    const response = await apiRequest(`/api/personal/${id}/`);
+    
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: fromDTO(response.data),
+      };
+    }
+    
+    return response as ApiResponse<Personal>;
   },
 
-  // Crear un nuevo empleado
-  async createPersonal(data: {
-    nombre: string;
-    apellido: string;
-    fecha_nacimiento: string;
-    telefono: string;
-    email: string;
-    ci: string;
-    codigo_empleado?: string;
-    departamento?: string;
-    fecha_ingreso?: string;
-    horario_trabajo?: string;
-    supervisor?: number;
-    telefono_emergencia?: string;
-    contacto_emergencia?: string;
-    es_activo?: boolean;
-  }): Promise<ApiResponse<Personal>> {
-    return apiRequest('/api/personal/', {
+  // Crear nuevo personal
+  async create(data: PersonalFormData): Promise<ApiResponse<Personal>> {
+    const response = await apiRequest('/api/personal/', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(toDTO(data)),
     });
+    
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: fromDTO(response.data),
+      };
+    }
+    
+    return response as ApiResponse<Personal>;
   },
 
-  // Actualizar un empleado
-  async updatePersonal(id: number, data: Partial<Personal>): Promise<ApiResponse<Personal>> {
-    return apiRequest(`/api/personal/${id}/`, {
+  // Actualizar personal
+  async update(id: number, data: PersonalFormData): Promise<ApiResponse<Personal>> {
+    const response = await apiRequest(`/api/personal/${id}/`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(toDTO(data)),
     });
+    
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: fromDTO(response.data),
+      };
+    }
+    
+    return response as ApiResponse<Personal>;
   },
 
-  // Actualizar parcialmente un empleado
-  async patchPersonal(id: number, data: Partial<Personal>): Promise<ApiResponse<Personal>> {
-    return apiRequest(`/api/personal/${id}/`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  },
-
-  // Eliminar un empleado
-  async deletePersonal(id: number): Promise<ApiResponse> {
+  // Eliminar personal
+  async remove(id: number): Promise<ApiResponse> {
     return apiRequest(`/api/personal/${id}/`, {
       method: 'DELETE',
     });
   },
 
-  // Cambiar estado del empleado
-  async cambiarEstado(id: number, estado: string): Promise<ApiResponse<Personal>> {
-    return apiRequest(`/api/personal/${id}/cambiar_estado/`, {
-      method: 'POST',
-      body: JSON.stringify({ estado }),
-    });
+  // Obtener personal disponible para autocompletado
+  async getAvailable(): Promise<ApiResponse<PersonalOption[]>> {
+    const response = await apiRequest('/api/personal/disponibles_para_usuario/');
+    
+    if (response.success && response.data) {
+      const data = response.data as any;
+      return {
+        success: true,
+        data: data.map((item: any) => ({
+          id: item.id,
+          nombre: item.nombre,
+          apellido: item.apellido,
+          email: item.email,
+          ci: item.ci,
+          telefono: item.telefono,
+        })),
+      };
+    }
+    
+    return response as ApiResponse<PersonalOption[]>;
   },
 
-  // Obtener estadísticas de personal
-  async getEstadisticas(): Promise<ApiResponse<{
+  // Obtener estadísticas
+  async getStatistics(): Promise<ApiResponse<{
     total: number;
     activos: number;
     inactivos: number;
@@ -83,17 +173,5 @@ export const personalService = {
     nuevos_este_mes: number;
   }>> {
     return apiRequest('/api/personal/estadisticas/');
-  },
-
-  // Obtener personal disponible para vincular con usuarios
-  async getPersonalDisponible(): Promise<ApiResponse<Array<{
-    id: number;
-    nombre: string;
-    apellido: string;
-    email: string;
-    ci: string;
-    telefono: string;
-  }>>> {
-    return apiRequest('/api/personal/disponibles_para_usuario/');
   },
 };

@@ -47,8 +47,6 @@ class UserSerializer(serializers.ModelSerializer):
             "es_activo",
             "fecha_creacion",
             "fecha_ultimo_acceso",
-            "codigo_empleado",
-            "departamento",
         ]
         read_only_fields = ["id", "fecha_creacion", "fecha_ultimo_acceso", "puede_acceder_admin"]
 

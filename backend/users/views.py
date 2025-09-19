@@ -330,13 +330,13 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['rol', 'is_active', 'es_activo']
+    # Alinear con filtros del frontend: permitir rol__nombre e is_admin_portal
+    filterset_fields = ['rol', 'rol__nombre', 'is_admin_portal', 'is_active', 'es_activo']
     search_fields = [
         'username',
         'email',
         'first_name',
         'last_name',
-        'codigo_empleado'
     ]
     ordering_fields = ['username', 'email', 'fecha_creacion']
     ordering = ['-fecha_creacion']
@@ -456,8 +456,6 @@ def user_dashboard_data(request):
             "tipo_usuario": "administrativo",
             "rol": user.rol.nombre if user.rol else "Sin rol",
             "permisos": user.rol.permisos if user.rol else [],
-            "departamento": user.departamento,
-            "codigo_empleado": user.codigo_empleado,
         }
     else:
         # Datos para clientes
