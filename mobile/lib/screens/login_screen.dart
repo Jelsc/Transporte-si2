@@ -1,132 +1,218 @@
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../services/auth_service.dart';
 import 'register_screen.dart';
+import 'home_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final credentials = LoginCredentials(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      final response = await _authService.login(credentials);
+
+      if (response.success) {
+        _authService.showSuccessToast('¡Inicio de sesión exitoso!');
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
+      } else {
+        _authService.showErrorToast(response.error ?? 'Error en el login');
+      }
+    } catch (e) {
+      _authService.showErrorToast('Error inesperado: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
-              // Logo y título
-              Row(
-                children: const [
-                  CircleAvatar(
-                    backgroundColor: Colors.green,
-                    radius: 20,
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 40),
+
+                // Logo y título
+                const Icon(Icons.directions_bus, size: 80, color: Colors.green),
+                const SizedBox(height: 16),
+                const Text(
+                  'MoviFleet',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green,
                   ),
-                  SizedBox(width: 8),
-                  Text("TransBolivia", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  Spacer(),
-                  Icon(Icons.language),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Imagen
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  "https://picsum.photos/400/200", // aquí va tu imagen
-                  fit: BoxFit.cover,
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 12),
-
-              const Text("Viajes y encomiendas en un solo lugar",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text("Compra pasajes, envía paquetes y haz seguimiento en tiempo real.",
-                  style: TextStyle(color: Colors.grey)),
-
-              const SizedBox(height: 20),
-
-              // Login form
-              const Text("Bienvenido a Transporte-SI2"),
-              const SizedBox(height: 8),
-              TextField(
-                decoration: InputDecoration(
-                  hintText: "Email o Teléfono",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Viajes y encomiendas en un solo lugar',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                obscureText: true,
-                decoration: InputDecoration(
-                  hintText: "Contraseña",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+
+                const SizedBox(height: 48),
+
+                // Título del formulario
+                const Text(
+                  'Inicia sesión',
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(height: 16),
-
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                const SizedBox(height: 8),
+                const Text(
+                  'Accede a tus reservas y servicios',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                 ),
-                onPressed: () {},
-                child: const Text("Iniciar sesión"),
-              ),
 
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () {},
-                child: const Text("¿Olvidaste tu contraseña?"),
-              ),
+                const SizedBox(height: 32),
 
-              const Divider(height: 30),
-
-              // Login con Google/Facebook
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  OutlinedButton(
-                    onPressed: () {},
-                    child: const Text("Google"),
+                // Campo de email
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Correo electrónico',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(),
                   ),
-                  OutlinedButton(
-                    onPressed: () {},
-                    child: const Text("Facebook"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Botón de registro
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa tu email';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Por favor ingresa un email válido';
+                    }
+                    return null;
+                  },
                 ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                  );
-                },
-                child: const Text("Crear cuenta"),
-              ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-              // Cliente/Conductor
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  OutlinedButton(onPressed: () {}, child: const Text("Cliente")),
-                  OutlinedButton(onPressed: () {}, child: const Text("Conductor")),
-                ],
-              ),
-            ],
+                // Campo de contraseña
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Contraseña',
+                    prefixIcon: const Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                    border: const OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa tu contraseña';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 24),
+
+                // Botón de login
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Iniciar sesión',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Botón de registro
+                SizedBox(
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RegisterScreen(),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.green),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'Crear cuenta',
+                      style: TextStyle(fontSize: 16, color: Colors.green),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
