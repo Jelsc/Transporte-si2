@@ -1,23 +1,23 @@
-import React from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
-import type { Personal } from '@/types';
+import React from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import type { Personal } from "@/types";
 
 interface PersonalTableProps {
   data: Personal[];
@@ -27,18 +27,18 @@ interface PersonalTableProps {
   onView?: (item: Personal) => void;
 }
 
-export function PersonalTable({ 
-  data, 
-  loading, 
-  onEdit, 
-  onDelete, 
-  onView 
+export function PersonalTable({
+  data,
+  loading,
+  onEdit,
+  onDelete,
+  onView,
 }: PersonalTableProps) {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
     });
   };
 
@@ -119,7 +119,7 @@ export function PersonalTable({
                       <Edit className="mr-2 h-4 w-4" />
                       Editar
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => onDelete(personal)}
                       className="text-red-600"
                     >

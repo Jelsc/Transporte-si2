@@ -1,57 +1,116 @@
+"""
+Middleware para aplicación automática de permisos basado en URLs y métodos HTTP.
+"""
+
 from django.http import JsonResponse
-from django.urls import reverse
 from django.utils.deprecation import MiddlewareMixin
+from rest_framework import status
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-class AdminPortalMiddleware(MiddlewareMixin):
+class PermissionMiddleware(MiddlewareMixin):
     """
-    Middleware para verificar acceso al panel administrativo.
+    Middleware que aplica permisos automáticamente basado en la URL y método HTTP.
     """
-    
-    # URLs que requieren acceso administrativo
-    ADMIN_URLS = [
-        '/api/admin/',
-        '/admin/',
-    ]
-    
-    # URLs que no requieren verificación
-    EXCLUDED_URLS = [
-        '/api/auth/',
-        '/api/admin/admin/login/',
-        '/api/admin/google/',
-        '/accounts/',
-    ]
-    
+
+    # Mapeo de URLs a permisos requeridos
+    PERMISSION_MAP = {
+        # Gestión de usuarios
+        "api/admin/users/": {
+            "GET": "gestionar_usuarios",
+            "POST": "gestionar_usuarios",
+            "PUT": "gestionar_usuarios",
+            "PATCH": "gestionar_usuarios",
+            "DELETE": "gestionar_usuarios",
+        },
+        # Gestión de roles
+        "api/admin/roles/": {
+            "GET": "gestionar_roles",
+            "POST": "gestionar_roles",
+            "PUT": "gestionar_roles",
+            "PATCH": "gestionar_roles",
+            "DELETE": "gestionar_roles",
+        },
+        # Gestión de conductores
+        "api/conductores/": {
+            "GET": "ver_conductores",
+            "POST": "gestionar_conductores",
+            "PUT": "gestionar_conductores",
+            "PATCH": "gestionar_conductores",
+            "DELETE": "gestionar_conductores",
+        },
+        # Gestión de personal
+        "api/personal/": {
+            "GET": "ver_personal",
+            "POST": "gestionar_personal",
+            "PUT": "gestionar_personal",
+            "PATCH": "gestionar_personal",
+            "DELETE": "gestionar_personal",
+        },
+        # Gestión de vehículos (si existe)
+        "api/vehiculos/": {
+            "GET": "ver_vehiculos",
+            "POST": "crear_vehiculo",
+            "PUT": "editar_vehiculo",
+            "PATCH": "editar_vehiculo",
+            "DELETE": "eliminar_vehiculo",
+        },
+        # Gestión de rutas (si existe)
+        "api/rutas/": {
+            "GET": "ver_rutas",
+            "POST": "crear_ruta",
+            "PUT": "editar_ruta",
+            "PATCH": "editar_ruta",
+            "DELETE": "eliminar_ruta",
+        },
+        # Gestión de viajes (si existe)
+        "api/viajes/": {
+            "GET": "ver_historial_viajes",
+            "POST": "solicitar_viaje",
+            "PUT": "gestionar_viajes",
+            "PATCH": "gestionar_viajes",
+            "DELETE": "cancelar_viaje",
+        },
+    }
+
     def process_request(self, request):
-        """Procesa la petición para verificar acceso administrativo"""
-        
-        # Solo verificar URLs administrativas
-        if not any(request.path.startswith(url) for url in self.ADMIN_URLS):
+        """Procesa la request y verifica permisos"""
+        # Solo aplicar a rutas de API
+        if not request.path.startswith("/api/"):
             return None
-        
-        # Excluir URLs que no requieren verificación
-        if any(request.path.startswith(url) for url in self.EXCLUDED_URLS):
+
+        # Obtener método HTTP
+        method = request.method
+
+        # Buscar la ruta en el mapeo de permisos
+        required_permission = None
+        for path_prefix, methods in self.PERMISSION_MAP.items():
+            if request.path.startswith(path_prefix):
+                required_permission = methods.get(method)
+                break
+
+        # Si no se requiere permiso específico, continuar
+        if not required_permission:
             return None
-        
+
         # Verificar si el usuario está autenticado
-        if not hasattr(request, 'user') or not request.user.is_authenticated:
-            return JsonResponse({
-                'error': 'Usuario no autenticado',
-                'detail': 'Se requiere autenticación para acceder a esta área'
-            }, status=401)
-        
-        # Verificar si el usuario tiene acceso administrativo
-        if not request.user.es_administrativo:
-            return JsonResponse({
-                'error': 'Acceso denegado',
-                'detail': 'Se requiere rol administrativo para acceder a esta área'
-            }, status=403)
-        
-        # Verificar si el usuario tiene acceso al panel administrativo
-        if not request.user.is_admin_portal:
-            return JsonResponse({
-                'error': 'Acceso denegado',
-                'detail': 'El usuario no tiene acceso al panel administrativo'
-            }, status=403)
-        
+        if not hasattr(request, "user") or not request.user.is_authenticated:
+            return JsonResponse(
+                {"error": "Autenticación requerida"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Verificar si el usuario tiene el permiso requerido
+        if not request.user.tiene_permiso(required_permission):
+            logger.warning(
+                f"Usuario {request.user.username} intentó acceder a {request.path} "
+                f"sin permiso {required_permission}"
+            )
+            return JsonResponse(
+                {"error": f"Permiso requerido: {required_permission}"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         return None

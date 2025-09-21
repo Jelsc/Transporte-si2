@@ -97,6 +97,7 @@ class RegisterData {
   final String lastName;
   final String email;
   final String telefono;
+  final String ci;
   final String password1;
   final String password2;
 
@@ -106,6 +107,7 @@ class RegisterData {
     required this.lastName,
     required this.email,
     required this.telefono,
+    required this.ci,
     required this.password1,
     required this.password2,
   });
@@ -117,6 +119,7 @@ class RegisterData {
       'last_name': lastName,
       'email': email,
       'telefono': telefono,
+      'ci': ci,
       'password1': password1,
       'password2': password2,
     };
@@ -191,12 +194,32 @@ class AuthService {
           message: responseData['message'] ?? 'Operación exitosa',
         );
       } else {
+        // Extraer mensaje de error específico
+        String errorMessage = 'Error en la petición';
+
+        if (responseData['detail'] != null) {
+          errorMessage = responseData['detail'];
+        } else if (responseData['error'] != null) {
+          errorMessage = responseData['error'];
+        } else if (responseData['non_field_errors'] != null) {
+          // Para errores de validación generales
+          errorMessage = responseData['non_field_errors'].join(', ');
+        } else {
+          // Para errores de campos específicos
+          List<String> fieldErrors = [];
+          responseData.forEach((key, value) {
+            if (value is List && value.isNotEmpty) {
+              fieldErrors.add('$key: ${value.join(', ')}');
+            }
+          });
+          if (fieldErrors.isNotEmpty) {
+            errorMessage = fieldErrors.join('; ');
+          }
+        }
+
         return ApiResponse<T>(
           success: false,
-          error:
-              responseData['detail'] ??
-              responseData['error'] ??
-              'Error en la petición',
+          error: errorMessage,
           message: responseData['message'],
         );
       }
@@ -252,12 +275,32 @@ class AuthService {
           message: responseData['message'] ?? 'Operación exitosa',
         );
       } else {
+        // Extraer mensaje de error específico
+        String errorMessage = 'Error en la petición';
+
+        if (responseData['detail'] != null) {
+          errorMessage = responseData['detail'];
+        } else if (responseData['error'] != null) {
+          errorMessage = responseData['error'];
+        } else if (responseData['non_field_errors'] != null) {
+          // Para errores de validación generales
+          errorMessage = responseData['non_field_errors'].join(', ');
+        } else {
+          // Para errores de campos específicos
+          List<String> fieldErrors = [];
+          responseData.forEach((key, value) {
+            if (value is List && value.isNotEmpty) {
+              fieldErrors.add('$key: ${value.join(', ')}');
+            }
+          });
+          if (fieldErrors.isNotEmpty) {
+            errorMessage = fieldErrors.join('; ');
+          }
+        }
+
         return ApiResponse<T>(
           success: false,
-          error:
-              responseData['detail'] ??
-              responseData['error'] ??
-              'Error en la petición',
+          error: errorMessage,
           message: responseData['message'],
         );
       }
@@ -313,7 +356,7 @@ class AuthService {
   Future<ApiResponse<User>> register(RegisterData userData) async {
     try {
       final response = await _apiRequestWithoutAuth<User>(
-        '/api/auth/registration/',
+        '/api/admin/mobile/register/',
         method: 'POST',
         body: userData.toJson(),
         fromJson: (data) => User.fromJson(data),
@@ -329,6 +372,63 @@ class AuthService {
       return ApiResponse<User>(
         success: false,
         error: 'Error en el registro: $e',
+      );
+    }
+  }
+
+  // ===== MÉTODOS DE VERIFICACIÓN MÓVIL =====
+
+  // Enviar código de verificación móvil
+  Future<ApiResponse<Map<String, dynamic>>> sendMobileVerificationCode(
+    String email,
+  ) async {
+    try {
+      return await _apiRequestWithoutAuth<Map<String, dynamic>>(
+        '/api/admin/mobile/send-code/',
+        method: 'POST',
+        body: {'email': email},
+      );
+    } catch (e) {
+      return ApiResponse<Map<String, dynamic>>(
+        success: false,
+        error: 'Error al enviar código: $e',
+      );
+    }
+  }
+
+  // Verificar código móvil
+  Future<ApiResponse<Map<String, dynamic>>> verifyMobileCode(
+    String email,
+    String code,
+  ) async {
+    try {
+      return await _apiRequestWithoutAuth<Map<String, dynamic>>(
+        '/api/admin/mobile/verify-code/',
+        method: 'POST',
+        body: {'email': email, 'code': code},
+      );
+    } catch (e) {
+      return ApiResponse<Map<String, dynamic>>(
+        success: false,
+        error: 'Error al verificar código: $e',
+      );
+    }
+  }
+
+  // Reenviar código de verificación
+  Future<ApiResponse<Map<String, dynamic>>> resendMobileVerificationCode(
+    String email,
+  ) async {
+    try {
+      return await _apiRequestWithoutAuth<Map<String, dynamic>>(
+        '/api/admin/mobile/resend-code/',
+        method: 'POST',
+        body: {'email': email},
+      );
+    } catch (e) {
+      return ApiResponse<Map<String, dynamic>>(
+        success: false,
+        error: 'Error al reenviar código: $e',
       );
     }
   }

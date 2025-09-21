@@ -1,17 +1,17 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Filter, X } from 'lucide-react';
-import type { PersonalFilters } from '@/types';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, Filter, X } from "lucide-react";
+import type { PersonalFilters } from "@/types";
 
 interface PersonalFiltersProps {
   filters: PersonalFilters;
@@ -20,11 +20,11 @@ interface PersonalFiltersProps {
   loading?: boolean;
 }
 
-export function PersonalFiltersComponent({ 
-  filters, 
-  onFiltersChange, 
+export function PersonalFiltersComponent({
+  filters,
+  onFiltersChange,
   onClearFilters,
-  loading = false 
+  loading = false,
 }: PersonalFiltersProps) {
   const handleSearchChange = (value: string) => {
     const next = { ...filters };
@@ -38,7 +38,7 @@ export function PersonalFiltersComponent({
 
   const handleDepartamentoChange = (value: string) => {
     const next = { ...filters };
-    if (value === 'all') {
+    if (value === "all") {
       delete (next as any).departamento;
     } else {
       next.departamento = value;
@@ -48,7 +48,7 @@ export function PersonalFiltersComponent({
 
   const handleEstadoChange = (value: string) => {
     const next = { ...filters };
-    if (value === 'all') {
+    if (value === "all") {
       delete (next as any).estado;
     } else {
       next.estado = value;
@@ -58,16 +58,16 @@ export function PersonalFiltersComponent({
 
   const handleActivoChange = (value: string) => {
     const next = { ...filters };
-    if (value === 'all') {
+    if (value === "all") {
       delete (next as any).es_activo;
     } else {
-      next.es_activo = value === 'true';
+      next.es_activo = value === "true";
     }
     onFiltersChange(next);
   };
 
-  const hasActiveFilters = Object.values(filters).some(value => 
-    value !== undefined && value !== ''
+  const hasActiveFilters = Object.values(filters).some(
+    (value) => value !== undefined && value !== ""
   );
 
   return (
@@ -88,7 +88,7 @@ export function PersonalFiltersComponent({
               <Input
                 id="search"
                 placeholder="Nombre, apellido, email..."
-                value={filters.search || ''}
+                value={filters.search || ""}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10"
                 disabled={loading}
@@ -100,7 +100,7 @@ export function PersonalFiltersComponent({
           <div className="space-y-2">
             <Label htmlFor="departamento">Departamento</Label>
             <Select
-              value={filters.departamento || 'all'}
+              value={filters.departamento || "all"}
               onValueChange={handleDepartamentoChange}
               disabled={loading}
             >
@@ -110,11 +110,15 @@ export function PersonalFiltersComponent({
               <SelectContent>
                 <SelectItem value="all">Todos los departamentos</SelectItem>
                 <SelectItem value="Administración">Administración</SelectItem>
-                <SelectItem value="Recursos Humanos">Recursos Humanos</SelectItem>
+                <SelectItem value="Recursos Humanos">
+                  Recursos Humanos
+                </SelectItem>
                 <SelectItem value="Operaciones">Operaciones</SelectItem>
                 <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
                 <SelectItem value="Ventas">Ventas</SelectItem>
-                <SelectItem value="Atención al Cliente">Atención al Cliente</SelectItem>
+                <SelectItem value="Atención al Cliente">
+                  Atención al Cliente
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -123,7 +127,7 @@ export function PersonalFiltersComponent({
           <div className="space-y-2">
             <Label htmlFor="estado">Estado</Label>
             <Select
-              value={filters.estado || 'all'}
+              value={filters.estado || "all"}
               onValueChange={handleEstadoChange}
               disabled={loading}
             >
@@ -144,7 +148,11 @@ export function PersonalFiltersComponent({
           <div className="space-y-2">
             <Label htmlFor="activo">Estado del Sistema</Label>
             <Select
-              value={filters.es_activo === undefined ? 'all' : filters.es_activo.toString()}
+              value={
+                filters.es_activo === undefined
+                  ? "all"
+                  : filters.es_activo.toString()
+              }
               onValueChange={handleActivoChange}
               disabled={loading}
             >
@@ -163,7 +171,7 @@ export function PersonalFiltersComponent({
         {/* Botones de acción */}
         <div className="flex justify-between items-center pt-4 border-t">
           <div className="text-sm text-gray-500">
-            {hasActiveFilters ? 'Filtros activos' : 'Sin filtros aplicados'}
+            {hasActiveFilters ? "Filtros activos" : "Sin filtros aplicados"}
           </div>
           <div className="flex gap-2">
             {hasActiveFilters && (

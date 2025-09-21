@@ -1,13 +1,15 @@
 """
 Seeder para crear los roles iniciales del sistema.
 """
+
 from .base_seeder import BaseSeeder
+
 
 class RolSeeder(BaseSeeder):
     """
     Crea los roles iniciales del sistema.
     """
-    
+
     @classmethod
     def run(cls):
         """
@@ -15,46 +17,38 @@ class RolSeeder(BaseSeeder):
         """
         try:
             from users.models import Rol
-            
+            from users.constants import GRUPOS_PERMISOS
+
             roles_data = [
                 {
                     "nombre": "Cliente",
                     "descripcion": "Usuario final que utiliza el servicio de transporte",
                     "es_administrativo": False,
-                    "permisos": ["ver_perfil", "solicitar_viaje", "ver_historial"],
+                    "permisos": GRUPOS_PERMISOS["cliente"],
                 },
                 {
                     "nombre": "Administrador",
-                    "descripcion": "Administrador general del sistema",
+                    "descripcion": "Administrador general del sistema con todos los permisos",
                     "es_administrativo": True,
-                    "permisos": [
-                        "gestionar_usuarios",
-                        "gestionar_vehiculos",
-                        "ver_reportes",
-                        "gestionar_rutas",
-                    ],
+                    "permisos": GRUPOS_PERMISOS["administrador"],
                 },
                 {
                     "nombre": "Supervisor",
-                    "descripcion": "Supervisor de operaciones",
+                    "descripcion": "Supervisor con permisos de monitoreo y gestión básica",
                     "es_administrativo": True,
-                    "permisos": [
-                        "ver_reportes",
-                        "gestionar_conductores",
-                        "gestionar_vehiculos",
-                    ],
+                    "permisos": GRUPOS_PERMISOS["supervisor"],
                 },
                 {
                     "nombre": "Conductor",
-                    "descripcion": "Conductor de vehículos",
+                    "descripcion": "Conductor del sistema",
                     "es_administrativo": False,
-                    "permisos": ["ver_viajes_asignados", "actualizar_estado", "ver_perfil"],
+                    "permisos": GRUPOS_PERMISOS["conductor"],
                 },
                 {
                     "nombre": "Operador",
-                    "descripcion": "Operador de centro de control",
+                    "descripcion": "Operador con permisos de gestión operativa",
                     "es_administrativo": True,
-                    "permisos": ["asignar_viajes", "monitorear_vehiculos", "ver_reportes"],
+                    "permisos": GRUPOS_PERMISOS["operador"],
                 },
             ]
 
@@ -65,11 +59,18 @@ class RolSeeder(BaseSeeder):
                 if created:
                     print(f"✓ Rol creado: {rol.nombre}")
                 else:
-                    print(f"- Rol ya existe: {rol.nombre}")
-                    
+                    # Actualizar permisos si el rol ya existe
+                    rol.permisos = role_data["permisos"]
+                    rol.descripcion = role_data["descripcion"]
+                    rol.es_administrativo = role_data["es_administrativo"]
+                    rol.save()
+                    print(f"✓ Rol actualizado: {rol.nombre}")
+
         except ImportError:
-            print("❌ Error: No se pudo importar el modelo Rol. Verifica que existe en users.models.")
-    
+            print(
+                "❌ Error: No se pudo importar el modelo Rol. Verifica que existe en users.models."
+            )
+
     @classmethod
     def should_run(cls):
         """
@@ -77,8 +78,15 @@ class RolSeeder(BaseSeeder):
         """
         try:
             from users.models import Rol
+
             # Ejecutar si no existen todos los roles esperados
-            roles_esperados = ["Cliente", "Administrador", "Supervisor", "Conductor", "Operador"]
+            roles_esperados = [
+                "Cliente",
+                "Administrador",
+                "Supervisor",
+                "Conductor",
+                "Operador",
+            ]
             roles_existentes = set(Rol.objects.values_list("nombre", flat=True))
             return not all(rol in roles_existentes for rol in roles_esperados)
         except:

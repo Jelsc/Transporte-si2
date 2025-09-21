@@ -39,16 +39,16 @@ class AdminTokenObtainPairView(TokenObtainPairView):
         refresh = RefreshToken.for_user(user)
 
         user.fecha_ultimo_acceso = timezone.now()
-        
-        #BITACORA
+
+        # BITACORA
         registrar_bitacora(
-        request=request,
-        usuario=user,
-        accion="Login",
-        descripcion="Administrador inicio sesion",
-        modulo="ADMINISTRACION"
-        )    
-        
+            request=request,
+            usuario=user,
+            accion="Login",
+            descripcion="Administrador inicio sesion",
+            modulo="ADMINISTRACION",
+        )
+
         user.save(update_fields=["fecha_ultimo_acceso"])
 
         return Response(
@@ -58,6 +58,7 @@ class AdminTokenObtainPairView(TokenObtainPairView):
                 "user": UserSerializer(user).data,
             }
         )
+
 
 @api_view(["POST"])
 @permission_classes([permissions.IsAuthenticated])
@@ -69,7 +70,7 @@ def admin_logout(request):
         user = request.user
         user.fecha_ultimo_acceso = timezone.now()
         user.save(update_fields=["fecha_ultimo_acceso"])
-        
+
         token.blacklist()
         return Response(
             {"message": "Logout exitoso"}, status=status.HTTP_205_RESET_CONTENT
@@ -85,24 +86,24 @@ def client_logout(request):
     try:
         refresh_token = request.data["refresh"]
         token = RefreshToken(refresh_token)
-        
+
         # Actualizar fecha de último acceso
         user = request.user
         user.fecha_ultimo_acceso = timezone.now()
         user.save(update_fields=["fecha_ultimo_acceso"])
-        
+
         token.blacklist()
         return Response(
             {"message": "Logout exitoso"}, status=status.HTTP_205_RESET_CONTENT
         )
-    
+
     except Exception as e:
         registrar_bitacora(
-        request=request,
-        accion="Logout",
-        descripcion="Administrador cerro sesion",
-        modulo="ADMINISTRACION"
-        )   
+            request=request,
+            accion="Logout",
+            descripcion="Administrador cerro sesion",
+            modulo="ADMINISTRACION",
+        )
         return Response({"error": "Token inválido"}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -119,7 +120,7 @@ class AdminRegistrationView(generics.CreateAPIView):
             raise permissions.PermissionDenied(
                 "Solo superusuarios pueden crear usuarios administrativos"
             )
-        
+
         serializer.save()
 
 
@@ -166,16 +167,20 @@ class ChangePasswordView(generics.UpdateAPIView):
 
 class RolViewSet(viewsets.ModelViewSet):
     """ViewSet para el CRUD de roles"""
-    
+
     queryset = Rol.objects.all()
     serializer_class = RolSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['es_administrativo']
-    search_fields = ['nombre', 'descripcion']
-    ordering_fields = ['nombre', 'fecha_creacion']
-    ordering = ['nombre']
-    
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_fields = ["es_administrativo"]
+    search_fields = ["nombre", "descripcion"]
+    ordering_fields = ["nombre", "fecha_creacion"]
+    ordering = ["nombre"]
+
     def get_queryset(self):
         """Filtra el queryset según los permisos del usuario"""
         # Permitir a cualquier usuario autenticado ver los roles
@@ -183,262 +188,272 @@ class RolViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_authenticated:
             return Rol.objects.none()
         return super().get_queryset()
-    
-    @requiere_permisos_viewset(['gestionar_roles'])
+
+    @requiere_permisos_viewset(["gestionar_roles"])
     def create(self, request, *args, **kwargs):
         """Crear un nuevo rol"""
         return super().create(request, *args, **kwargs)
-    
-    @requiere_permisos_viewset(['gestionar_roles'])
+
+    @requiere_permisos_viewset(["gestionar_roles"])
     def update(self, request, *args, **kwargs):
         """Actualizar un rol"""
         return super().update(request, *args, **kwargs)
-    
-    @requiere_permisos_viewset(['gestionar_roles'])
+
+    @requiere_permisos_viewset(["gestionar_roles"])
     def destroy(self, request, *args, **kwargs):
         """Eliminar un rol"""
         return super().destroy(request, *args, **kwargs)
-    
-    @action(detail=False, methods=['get'])
+
+    @action(detail=False, methods=["get"])
     def permisos_disponibles(self, request):
         """Lista todos los permisos disponibles en el sistema"""
         # Permitir a cualquier usuario autenticado ver los permisos disponibles
         # Esto es necesario para que el frontend pueda mostrar las opciones
         if not request.user.is_authenticated:
             return Response(
-                {'error': 'Debes estar autenticado para ver los permisos'},
-                status=status.HTTP_401_UNAUTHORIZED
+                {"error": "Debes estar autenticado para ver los permisos"},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
-        
-        return Response({
-            'permisos': PERMISOS_SISTEMA,
-            'grupos_permisos': GRUPOS_PERMISOS
-        })
-    
-    @action(detail=True, methods=['post'])
+
+        return Response(
+            {"permisos": PERMISOS_SISTEMA, "grupos_permisos": GRUPOS_PERMISOS}
+        )
+
+    @action(detail=True, methods=["post"])
     def asignar_permisos(self, request, pk=None):
         """Asignar permisos a un rol"""
         rol = self.get_object()
-        
-        if not request.user.tiene_permiso('gestionar_roles'):
+
+        if not request.user.tiene_permiso("gestionar_roles"):
             return Response(
-                {'error': 'No tienes permisos para gestionar roles'},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "No tienes permisos para gestionar roles"},
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
-        permisos = request.data.get('permisos', [])
-        
+
+        permisos = request.data.get("permisos", [])
+
         # Validar que los permisos existan
         permisos_validos = [permiso[0] for permiso in PERMISOS_SISTEMA]
         permisos_invalidos = [p for p in permisos if p not in permisos_validos]
-        
+
         if permisos_invalidos:
             return Response(
-                {'error': f'Permisos inválidos: {", ".join(permisos_invalidos)}'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": f"Permisos inválidos: {', '.join(permisos_invalidos)}"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         rol.asignar_permisos(permisos)
-        return Response({'message': 'Permisos asignados correctamente'})
-    
-    @action(detail=True, methods=['post'])
+        return Response({"message": "Permisos asignados correctamente"})
+
+    @action(detail=True, methods=["post"])
     def agregar_permiso(self, request, pk=None):
         """Agregar un permiso a un rol"""
         rol = self.get_object()
-        
-        if not request.user.tiene_permiso('gestionar_roles'):
+
+        if not request.user.tiene_permiso("gestionar_roles"):
             return Response(
-                {'error': 'No tienes permisos para gestionar roles'},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "No tienes permisos para gestionar roles"},
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
-        permiso = request.data.get('permiso')
+
+        permiso = request.data.get("permiso")
         if not permiso:
             return Response(
-                {'error': 'Permiso requerido'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Permiso requerido"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Validar que el permiso exista
         permisos_validos = [permiso[0] for permiso in PERMISOS_SISTEMA]
         if permiso not in permisos_validos:
             return Response(
-                {'error': 'Permiso inválido'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Permiso inválido"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if rol.agregar_permiso(permiso):
-            return Response({'message': 'Permiso agregado correctamente'})
+            return Response({"message": "Permiso agregado correctamente"})
         else:
-            return Response({'message': 'El permiso ya estaba asignado'})
-    
-    @action(detail=True, methods=['post'])
+            return Response({"message": "El permiso ya estaba asignado"})
+
+    @action(detail=True, methods=["post"])
     def quitar_permiso(self, request, pk=None):
         """Quitar un permiso de un rol"""
         rol = self.get_object()
-        
-        if not request.user.tiene_permiso('gestionar_roles'):
+
+        if not request.user.tiene_permiso("gestionar_roles"):
             return Response(
-                {'error': 'No tienes permisos para gestionar roles'},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "No tienes permisos para gestionar roles"},
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
-        permiso = request.data.get('permiso')
+
+        permiso = request.data.get("permiso")
         if not permiso:
             return Response(
-                {'error': 'Permiso requerido'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "Permiso requerido"}, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if rol.quitar_permiso(permiso):
-            return Response({'message': 'Permiso quitado correctamente'})
+            return Response({"message": "Permiso quitado correctamente"})
         else:
-            return Response({'message': 'El permiso no estaba asignado'})
-    
-    @action(detail=False, methods=['get'])
+            return Response({"message": "El permiso no estaba asignado"})
+
+    @action(detail=False, methods=["get"])
     def estadisticas(self, request):
         """Estadísticas de roles"""
-        if not request.user.tiene_permiso('gestionar_roles'):
+        if not request.user.tiene_permiso("gestionar_roles"):
             return Response(
-                {'error': 'No tienes permisos para ver estadísticas'},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "No tienes permisos para ver estadísticas"},
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         queryset = self.get_queryset()
-        
+
         stats = {
-            'total_roles': queryset.count(),
-            'roles_administrativos': queryset.filter(es_administrativo=True).count(),
-            'roles_clientes': queryset.filter(es_administrativo=False).count(),
-            'permisos_por_rol': [
+            "total_roles": queryset.count(),
+            "roles_administrativos": queryset.filter(es_administrativo=True).count(),
+            "roles_clientes": queryset.filter(es_administrativo=False).count(),
+            "permisos_por_rol": [
                 {
-                    'rol': rol.nombre,
-                    'permisos_count': len(rol.permisos),
-                    'permisos': rol.permisos
+                    "rol": rol.nombre,
+                    "permisos_count": len(rol.permisos),
+                    "permisos": rol.permisos,
                 }
                 for rol in queryset
-            ]
+            ],
         }
-        
+
         return Response(stats)
 
 
 class UserViewSet(viewsets.ModelViewSet):
     """ViewSet para el CRUD de usuarios"""
-    
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    # Alinear con filtros del frontend: permitir rol__nombre e is_admin_portal
-    filterset_fields = ['rol', 'rol__nombre', 'is_admin_portal', 'is_active', 'es_activo']
-    search_fields = [
-        'username',
-        'email',
-        'first_name',
-        'last_name',
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
     ]
-    ordering_fields = ['username', 'email', 'fecha_creacion']
-    ordering = ['-fecha_creacion']
-    
+    # Alinear con filtros del frontend: permitir rol__nombre e is_admin_portal
+    filterset_fields = [
+        "rol",
+        "rol__nombre",
+        "is_admin_portal",
+        "is_active",
+        "es_activo",
+    ]
+    search_fields = [
+        "username",
+        "email",
+        "first_name",
+        "last_name",
+    ]
+    ordering_fields = ["username", "email", "fecha_creacion"]
+    ordering = ["-fecha_creacion"]
+
     def get_queryset(self):
         """Filtra el queryset según los permisos del usuario"""
         queryset = super().get_queryset()
-        
+
         # Si el usuario no tiene permisos para gestionar usuarios, solo puede ver su propio perfil
-        if not self.request.user.tiene_permiso('gestionar_usuarios'):
+        if not self.request.user.tiene_permiso("gestionar_usuarios"):
             return queryset.filter(id=self.request.user.id)
-        
-        return queryset.select_related('rol')
-    
-    @requiere_permisos_viewset(['gestionar_usuarios'])
+
+        return queryset.select_related("rol")
+
+    @requiere_permisos_viewset(["gestionar_usuarios"])
     def create(self, request, *args, **kwargs):
         """Crear un nuevo usuario"""
         return super().create(request, *args, **kwargs)
-    
-    @requiere_permisos_viewset(['gestionar_usuarios'])
+
+    @requiere_permisos_viewset(["gestionar_usuarios"])
     def update(self, request, *args, **kwargs):
         """Actualizar un usuario"""
         return super().update(request, *args, **kwargs)
-    
-    @requiere_permisos_viewset(['gestionar_usuarios'])
+
+    @requiere_permisos_viewset(["gestionar_usuarios"])
     def destroy(self, request, *args, **kwargs):
         """Eliminar un usuario"""
         return super().destroy(request, *args, **kwargs)
-    
-    @action(detail=False, methods=['get'])
+
+    @action(detail=False, methods=["get"])
     def estadisticas(self, request):
         """Estadísticas de usuarios"""
-        if not request.user.tiene_permiso('gestionar_usuarios'):
+        if not request.user.tiene_permiso("gestionar_usuarios"):
             return Response(
-                {'error': 'No tienes permisos para ver estadísticas'},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "No tienes permisos para ver estadísticas"},
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         queryset = self.get_queryset()
-        
+
         stats = {
-            'total': queryset.count(),
-            'activos': queryset.filter(is_active=True).count(),
-            'administrativos': queryset.filter(rol__es_administrativo=True).count(),
-            'clientes': queryset.filter(rol__es_administrativo=False).count(),
-            'con_acceso_admin': queryset.filter(is_admin_portal=True).count(),
-            'por_rol': dict(queryset.values('rol__nombre').annotate(
-                count=models.Count('id')
-            ).values_list('rol__nombre', 'count')),
-            'nuevos_este_mes': queryset.filter(
+            "total": queryset.count(),
+            "activos": queryset.filter(is_active=True).count(),
+            "administrativos": queryset.filter(rol__es_administrativo=True).count(),
+            "clientes": queryset.filter(rol__es_administrativo=False).count(),
+            "con_acceso_admin": queryset.filter(is_admin_portal=True).count(),
+            "por_rol": dict(
+                queryset.values("rol__nombre")
+                .annotate(count=models.Count("id"))
+                .values_list("rol__nombre", "count")
+            ),
+            "nuevos_este_mes": queryset.filter(
                 fecha_creacion__gte=timezone.now().replace(day=1)
-            ).count()
+            ).count(),
         }
-        
+
         return Response(stats)
-    
-    @action(detail=False, methods=['get'])
+
+    @action(detail=False, methods=["get"])
     def personal_disponible(self, request):
         """Lista personal disponible para vincular con usuarios"""
-        if not request.user.tiene_permiso('gestionar_usuarios'):
+        if not request.user.tiene_permiso("gestionar_usuarios"):
             return Response(
-                {'error': 'No tienes permisos para ver personal disponible'},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "No tienes permisos para ver personal disponible"},
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         try:
             from personal.models import Personal
+
             # Personal que no tiene usuario vinculado
             personal_disponible = Personal.objects.filter(
-                usuario__isnull=True,
-                es_activo=True
-            ).values('id', 'nombre', 'apellido', 'email', 'ci', 'telefono')
-            
+                usuario__isnull=True, es_activo=True
+            ).values("id", "nombre", "apellido", "email", "ci", "telefono")
+
             return Response(list(personal_disponible))
         except ImportError:
             return Response([])
-    
-    @action(detail=False, methods=['get'])
+
+    @action(detail=False, methods=["get"])
     def conductores_disponibles(self, request):
         """Lista conductores disponibles para vincular con usuarios"""
-        if not request.user.tiene_permiso('gestionar_usuarios'):
+        if not request.user.tiene_permiso("gestionar_usuarios"):
             return Response(
-                {'error': 'No tienes permisos para ver conductores disponibles'},
-                status=status.HTTP_403_FORBIDDEN
+                {"error": "No tienes permisos para ver conductores disponibles"},
+                status=status.HTTP_403_FORBIDDEN,
             )
-        
+
         try:
             from conductores.models import Conductor
+
             # Conductores que no tienen usuario vinculado
-            conductores_disponibles = Conductor.objects.filter(
-                usuario__isnull=True,
-                es_activo=True
-            ).select_related('personal').values(
-                'id',
-                'personal__nombre',
-                'personal__apellido',
-                'personal__email',
-                'personal__ci',
-                'personal__telefono',
-                'nro_licencia'
+            conductores_disponibles = (
+                Conductor.objects.filter(usuario__isnull=True, es_activo=True)
+                .select_related("personal")
+                .values(
+                    "id",
+                    "personal__nombre",
+                    "personal__apellido",
+                    "personal__email",
+                    "personal__ci",
+                    "personal__telefono",
+                    "nro_licencia",
+                )
             )
-            
+
             return Response(list(conductores_disponibles))
         except ImportError:
             return Response([])
@@ -549,7 +564,7 @@ def google_auth(request):
         # Actualizar último acceso
         user.fecha_ultimo_acceso = timezone.now()
         user.save(update_fields=["fecha_ultimo_acceso"])
-        
+
         # Generar tokens JWT
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
@@ -568,15 +583,17 @@ def google_auth(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
+
 ###PRUEBAS####
 User = get_user_model()
+
 
 class CustomLoginView(LoginView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
 
         # Obtener usuario autenticado real
-        username = response.data.get('user', {}).get('username')
+        username = response.data.get("user", {}).get("username")
         user = User.objects.filter(username=username).first() if username else None
 
         if user:
@@ -584,7 +601,7 @@ class CustomLoginView(LoginView):
                 request=request,
                 accion="Login",
                 descripcion=f"El usuario {user.username} inició sesión",
-                modulo="AUTENTICACION"
+                modulo="AUTENTICACION",
             )
 
         return response
@@ -594,8 +611,7 @@ class CustomLogoutView(LogoutView):
     def post(self, request, *args, **kwargs):
         user = None
 
-        
-        auth_header = request.headers.get('Authorization')
+        auth_header = request.headers.get("Authorization")
         if auth_header:
             try:
                 jwt_auth = JWTAuthentication()
@@ -613,7 +629,7 @@ class CustomLogoutView(LogoutView):
                 usuario=user,
                 accion="Logout",
                 descripcion=f"El usuario {user.username} cerró sesión.",
-                modulo="AUTENTICACION"
+                modulo="AUTENTICACION",
             )
 
         return response
@@ -621,11 +637,12 @@ class CustomLogoutView(LogoutView):
 
 class CustomRegisterView(RegisterView):
     """Registro con bitácora"""
+
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
 
         # Obtener usuario recién creado desde el email (campo único)
-        email = request.data.get('email')
+        email = request.data.get("email")
         user = User.objects.filter(email=email).first() if email else None
 
         if user:
@@ -634,7 +651,7 @@ class CustomRegisterView(RegisterView):
                 usuario=user,
                 accion="Registro",
                 descripcion=f"Se registró el usuario {user.username}",
-                modulo="AUTENTICACION"
+                modulo="AUTENTICACION",
             )
 
         return response
