@@ -9,8 +9,10 @@ class PersonalSerializer(serializers.ModelSerializer):
     """Serializer para el modelo Personal - Refactorizado"""
     
     # Campos del usuario relacionado (opcionales)
-    username = serializers.CharField(source='usuario.username', read_only=True, allow_null=True)
-    
+    username = serializers.CharField(
+        source="usuario.username", read_only=True, allow_null=True
+    )
+
     # Campos calculados
     nombre_completo = serializers.CharField(read_only=True)
     anos_antiguedad = serializers.IntegerField(read_only=True)
@@ -44,34 +46,32 @@ class PersonalSerializer(serializers.ModelSerializer):
             'fecha_creacion',
             'fecha_actualizacion'
         ]
-    
+
     def validate_codigo_empleado(self, value):
         """Valida que el código de empleado sea único"""
         if self.instance and self.instance.codigo_empleado == value:
             return value
-        
+
         if Personal.objects.filter(codigo_empleado=value).exists():
             raise serializers.ValidationError(
                 "Ya existe un empleado con este código de empleado."
             )
         return value
-    
+
     def validate_email(self, value):
         """Valida que el email sea único"""
         if self.instance and self.instance.email == value:
             return value
-        
+
         if Personal.objects.filter(email=value).exists():
-            raise serializers.ValidationError(
-                "Ya existe un empleado con este email."
-            )
+            raise serializers.ValidationError("Ya existe un empleado con este email.")
         return value
-    
+
     def validate_ci(self, value):
         """Valida que la CI sea única"""
         if self.instance and self.instance.ci == value:
             return value
-        
+
         if Personal.objects.filter(ci=value).exists():
             raise serializers.ValidationError(
                 "Ya existe un empleado con esta cédula de identidad."
@@ -81,7 +81,7 @@ class PersonalSerializer(serializers.ModelSerializer):
 
 class PersonalCreateSerializer(serializers.ModelSerializer):
     """Serializer para crear personal"""
-    
+
     class Meta:
         model = Personal
         fields = [
@@ -98,7 +98,7 @@ class PersonalCreateSerializer(serializers.ModelSerializer):
             'contacto_emergencia',
             'usuario'
         ]
-    
+
     def validate_codigo_empleado(self, value):
         """Valida que el código de empleado sea único"""
         if Personal.objects.filter(codigo_empleado=value).exists():
@@ -106,15 +106,13 @@ class PersonalCreateSerializer(serializers.ModelSerializer):
                 "Ya existe un empleado con este código de empleado."
             )
         return value
-    
+
     def validate_email(self, value):
         """Valida que el email sea único"""
         if Personal.objects.filter(email=value).exists():
-            raise serializers.ValidationError(
-                "Ya existe un empleado con este email."
-            )
+            raise serializers.ValidationError("Ya existe un empleado con este email.")
         return value
-    
+
     def validate_ci(self, value):
         """Valida que la CI sea única"""
         if Personal.objects.filter(ci=value).exists():
@@ -126,7 +124,7 @@ class PersonalCreateSerializer(serializers.ModelSerializer):
 
 class PersonalUpdateSerializer(serializers.ModelSerializer):
     """Serializer para actualizar personal"""
-    
+
     class Meta:
         model = Personal
         fields = [
@@ -137,12 +135,12 @@ class PersonalUpdateSerializer(serializers.ModelSerializer):
             'contacto_emergencia',
             'usuario'
         ]
-    
+
     def validate_codigo_empleado(self, value):
         """Valida que el código de empleado sea único"""
         if self.instance and self.instance.codigo_empleado == value:
             return value
-        
+
         if Personal.objects.filter(codigo_empleado=value).exists():
             raise serializers.ValidationError(
                 "Ya existe un empleado con este código de empleado."
@@ -152,11 +150,11 @@ class PersonalUpdateSerializer(serializers.ModelSerializer):
 
 class PersonalEstadoSerializer(serializers.ModelSerializer):
     """Serializer para cambiar estado del empleado"""
-    
+
     class Meta:
         model = Personal
-        fields = ['estado']
-    
+        fields = ["estado"]
+
     def validate_estado(self, value):
         """Valida que el estado sea un booleano válido"""
         if not isinstance(value, bool):

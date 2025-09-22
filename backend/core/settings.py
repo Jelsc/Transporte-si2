@@ -41,6 +41,9 @@ FRONTEND_URL_ALT = os.getenv("FRONTEND_URL_ALT", "http://127.0.0.1:5173")
 CORS_ALLOWED_ORIGINS = [
     FRONTEND_URL,
     FRONTEND_URL_ALT,
+    # IP del emulador Android para desarrollo móvil
+    "http://10.0.2.2:8000",
+    "http://10.0.2.2:5173",
 ]
 CORS_ALLOW_CREDENTIALS = True  # Por si usas sesión/cookies
 # Application definition
@@ -72,7 +75,6 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "dj_rest_auth.registration",
     # "dj_rest_auth.jwt_auth",
-
     "bitacora",
 ]
 
@@ -89,6 +91,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "users.middleware.PermissionMiddleware",  # Middleware de permisos automático
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -183,6 +186,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CSRF_TRUSTED_ORIGINS = [
     FRONTEND_URL,
     FRONTEND_URL_ALT,
+    # IP del emulador Android para desarrollo móvil
+    "http://10.0.2.2:8000",
+    "http://10.0.2.2:5173",
 ]
 
 # A dónde redirigir después de login/logout
@@ -202,7 +208,9 @@ ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = (
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # username o email
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"  # "mandatory" si quieres confirmar email
+ACCOUNT_EMAIL_VERIFICATION = (
+    "none"  # Desactivado para nuestro sistema móvil personalizado
+)
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # link de confirmación hace login al abrirlo
 ACCOUNT_UNIQUE_EMAIL = True  # Cada email debe ser único
 LOGIN_ON_EMAIL_CONFIRMATION = True
@@ -261,6 +269,22 @@ SOCIALACCOUNT_PROVIDERS = {
         },
         "OAUTH_PKCE_ENABLED": True,
     }
+}
+
+# ====== CACHE CONFIGURATION ======
+# Configuración para verificación móvil
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+    }
+}
+
+# ====== EMAIL BACKENDS ======
+# Backend de email personalizado para verificación móvil
+EMAIL_BACKENDS = {
+    "default": "django.core.mail.backends.smtp.EmailBackend",
+    "mobile_verification": "django.core.mail.backends.console.EmailBackend",  # Para testing
 }
 
 # Configuración de Google OAuth

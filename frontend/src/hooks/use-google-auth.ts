@@ -19,7 +19,7 @@ export const useGoogleAuth = () => {
 
       // Decodificar el JWT token de Google
       const token = response.credential;
-      
+
       try {
         // Decodificar el payload del token JWT (segunda parte del token)
         const base64Url = token.split(".")[1];
@@ -30,7 +30,7 @@ export const useGoogleAuth = () => {
             .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
             .join("")
         );
-        
+
         const payload = JSON.parse(jsonPayload);
         console.log("Google user info:", payload);
 

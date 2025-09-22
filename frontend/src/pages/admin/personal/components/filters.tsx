@@ -1,17 +1,17 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Filter, X } from 'lucide-react';
-import type { PersonalFilters } from '@/types';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Search, Filter, X } from "lucide-react";
+import type { PersonalFilters } from "@/types";
 
 interface PersonalFiltersProps {
   search: string;
@@ -50,7 +50,6 @@ export function PersonalFiltersComponent({
               className="pl-10"
             />
           </div>
-
           <Select value={estadoFilter} onValueChange={onEstadoFilterChange} disabled={loading}>
             <SelectTrigger>
               <SelectValue placeholder="Estado" />

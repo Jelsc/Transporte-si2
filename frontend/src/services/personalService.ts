@@ -1,18 +1,20 @@
-import { apiRequest } from './api';
-import type { 
-  Personal, 
-  PersonalFormData, 
-  PersonalFilters, 
-  PaginatedResponse, 
+import { apiRequest } from "./api";
+import type {
+  Personal,
+  PersonalFormData,
+  PersonalFilters,
+  PaginatedResponse,
   ApiResponse,
-  PersonalOption 
-} from '@/types';
+  PersonalOption,
+} from "@/types";
 
 // Mappers para convertir entre formatos del frontend y backend
 const toDTO = (data: PersonalFormData) => ({
   nombre: data.nombre,
   apellido: data.apellido,
-  fecha_nacimiento: data.fecha_nacimiento ? data.fecha_nacimiento.toISOString().split('T')[0] : undefined,
+  fecha_nacimiento: data.fecha_nacimiento
+    ? data.fecha_nacimiento.toISOString().split("T")[0]
+    : undefined,
   telefono: data.telefono,
   email: data.email,
   ci: data.ci,
@@ -47,15 +49,17 @@ const fromDTO = (data: any): Personal => ({
 
 export const personalApi = {
   // Listar personal con filtros y paginación
-  async list(filters?: PersonalFilters): Promise<ApiResponse<PaginatedResponse<Personal>>> {
+  async list(
+    filters?: PersonalFilters
+  ): Promise<ApiResponse<PaginatedResponse<Personal>>> {
     const params = new URLSearchParams();
-    
     if (filters?.search) params.append('search', filters.search);
     if (filters?.estado !== undefined) params.append('estado', filters.estado.toString());
-    
     const query = params.toString();
-    const response = await apiRequest(`/api/personal/${query ? `?${query}` : ''}`);
-    
+    const response = await apiRequest(
+      `/api/personal/${query ? `?${query}` : ""}`
+    );
+
     if (response.success && response.data) {
       const data = response.data as any;
       return {
@@ -68,69 +72,74 @@ export const personalApi = {
         },
       };
     }
-    
+
     return response as ApiResponse<PaginatedResponse<Personal>>;
   },
 
   // Obtener personal por ID
   async get(id: number): Promise<ApiResponse<Personal>> {
     const response = await apiRequest(`/api/personal/${id}/`);
-    
+
     if (response.success && response.data) {
       return {
         success: true,
         data: fromDTO(response.data),
       };
     }
-    
+
     return response as ApiResponse<Personal>;
   },
 
   // Crear nuevo personal
   async create(data: PersonalFormData): Promise<ApiResponse<Personal>> {
-    const response = await apiRequest('/api/personal/', {
-      method: 'POST',
+    const response = await apiRequest("/api/personal/", {
+      method: "POST",
       body: JSON.stringify(toDTO(data)),
     });
-    
+
     if (response.success && response.data) {
       return {
         success: true,
         data: fromDTO(response.data),
       };
     }
-    
+
     return response as ApiResponse<Personal>;
   },
 
   // Actualizar personal
-  async update(id: number, data: PersonalFormData): Promise<ApiResponse<Personal>> {
+  async update(
+    id: number,
+    data: PersonalFormData
+  ): Promise<ApiResponse<Personal>> {
     const response = await apiRequest(`/api/personal/${id}/`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(toDTO(data)),
     });
-    
+
     if (response.success && response.data) {
       return {
         success: true,
         data: fromDTO(response.data),
       };
     }
-    
+
     return response as ApiResponse<Personal>;
   },
 
   // Eliminar personal
   async remove(id: number): Promise<ApiResponse> {
     return apiRequest(`/api/personal/${id}/`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   },
 
   // Obtener personal disponible para autocompletado
   async getAvailable(): Promise<ApiResponse<PersonalOption[]>> {
-    const response = await apiRequest('/api/personal/disponibles_para_usuario/');
-    
+    const response = await apiRequest(
+      "/api/personal/disponibles_para_usuario/"
+    );
+
     if (response.success && response.data) {
       const data = response.data as any;
       return {
@@ -145,7 +154,7 @@ export const personalApi = {
         })),
       };
     }
-    
+
     return response as ApiResponse<PersonalOption[]>;
   },
 

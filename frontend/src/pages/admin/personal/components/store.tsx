@@ -1,19 +1,19 @@
-import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -29,10 +29,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { DatePicker } from '@/components/date-picker';
-import { Loader2 } from 'lucide-react';
-import type { Personal, PersonalFormData } from '@/types';
+} from "@/components/ui/form";
+import { DatePicker } from "@/components/date-picker";
+import { Loader2 } from "lucide-react";
+import type { Personal, PersonalFormData } from "@/types";
 
 // Esquema de validación (fechas opcionales en el tipo, pero requeridas por regla)
 const personalSchema = z.object({
@@ -64,18 +64,18 @@ interface PersonalStoreProps {
   loading?: boolean;
 }
 
-export function PersonalStore({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
-  initialData, 
-  loading = false 
+export function PersonalStore({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  loading = false,
 }: PersonalStoreProps) {
   const isEdit = !!initialData;
-  const title = isEdit ? 'Editar Personal' : 'Crear Personal';
-  const description = isEdit 
-    ? 'Modifica la información del personal seleccionado' 
-    : 'Agrega un nuevo miembro del personal';
+  const title = isEdit ? "Editar Personal" : "Crear Personal";
+  const description = isEdit
+    ? "Modifica la información del personal seleccionado"
+    : "Agrega un nuevo miembro del personal";
 
   const form = useForm<PersonalFormData>({
     resolver: zodResolver(personalSchema),
@@ -130,11 +130,17 @@ export function PersonalStore({
 
   const handleSubmit = async (data: PersonalFormData) => {
     if (!data.fecha_nacimiento) {
-      form.setError('fecha_nacimiento', { type: 'required', message: 'La fecha de nacimiento es requerida' });
+      form.setError("fecha_nacimiento", {
+        type: "required",
+        message: "La fecha de nacimiento es requerida",
+      });
       return;
     }
     if (!data.fecha_ingreso) {
-      form.setError('fecha_ingreso', { type: 'required', message: 'La fecha de ingreso es requerida' });
+      form.setError("fecha_ingreso", {
+        type: "required",
+        message: "La fecha de ingreso es requerida",
+      });
       return;
     }
     const success = await onSubmit(data);
@@ -158,7 +164,10 @@ export function PersonalStore({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-6"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Nombre */}
               <FormField
@@ -197,14 +206,14 @@ export function PersonalStore({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fecha de Nacimiento *</FormLabel>
-                      <FormControl>
-                        <DatePicker
-                          value={field.value ?? null}
-                          onChange={field.onChange}
-                          placeholder="Seleccionar fecha"
-                          maxDate={new Date()}
-                        />
-                      </FormControl>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                        placeholder="Seleccionar fecha"
+                        maxDate={new Date()}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -277,14 +286,14 @@ export function PersonalStore({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Fecha de Ingreso *</FormLabel>
-                      <FormControl>
-                        <DatePicker
-                          value={field.value ?? null}
-                          onChange={field.onChange}
-                          placeholder="Seleccionar fecha"
-                          minDate={new Date("1900-01-01")}
-                        />
-                      </FormControl>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value ?? null}
+                        onChange={field.onChange}
+                        placeholder="Seleccionar fecha"
+                        minDate={new Date("1900-01-01")}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -355,7 +364,7 @@ export function PersonalStore({
               </Button>
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEdit ? 'Actualizar' : 'Crear'}
+                {isEdit ? "Actualizar" : "Crear"}
               </Button>
             </DialogFooter>
           </form>

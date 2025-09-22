@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
+import 'email_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -17,6 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _telefonoController = TextEditingController();
+  final _ciController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _authService = AuthService();
@@ -32,6 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _lastNameController.dispose();
     _emailController.dispose();
     _telefonoController.dispose();
+    _ciController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -55,6 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         lastName: _lastNameController.text.trim(),
         email: _emailController.text.trim(),
         telefono: _telefonoController.text.trim(),
+        ci: _ciController.text.trim(),
         password1: _passwordController.text,
         password2: _confirmPasswordController.text,
       );
@@ -65,9 +69,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _authService.showSuccessToast('¡Cuenta creada exitosamente!');
 
         if (mounted) {
+          // Redirigir a pantalla de verificación de email
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(
+              builder: (context) => EmailVerificationScreen(
+                email: _emailController.text.trim(),
+                username: _usernameController.text.trim(),
+              ),
+            ),
           );
         }
       } else {
@@ -226,6 +236,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 const SizedBox(height: 16),
 
+                // Campo de cédula de identidad
+                TextFormField(
+                  controller: _ciController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Cédula de Identidad',
+                    prefixIcon: Icon(Icons.badge),
+                    border: OutlineInputBorder(),
+                    hintText: '1234567',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor ingresa tu cédula de identidad';
+                    }
+                    if (!RegExp(
+                      r'^[0-9]{7,10}$',
+                    ).hasMatch(value.replaceAll(RegExp(r'\s'), ''))) {
+                      return 'La cédula debe contener entre 7 y 10 dígitos';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
                 // Campo de contraseña
                 TextFormField(
                   controller: _passwordController,
@@ -253,6 +288,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     }
                     if (value.length < 8) {
                       return 'La contraseña debe tener al menos 8 caracteres';
+                    }
+                    if (!RegExp(
+                      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)',
+                    ).hasMatch(value)) {
+                      return 'Debe contener mayúscula, minúscula y número';
                     }
                     return null;
                   },

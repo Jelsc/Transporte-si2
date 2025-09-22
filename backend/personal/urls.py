@@ -4,7 +4,7 @@ from .views import PersonalViewSet
 
 # Router para personal
 personal_router = DefaultRouter()
-personal_router.register(r'', PersonalViewSet, basename='personal')
+personal_router.register(r"", PersonalViewSet, basename="personal")
 
 urlpatterns = [
     path('', include(personal_router.urls)),

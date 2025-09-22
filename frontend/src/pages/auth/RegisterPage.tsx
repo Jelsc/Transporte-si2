@@ -22,6 +22,7 @@ interface RegisterFormData {
   last_name: string;
   email: string;
   telefono: string;
+  ci: string;
   password1: string;
   password2: string;
   acceptTerms: boolean;
@@ -33,8 +34,39 @@ interface FormErrors extends Partial<RegisterFormData> {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { register, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { isAuthenticated, isLoading, error, clearError } = useAuth();
   const { handleGoogleSuccess, handleGoogleError } = useGoogleAuth();
+
+  // Función de registro usando el endpoint móvil
+  const registerMobile = async (userData: {
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password1: string;
+    password2: string;
+    telefono: string;
+    ci: string;
+  }) => {
+    const response = await fetch(
+      "http://localhost:8000/api/admin/mobile/register/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw { data };
+    }
+
+    return data;
+  };
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] =
     useState<boolean>(false);
@@ -47,6 +79,7 @@ export default function RegisterPage() {
     last_name: "",
     email: "",
     telefono: "",
+    ci: "",
     password1: "",
     password2: "",
     acceptTerms: false,
@@ -110,6 +143,12 @@ export default function RegisterPage() {
       newErrors.telefono = "Formato de teléfono inválido";
     }
 
+    if (!formData.ci.trim()) {
+      newErrors.ci = "La cédula de identidad es requerida";
+    } else if (!/^[0-9]{7,10}$/.test(formData.ci.replace(/\s/g, ""))) {
+      newErrors.ci = "La cédula debe contener entre 7 y 10 dígitos";
+    }
+
     if (!formData.password1) {
       newErrors.password1 = "La contraseña es requerida";
     } else if (formData.password1.length < 8) {
@@ -142,7 +181,7 @@ export default function RegisterPage() {
     clearError();
 
     try {
-      await register({
+      await registerMobile({
         username: formData.username,
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -150,10 +189,16 @@ export default function RegisterPage() {
         password1: formData.password1,
         password2: formData.password2,
         telefono: formData.telefono,
+        ci: formData.ci,
       });
 
-      // Redirigir a la página de verificación de email
-      navigate("/email-verification");
+      // Redirigir a la página de verificación por código
+      navigate("/code-verification", {
+        state: {
+          email: formData.email,
+          username: formData.username,
+        },
+      });
     } catch (err: any) {
       console.error("Error en registro:", err);
 
@@ -167,6 +212,9 @@ export default function RegisterPage() {
         }
         if (errorData.email) {
           setErrors((prev) => ({ ...prev, email: errorData.email[0] }));
+        }
+        if (errorData.ci) {
+          setErrors((prev) => ({ ...prev, ci: errorData.ci[0] }));
         }
         if (errorData.password1) {
           setErrors((prev) => ({ ...prev, password1: errorData.password1[0] }));
@@ -399,6 +447,32 @@ export default function RegisterPage() {
                   )}
                 </div>
 
+                {/* CI Field */}
+                <div>
+                  <label
+                    htmlFor="ci"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Cédula de Identidad
+                  </label>
+                  <Input
+                    id="ci"
+                    name="ci"
+                    type="text"
+                    value={formData.ci}
+                    onChange={handleInputChange}
+                    placeholder="1234567"
+                    disabled={isSubmitting}
+                    required
+                    className={`px-4 py-3 transition-colors ${
+                      errors.ci ? "border-red-500" : "border-gray-300"
+                    }`}
+                  />
+                  {errors.ci && (
+                    <p className="text-red-500 text-sm mt-1">{errors.ci}</p>
+                  )}
+                </div>
+
                 {/* Password Field */}
                 <div>
                   <label
@@ -443,7 +517,8 @@ export default function RegisterPage() {
                     htmlFor="password2"
                     className="block text-sm text-gray-500 mb-1"
                   >
-                    la contraseña debe tener al menos 8 caracteres, incluyendo una mayúscula, una minúscula y un número.
+                    la contraseña debe tener al menos 8 caracteres, incluyendo
+                    una mayúscula, una minúscula y un número.
                   </label>
                 </div>
 

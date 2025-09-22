@@ -19,7 +19,7 @@ class PersonalAdmin(admin.ModelAdmin):
         'anos_antiguedad',
         'fecha_creacion'
     ]
-    
+
     list_filter = [
         'estado',
         'fecha_ingreso',
@@ -33,13 +33,15 @@ class PersonalAdmin(admin.ModelAdmin):
         'ci',
         'codigo_empleado'
     ]
-    
+
+    search_fields = ["nombre", "apellido", "email", "ci", "departamento"]
+
     readonly_fields = [
         'fecha_creacion',
         'fecha_actualizacion',
         'anos_antiguedad'
     ]
-    
+
     fieldsets = [
         ('Información Personal', {
             'fields': [
@@ -79,11 +81,13 @@ class PersonalAdmin(admin.ModelAdmin):
             'classes': ['collapse']
         })
     ]
-    
+
     def nombre_completo(self, obj):
         """Muestra el nombre completo del empleado"""
         return obj.nombre_completo
+
     nombre_completo.short_description = "Nombre Completo"
+
     nombre_completo.admin_order_field = 'nombre'
     
     def estado_display(self, obj):
@@ -110,12 +114,12 @@ class PersonalAdmin(admin.ModelAdmin):
             )
         return "Sin usuario"
     usuario_link.short_description = "Usuario"
-    
     def anos_antiguedad(self, obj):
         """Muestra los años de antigüedad"""
         return f"{obj.anos_antiguedad} años"
+
     anos_antiguedad.short_description = "Antigüedad"
-    
+
     def get_queryset(self, request):
         """Optimiza las consultas"""
         return super().get_queryset(request).select_related('usuario')
@@ -130,12 +134,11 @@ class PersonalAdmin(admin.ModelAdmin):
             f'{updated} empleado(s) activado(s) exitosamente.'
         )
     activar_empleados.short_description = "Activar empleados seleccionados"
-    
+
     def desactivar_empleados(self, request, queryset):
         """Acción para desactivar empleados seleccionados"""
         updated = queryset.update(estado=False)
         self.message_user(
-            request,
-            f'{updated} empleado(s) desactivado(s) exitosamente.'
+            request, f"{updated} empleado(s) desactivado(s) exitosamente."
         )
     desactivar_empleados.short_description = "Desactivar empleados seleccionados"
