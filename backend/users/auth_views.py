@@ -1,3 +1,19 @@
+"""
+AUTH_VIEWS.PY - MÓDULO DE AUTENTICACIÓN Y AUTORIZACIÓN
+
+RESPONSABILIDADES:
+- Login/Logout diferenciado por tipo de usuario (Admin vs Cliente)
+- Información del usuario autenticado
+- Datos del dashboard y menús dinámicos
+- Gestión de sesiones y tokens JWT
+- Validaciones de acceso y permisos
+
+NO INCLUYE:
+- CRUD de usuarios (ver views.py)
+- Gestión de roles (ver views.py)
+- Registro de usuarios (ver views.py)
+"""
+
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -219,10 +235,10 @@ def user_info(request):
         try:
             if hasattr(user, 'conductor_profile'):
                 data['perfil_conductor'] = {
-                    'numero_licencia': user.conductor_profile.numero_licencia,
+                    'nro_licencia': user.conductor_profile.nro_licencia,
                     'tipo_licencia': user.conductor_profile.tipo_licencia,
                     'estado': user.conductor_profile.estado,
-                    'es_activo': user.conductor_profile.es_activo
+                    'estado_usuario': user.conductor_profile.estado_usuario
                 }
         except:
             pass
@@ -230,12 +246,11 @@ def user_info(request):
         try:
             if hasattr(user, 'personal_profile'):
                 data['perfil_personal'] = {
-                    'tipo_personal': user.personal_profile.tipo_personal,
                     'codigo_empleado': user.personal_profile.codigo_empleado,
-                    'departamento': user.personal_profile.departamento,
-                    'cargo': user.personal_profile.cargo,
                     'estado': user.personal_profile.estado,
-                    'es_activo': user.personal_profile.es_activo
+                    'fecha_ingreso': user.personal_profile.fecha_ingreso,
+                    'telefono_emergencia': user.personal_profile.telefono_emergencia,
+                    'contacto_emergencia': user.personal_profile.contacto_emergencia
                 }
         except:
             pass
@@ -387,9 +402,9 @@ def _get_admin_stats(user):
             from conductores.models import Conductor
             stats['conductores'] = {
                 'total': Conductor.objects.count(),
-                'activos': Conductor.objects.filter(es_activo=True).count(),
-                'disponibles': Conductor.objects.filter(estado='disponible', es_activo=True).count(),
-                'ocupados': Conductor.objects.filter(estado='ocupado', es_activo=True).count()
+                'activos': Conductor.objects.filter(usuario__is_active=True).count(),
+                'disponibles': Conductor.objects.filter(estado='disponible', usuario__is_active=True).count(),
+                'ocupados': Conductor.objects.filter(estado='ocupado', usuario__is_active=True).count()
             }
         except ImportError:
             pass
@@ -400,10 +415,8 @@ def _get_admin_stats(user):
             from personal.models import Personal
             stats['personal'] = {
                 'total': Personal.objects.count(),
-                'activos': Personal.objects.filter(es_activo=True).count(),
-                'por_tipo': dict(Personal.objects.values('tipo_personal').annotate(
-                    count=models.Count('id')
-                ).values_list('tipo_personal', 'count'))
+                'activos': Personal.objects.filter(estado=True).count(),
+                'inactivos': Personal.objects.filter(estado=False).count()
             }
         except ImportError:
             pass

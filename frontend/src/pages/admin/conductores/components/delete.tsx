@@ -82,82 +82,84 @@ export function ConductorDelete({
             <AlertTriangle className="h-5 w-5 text-red-500" />
             Confirmar Eliminación de Conductor
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4">
-            <p>
-              ¿Estás seguro de que deseas eliminar este conductor? 
-              Esta acción no se puede deshacer y afectará todas las operaciones asociadas.
-            </p>
-            
-            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-              <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                <Car className="h-4 w-4" />
-                Información del Conductor:
-              </h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="font-medium">Nombre:</span>
-                  <p>{conductor.nombre} {conductor.apellido}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Email:</span>
-                  <p>{conductor.email}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Teléfono:</span>
-                  <p>{conductor.telefono}</p>
-                </div>
-                <div>
-                  <span className="font-medium">CI:</span>
-                  <p>{conductor.ci}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Número de Licencia:</span>
-                  <p className="font-mono">{conductor.nro_licencia}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Tipo de Licencia:</span>
-                  <p>Tipo {conductor.tipo_licencia}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Vencimiento:</span>
-                  <p>{formatDate(conductor.fecha_venc_licencia)}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Estado de Licencia:</span>
-                  <Badge variant={licenseStatus.variant} className="flex items-center gap-1 w-fit">
-                    {licenseStatus.icon}
-                    {licenseStatus.status}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="font-medium">Experiencia:</span>
-                  <p>{conductor.experiencia_anios} años</p>
-                </div>
-                <div>
-                  <span className="font-medium">Estado:</span>
-                  <Badge variant={conductor.es_activo ? "default" : "secondary"}>
-                    {conductor.es_activo ? "Activo" : "Inactivo"}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-              <p className="text-red-800 text-sm">
-                <strong>Advertencia:</strong> Al eliminar este conductor, se perderá 
-                toda la información asociada incluyendo historial de viajes, 
-                ubicaciones y no podrá ser recuperada.
+          <AlertDialogDescription asChild>
+            <div className="space-y-4">
+              <p>
+                ¿Estás seguro de que deseas eliminar este conductor? 
+                Esta acción no se puede deshacer y afectará todas las operaciones asociadas.
               </p>
-            </div>
-
-            {conductor.es_activo && (
-              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                <p className="text-yellow-800 text-sm">
-                  <strong>Nota:</strong> Este conductor está actualmente activo. 
-                  Asegúrate de que no tenga viajes pendientes antes de eliminarlo.
-                </p>
+              
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="font-medium text-gray-900 flex items-center gap-2">
+                  <Car className="h-4 w-4" />
+                  Información del Conductor:
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="font-medium">Nombre:</span>
+                    <div>{conductor.nombre} {conductor.apellido}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Email:</span>
+                    <div>{conductor.email}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Teléfono:</span>
+                    <div>{conductor.telefono}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">CI:</span>
+                    <div>{conductor.ci}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Número de Licencia:</span>
+                    <div className="font-mono">{conductor.nro_licencia}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Tipo de Licencia:</span>
+                    <div>Tipo {conductor.tipo_licencia}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Vencimiento:</span>
+                    <div>{formatDate(conductor.fecha_venc_licencia)}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Estado de Licencia:</span>
+                    <Badge variant={licenseStatus.variant} className="flex items-center gap-1 w-fit">
+                      {licenseStatus.icon}
+                      {licenseStatus.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium">Experiencia:</span>
+                    <div>{conductor.experiencia_anios} años</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Estado Operacional:</span>
+                    <Badge variant={conductor.estado === 'disponible' ? "default" : "secondary"}>
+                      {conductor.estado}
+                    </Badge>
+                  </div>
+                </div>
               </div>
-            )}
+
+              <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+                <div className="text-red-800 text-sm">
+                  <strong>Advertencia:</strong> Al eliminar este conductor, se perderá 
+                  toda la información asociada incluyendo historial de viajes, 
+                  ubicaciones y no podrá ser recuperada.
+                </div>
+              </div>
+
+              {conductor.estado === 'disponible' && (
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                  <div className="text-yellow-800 text-sm">
+                    <strong>Nota:</strong> Este conductor está actualmente disponible. 
+                    Asegúrate de que no tenga viajes pendientes antes de eliminarlo.
+                  </div>
+                </div>
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         

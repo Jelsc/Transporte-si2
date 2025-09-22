@@ -35,39 +35,26 @@ import { Loader2 } from "lucide-react";
 import type { Personal, PersonalFormData } from "@/types";
 
 // Esquema de validación (fechas opcionales en el tipo, pero requeridas por regla)
-const personalSchema = z
-  .object({
-    nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
-    apellido: z.string().min(2, "El apellido debe tener al menos 2 caracteres"),
-    fecha_nacimiento: z.date().nullable(),
-    telefono: z.string().min(8, "El teléfono debe tener al menos 8 caracteres"),
-    email: z.string().email("Email inválido"),
-    ci: z.string().min(7, "La CI debe tener al menos 7 caracteres"),
-    codigo_empleado: z.string().min(3, "Código de empleado requerido"),
-    fecha_ingreso: z.date().nullable(),
-    departamento: z.string().optional(),
-    horario_trabajo: z.string().optional(),
-    supervisor: z.number().optional(),
-    telefono_emergencia: z.string().optional(),
-    contacto_emergencia: z.string().optional(),
-    es_activo: z.boolean().optional(),
-  })
-  .superRefine((v, ctx) => {
-    if (!v.fecha_nacimiento) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["fecha_nacimiento"],
-        message: "La fecha de nacimiento es requerida",
-      });
-    }
-    if (!v.fecha_ingreso) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["fecha_ingreso"],
-        message: "La fecha de ingreso es requerida",
-      });
-    }
-  }) satisfies z.ZodType<PersonalFormData>;
+const personalSchema = z.object({
+  nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+  apellido: z.string().min(2, 'El apellido debe tener al menos 2 caracteres'),
+  fecha_nacimiento: z.date().nullable(),
+  telefono: z.string().min(8, 'El teléfono debe tener al menos 8 caracteres'),
+  email: z.string().email('Email inválido'),
+  ci: z.string().min(7, 'La CI debe tener al menos 7 caracteres'),
+  codigo_empleado: z.string().min(3, 'Código de empleado requerido'),
+  fecha_ingreso: z.date().nullable(),
+  telefono_emergencia: z.string().optional(),
+  contacto_emergencia: z.string().optional(),
+  estado: z.boolean().optional(), // Cambiado de es_activo a estado
+}).superRefine((v, ctx) => {
+  if (!v.fecha_nacimiento) {
+    ctx.addIssue({ code: 'custom', path: ['fecha_nacimiento'], message: 'La fecha de nacimiento es requerida' });
+  }
+  if (!v.fecha_ingreso) {
+    ctx.addIssue({ code: 'custom', path: ['fecha_ingreso'], message: 'La fecha de ingreso es requerida' });
+  }
+}) satisfies z.ZodType<PersonalFormData>;
 
 interface PersonalStoreProps {
   isOpen: boolean;
@@ -93,20 +80,17 @@ export function PersonalStore({
   const form = useForm<PersonalFormData>({
     resolver: zodResolver(personalSchema),
     defaultValues: {
-      nombre: "",
-      apellido: "",
+      nombre: '',
+      apellido: '',
       fecha_nacimiento: null,
-      telefono: "",
-      email: "",
-      ci: "",
-      codigo_empleado: "",
+      telefono: '',
+      email: '',
+      ci: '',
+      codigo_empleado: '',
       fecha_ingreso: null,
-      departamento: "",
-      horario_trabajo: "",
-      supervisor: undefined,
-      telefono_emergencia: "",
-      contacto_emergencia: "",
-      es_activo: true,
+      telefono_emergencia: '',
+      contacto_emergencia: '',
+      estado: true, // Cambiado de es_activo a estado
     },
   });
 
@@ -116,40 +100,30 @@ export function PersonalStore({
       form.reset({
         nombre: initialData.nombre,
         apellido: initialData.apellido,
-        fecha_nacimiento: initialData.fecha_nacimiento
-          ? new Date(initialData.fecha_nacimiento)
-          : null,
+        fecha_nacimiento: initialData.fecha_nacimiento ? new Date(initialData.fecha_nacimiento) : null,
         telefono: initialData.telefono,
         email: initialData.email,
         ci: initialData.ci,
         codigo_empleado: initialData.codigo_empleado,
-        fecha_ingreso: initialData.fecha_ingreso
-          ? new Date(initialData.fecha_ingreso)
-          : null,
-        departamento: initialData.departamento || "",
-        horario_trabajo: initialData.horario_trabajo || "",
-        supervisor: initialData.supervisor,
-        telefono_emergencia: initialData.telefono_emergencia || "",
-        contacto_emergencia: initialData.contacto_emergencia || "",
-        es_activo: initialData.es_activo,
+        fecha_ingreso: initialData.fecha_ingreso ? new Date(initialData.fecha_ingreso) : null,
+        telefono_emergencia: initialData.telefono_emergencia || '',
+        contacto_emergencia: initialData.contacto_emergencia || '',
+        estado: initialData.estado, // Cambiado de es_activo a estado
       });
     } else if (isOpen && !initialData) {
       // Resetear formulario para crear nuevo
       form.reset({
-        nombre: "",
-        apellido: "",
+        nombre: '',
+        apellido: '',
         fecha_nacimiento: null,
-        telefono: "",
-        email: "",
-        ci: "",
-        codigo_empleado: "",
+        telefono: '',
+        email: '',
+        ci: '',
+        codigo_empleado: '',
         fecha_ingreso: null,
-        departamento: "",
-        horario_trabajo: "",
-        supervisor: undefined,
-        telefono_emergencia: "",
-        contacto_emergencia: "",
-        es_activo: true,
+        telefono_emergencia: '',
+        contacto_emergencia: '',
+        estado: true, // Cambiado de es_activo a estado
       });
     }
   }, [isOpen, initialData, form]);
@@ -325,35 +299,6 @@ export function PersonalStore({
                 )}
               />
 
-              {/* Horario de Trabajo */}
-              <FormField
-                control={form.control}
-                name="horario_trabajo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Horario de Trabajo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: 8:00 - 17:00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Departamento */}
-              <FormField
-                control={form.control}
-                name="departamento"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Departamento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Departamento" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               {/* Teléfono de Emergencia */}
               <FormField
@@ -386,14 +331,14 @@ export function PersonalStore({
               />
             </div>
 
-            {/* Estado Activo */}
+            {/* Estado */}
             <FormField
               control={form.control}
-              name="es_activo"
+              name="estado"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel className="text-base">Estado Activo</FormLabel>
+                    <FormLabel className="text-base">Estado</FormLabel>
                     <div className="text-sm text-muted-foreground">
                       El personal estará activo en el sistema
                     </div>

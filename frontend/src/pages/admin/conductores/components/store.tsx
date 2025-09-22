@@ -46,9 +46,9 @@ const conductorSchema = z.object({
   tipo_licencia: z.string().min(1, 'Debe seleccionar un tipo de licencia'),
   fecha_venc_licencia: z.date().nullable(),
   experiencia_anios: z.number().min(0, 'La experiencia debe ser mayor o igual a 0'),
+  estado: z.enum(['disponible', 'ocupado', 'descanso', 'inactivo']), // Nuevo campo operacional
   telefono_emergencia: z.string().optional(),
   contacto_emergencia: z.string().optional(),
-  es_activo: z.boolean().optional(),
 }) satisfies z.ZodType<ConductorFormData>;
 
 interface ConductorStoreProps {
@@ -83,11 +83,11 @@ export function ConductorStore({
       ci: '',
       nro_licencia: '',
       tipo_licencia: '',
-  fecha_venc_licencia: null,
+      fecha_venc_licencia: null,
       experiencia_anios: 0,
+      estado: 'disponible', // Nuevo campo operacional
       telefono_emergencia: undefined,
       contacto_emergencia: undefined,
-      es_activo: true,
     },
   });
 
@@ -103,11 +103,11 @@ export function ConductorStore({
         ci: initialData.ci,
         nro_licencia: initialData.nro_licencia,
         tipo_licencia: initialData.tipo_licencia,
-  fecha_venc_licencia: initialData.fecha_venc_licencia ? new Date(initialData.fecha_venc_licencia) : null,
+        fecha_venc_licencia: initialData.fecha_venc_licencia ? new Date(initialData.fecha_venc_licencia) : null,
         experiencia_anios: initialData.experiencia_anios,
+        estado: initialData.estado, // Nuevo campo operacional
         telefono_emergencia: initialData.telefono_emergencia || undefined,
         contacto_emergencia: initialData.contacto_emergencia || undefined,
-        es_activo: initialData.es_activo,
       });
     } else if (isOpen && !initialData) {
       // Resetear formulario para crear nuevo
@@ -120,11 +120,11 @@ export function ConductorStore({
         ci: '',
         nro_licencia: '',
         tipo_licencia: '',
-  fecha_venc_licencia: null,
+        fecha_venc_licencia: null,
         experiencia_anios: 0,
+        estado: 'disponible', // Nuevo campo operacional
         telefono_emergencia: undefined,
         contacto_emergencia: undefined,
-        es_activo: true,
       });
     }
   }, [isOpen, initialData, form]);
@@ -382,24 +382,27 @@ export function ConductorStore({
               </div>
             </div>
 
-            {/* Estado Activo */}
+            {/* Estado Operacional */}
             <FormField
               control={form.control}
-              name="es_activo"
+              name="estado"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Estado Activo</FormLabel>
-                    <div className="text-sm text-muted-foreground">
-                      El conductor estará activo en el sistema
-                    </div>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value || false}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
+                <FormItem>
+                  <FormLabel>Estado Operacional *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="disponible">Disponible</SelectItem>
+                      <SelectItem value="ocupado">Ocupado</SelectItem>
+                      <SelectItem value="descanso">En Descanso</SelectItem>
+                      <SelectItem value="inactivo">Inactivo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
                 </FormItem>
               )}
             />

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Car, AlertTriangle, CheckCircle } from 'lucide-react';
@@ -9,7 +9,16 @@ import { ConductorStore } from './components/store';
 import { ConductorDelete } from './components/delete';
 import AdminLayout from '@/app/layout/admin-layout';
 
+const ITEMS_PER_PAGE = 10;
+
 export default function ConductoresPage() {
+  const [page, setPage] = useState<number>(1);
+  const [search, setSearch] = useState<string>("");
+  const [searchDebounced, setSearchDebounced] = useState<string>("");
+  const [estadoFilter, setEstadoFilter] = useState<string>("all");
+  const [tipoLicenciaFilter, setTipoLicenciaFilter] = useState<string>("all");
+  const [licenciaVencidaFilter, setLicenciaVencidaFilter] = useState<string>("all");
+
   const {
     data,
     loading,
@@ -17,7 +26,6 @@ export default function ConductoresPage() {
     selectedItem,
     isStoreModalOpen,
     isDeleteModalOpen,
-    filters,
     licenciasVencidas,
     licenciasPorVencer,
     loadData,
@@ -28,23 +36,38 @@ export default function ConductoresPage() {
     closeStoreModal,
     openDeleteModal,
     closeDeleteModal,
-    setFilters,
     clearError,
     loadLicenciasVencidas,
     loadLicenciasPorVencer,
   } = useConductores();
 
-  // Cargar datos al montar el componente
+  // Función para cargar datos con filtros y paginación
+  const fetchConductores = async (pageNumber = 1, searchQuery = "", estado = "all", tipoLicencia = "all", licenciaVencida = "all") => {
+    const filters: any = {
+      ...(searchQuery && { search: searchQuery }),
+      ...(estado !== "all" && { estado }),
+      ...(tipoLicencia !== "all" && { tipo_licencia: tipoLicencia }),
+      ...(licenciaVencida !== "all" && { licencia_vencida: licenciaVencida === "true" }),
+    };
+    
+    await loadData(filters);
+  };
+
+  // Debounce para el campo de búsqueda
   useEffect(() => {
-    loadData();
+    const timer = setTimeout(() => {
+      setSearchDebounced(search);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Cargar datos al montar el componente y cuando cambien los filtros
+  useEffect(() => {
+    fetchConductores(page, searchDebounced, estadoFilter, tipoLicenciaFilter, licenciaVencidaFilter);
     loadLicenciasVencidas();
     loadLicenciasPorVencer();
-  }, [loadData, loadLicenciasVencidas, loadLicenciasPorVencer]);
-
-  // Aplicar filtros cuando cambien
-  useEffect(() => {
-    loadData(filters);
-  }, [filters, loadData]);
+  }, [page, searchDebounced, estadoFilter, tipoLicenciaFilter, licenciaVencidaFilter]);
 
   const handleCreate = () => {
     openStoreModal();
@@ -73,30 +96,24 @@ export default function ConductoresPage() {
     return false;
   };
 
-  const handleFiltersChange = (newFilters: any) => {
-    setFilters(newFilters);
-  };
-
-  const handleClearFilters = () => {
-    setFilters({});
-  };
+  const totalPages = Math.ceil((data?.count || 0) / ITEMS_PER_PAGE);
 
   const totalConductores = data?.count || 0;
-  const conductoresActivos = data?.results?.filter(c => c.es_activo).length || 0;
+  const conductoresActivos = data?.results?.filter(c => c.estado === 'disponible').length || 0;
   const conductoresInactivos = totalConductores - conductoresActivos;
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Gestión de Conductores</h1>
             <p className="text-muted-foreground">
               Administra la información de los conductores y sus licencias
             </p>
           </div>
-          <Button onClick={handleCreate} className="flex items-center gap-2">
+          <Button onClick={handleCreate} className="flex items-center gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             Agregar Conductor
           </Button>
@@ -197,9 +214,14 @@ export default function ConductoresPage() {
 
       {/* Filtros */}
       <ConductorFiltersComponent
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
+        search={search}
+        estadoFilter={estadoFilter}
+        tipoLicenciaFilter={tipoLicenciaFilter}
+        licenciaVencidaFilter={licenciaVencidaFilter}
+        onSearchChange={setSearch}
+        onEstadoFilterChange={setEstadoFilter}
+        onTipoLicenciaFilterChange={setTipoLicenciaFilter}
+        onLicenciaVencidaFilterChange={setLicenciaVencidaFilter}
         loading={loading}
       />
 
@@ -228,6 +250,12 @@ export default function ConductoresPage() {
             loading={loading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            page={page}
+            totalPages={totalPages}
+            onPageChange={(newPage) => {
+              setPage(newPage);
+              fetchConductores(newPage, searchDebounced, estadoFilter, tipoLicenciaFilter, licenciaVencidaFilter);
+            }}
           />
         </CardContent>
       </Card>

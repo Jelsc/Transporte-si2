@@ -96,21 +96,24 @@ class PermissionMiddleware(MiddlewareMixin):
             return None
 
         # Verificar si el usuario está autenticado
-        if not hasattr(request, "user") or not request.user.is_authenticated:
-            return JsonResponse(
-                {"error": "Autenticación requerida"},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
-        # Verificar si el usuario tiene el permiso requerido
-        if not request.user.tiene_permiso(required_permission):
-            logger.warning(
-                f"Usuario {request.user.username} intentó acceder a {request.path} "
-                f"sin permiso {required_permission}"
-            )
-            return JsonResponse(
-                {"error": f"Permiso requerido: {required_permission}"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
+        if not hasattr(request, 'user') or not request.user.is_authenticated:
+            return JsonResponse({
+                'error': 'Usuario no autenticado',
+                'detail': 'Se requiere autenticación para acceder a esta área'
+            }, status=401)
+        
+        # Verificar si el usuario tiene acceso administrativo
+        if not request.user.es_administrativo:
+            return JsonResponse({
+                'error': 'Acceso denegado',
+                'detail': 'Se requiere rol administrativo para acceder a esta área'
+            }, status=403)
+        
+        # Verificar si el usuario tiene acceso al panel administrativo
+        if not request.user.is_staff:
+            return JsonResponse({
+                'error': 'Acceso denegado',
+                'detail': 'El usuario no tiene acceso al panel administrativo'
+            }, status=403)
+        
         return None

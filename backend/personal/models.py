@@ -6,20 +6,7 @@ User = get_user_model()
 
 
 class Personal(models.Model):
-    """Modelo para personal de la empresa (operadores, administradores, supervisores)"""
-
-    TIPOS_PERSONAL_CHOICES = [
-        ("administrador", "Administrador"),
-        ("supervisor", "Supervisor"),
-        ("operador", "Operador"),
-    ]
-
-    ESTADOS_CHOICES = [
-        ("activo", "Activo"),
-        ("inactivo", "Inactivo"),
-        ("suspendido", "Suspendido"),
-        ("vacaciones", "En Vacaciones"),
-    ]
+    """Modelo para personal de la empresa - Refactorizado según especificaciones"""
 
     # Datos personales básicos (obligatorios)
     nombre = models.CharField(max_length=100, verbose_name="Nombre")
@@ -36,16 +23,6 @@ class Personal(models.Model):
         max_length=20, unique=True, verbose_name="Cédula de Identidad"
     )
 
-    # Relación con el usuario (opcional)
-    usuario = models.OneToOneField(
-        User,
-        on_delete=models.SET_NULL,
-        related_name="personal_profile",
-        verbose_name="Usuario",
-        null=True,
-        blank=True,
-    )
-
     # Información específica del personal
     codigo_empleado = models.CharField(
         max_length=20,
@@ -58,33 +35,19 @@ class Personal(models.Model):
         ],
         verbose_name="Código de Empleado",
     )
-
-    departamento = models.CharField(
-        max_length=100, blank=True, verbose_name="Departamento"
-    )
-
+    
     # Información laboral
-    fecha_ingreso = models.DateField(verbose_name="Fecha de Ingreso")
-
-    horario_trabajo = models.CharField(
-        max_length=100, blank=True, null=True, verbose_name="Horario de Trabajo"
+    fecha_ingreso = models.DateField(
+        verbose_name="Fecha de Ingreso"
     )
-
-    # Estado del empleado
-    estado = models.CharField(
-        max_length=20, choices=ESTADOS_CHOICES, default="activo", verbose_name="Estado"
+    
+    # Estado del empleado (simplificado a boolean)
+    estado = models.BooleanField(
+        default=True,
+        verbose_name="Activo"
     )
-
-    # Información adicional
-    supervisor = models.ForeignKey(
-        "self",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="subordinados",
-        verbose_name="Supervisor",
-    )
-
+    
+    # Información de emergencia (opcional)
     telefono_emergencia = models.CharField(
         max_length=20, blank=True, null=True, verbose_name="Teléfono de Emergencia"
     )
@@ -92,10 +55,18 @@ class Personal(models.Model):
     contacto_emergencia = models.CharField(
         max_length=100, blank=True, null=True, verbose_name="Contacto de Emergencia"
     )
-
-    # Campos de control
-    es_activo = models.BooleanField(default=True, verbose_name="Activo")
-
+    
+    # Relación con el usuario (nullable FK)
+    usuario = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL,
+        related_name='personal_profile',
+        verbose_name="Usuario",
+        null=True,
+        blank=True
+    )
+    
+    # Campos de control automáticos
     fecha_creacion = models.DateTimeField(
         auto_now_add=True, verbose_name="Fecha de Creación"
     )
@@ -104,18 +75,19 @@ class Personal(models.Model):
         auto_now=True, verbose_name="Fecha de Actualización"
     )
 
-    # Campos para seguimiento
-    ultimo_acceso = models.DateTimeField(
-        null=True, blank=True, verbose_name="Último Acceso"
-    )
-
     class Meta:
         verbose_name = "Personal"
         verbose_name_plural = "Personal"
         ordering = ["-fecha_creacion"]
         indexes = [
-            models.Index(fields=["ci"]),
-            models.Index(fields=["email"]),
+            models.Index(fields=['ci']),
+            models.Index(fields=['email']),
+            models.Index(fields=['codigo_empleado']),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['email'], name='unique_personal_email'),
+            models.UniqueConstraint(fields=['ci'], name='unique_personal_ci'),
+            models.UniqueConstraint(fields=['codigo_empleado'], name='unique_personal_codigo_empleado'),
         ]
 
     def __str__(self):
@@ -133,7 +105,6 @@ class Personal(models.Model):
     @property
     def anos_antiguedad(self):
         """Calcula los años de antigüedad"""
-        from django.utils import timezone
         from datetime import date
 
         hoy = date.today()
@@ -149,104 +120,18 @@ class Personal(models.Model):
 
     def cambiar_estado(self, nuevo_estado):
         """Cambia el estado del empleado"""
-        if nuevo_estado in [choice[0] for choice in self.ESTADOS_CHOICES]:
+        if isinstance(nuevo_estado, bool):
             self.estado = nuevo_estado
             self.save(update_fields=["estado", "fecha_actualizacion"])
             return True
         return False
 
-    def actualizar_ultimo_acceso(self):
-        """Actualiza el último acceso del empleado"""
-        from django.utils import timezone
-
-        self.ultimo_acceso = timezone.now()
-        self.save(update_fields=["ultimo_acceso", "fecha_actualizacion"])
-
     def puede_acceder_sistema(self):
         """Verifica si el empleado puede acceder al sistema"""
         if self.usuario:
             return (
-                self.es_activo
-                and self.estado in ["activo", "vacaciones"]
-                and self.usuario.is_active
+                self.estado and 
+                self.usuario.is_active
             )
         else:
-            return self.es_activo and self.estado in ["activo", "vacaciones"]
-
-    def get_subordinados(self):
-        """Retorna los subordinados directos"""
-        return self.subordinados.filter(es_activo=True)
-
-    def get_jerarquia(self):
-        """Retorna la jerarquía completa (supervisor y subordinados)"""
-        jerarquia = {
-            "supervisor": self.supervisor,
-            "subordinados": self.get_subordinados(),
-            "nivel": self._calcular_nivel(),
-        }
-        return jerarquia
-
-    def _calcular_nivel(self):
-        """Calcula el nivel jerárquico del empleado"""
-        nivel = 0
-        supervisor = self.supervisor
-
-        while supervisor:
-            nivel += 1
-            supervisor = supervisor.supervisor
-            # Evitar bucles infinitos
-            if nivel > 10:
-                break
-
-        return nivel
-
-
-class Departamento(models.Model):
-    """Modelo para departamentos de la empresa"""
-
-    nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre")
-
-    descripcion = models.TextField(blank=True, null=True, verbose_name="Descripción")
-
-    jefe_departamento = models.ForeignKey(
-        "Personal",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="departamentos_dirigidos",
-        verbose_name="Jefe de Departamento",
-    )
-
-    presupuesto = models.DecimalField(
-        max_digits=15,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name="Presupuesto",
-    )
-
-    es_activo = models.BooleanField(default=True, verbose_name="Activo")
-
-    fecha_creacion = models.DateTimeField(
-        auto_now_add=True, verbose_name="Fecha de Creación"
-    )
-
-    fecha_actualizacion = models.DateTimeField(
-        auto_now=True, verbose_name="Fecha de Actualización"
-    )
-
-    class Meta:
-        verbose_name = "Departamento"
-        verbose_name_plural = "Departamentos"
-        ordering = ["nombre"]
-
-    def __str__(self):
-        return self.nombre
-
-    def get_empleados(self):
-        """Retorna todos los empleados del departamento"""
-        return Personal.objects.filter(departamento=self.nombre, es_activo=True)
-
-    def get_empleados_count(self):
-        """Retorna el número de empleados del departamento"""
-        return self.get_empleados().count()
+            return self.estado

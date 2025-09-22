@@ -62,7 +62,7 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
         <DropdownMenuItem asChild>
           <Link className="block w-full" to="/profile/edit" onClick={cleanup}>
             <Settings className="mr-2" />
-            Settings
+            Configuración
           </Link>
         </DropdownMenuItem>
       </DropdownMenuGroup>
