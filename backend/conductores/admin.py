@@ -12,7 +12,6 @@ class ConductorAdmin(admin.ModelAdmin):
         'nro_licencia',
         'tipo_licencia',
         'estado',
-        'es_activo',
         'licencia_status',
         'experiencia_anios',
         'fecha_creacion'
@@ -21,16 +20,15 @@ class ConductorAdmin(admin.ModelAdmin):
     list_filter = [
         'estado',
         'tipo_licencia',
-        'es_activo',
         'fecha_creacion',
         'fecha_venc_licencia'
     ]
     
     search_fields = [
-        'personal__nombre',
-        'personal__apellido',
-        'personal__email',
-        'personal__telefono',
+        'nombre',
+        'apellido',
+        'email',
+        'telefono',
         'nro_licencia'
     ]
     
@@ -44,7 +42,7 @@ class ConductorAdmin(admin.ModelAdmin):
     
     fieldsets = [
         ('Información del Personal', {
-            'fields': ['personal']
+            'fields': ['usuario']
         }),
         ('Información de Licencia', {
             'fields': [
@@ -57,9 +55,7 @@ class ConductorAdmin(admin.ModelAdmin):
         }),
         ('Estado y Experiencia', {
             'fields': [
-                'estado',
                 'experiencia_anios',
-                'es_activo'
             ]
         }),
         ('Contacto de Emergencia', {
@@ -90,7 +86,7 @@ class ConductorAdmin(admin.ModelAdmin):
         """Muestra el nombre completo del conductor"""
         return obj.nombre_completo
     nombre_completo.short_description = "Nombre Completo"
-    nombre_completo.admin_order_field = 'personal__nombre'
+    nombre_completo.admin_order_field = 'nombre'
     
     def licencia_status(self, obj):
         """Muestra el estado de la licencia con colores"""
@@ -112,7 +108,7 @@ class ConductorAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimiza las consultas"""
-        return super().get_queryset(request).select_related('personal')
+        return super().get_queryset(request).select_related('usuario')
     
     def save_model(self, request, obj, form, change):
         """Personaliza el guardado del modelo"""
@@ -122,7 +118,7 @@ class ConductorAdmin(admin.ModelAdmin):
     
     def activar_conductores(self, request, queryset):
         """Acción para activar conductores seleccionados"""
-        updated = queryset.update(es_activo=True)
+        updated = queryset.update(usuario__is_active=True)
         self.message_user(
             request,
             f'{updated} conductor(es) activado(s) exitosamente.'
@@ -131,7 +127,7 @@ class ConductorAdmin(admin.ModelAdmin):
     
     def desactivar_conductores(self, request, queryset):
         """Acción para desactivar conductores seleccionados"""
-        updated = queryset.update(es_activo=False, estado='inactivo')
+        updated = queryset.update(usuario__is_active=False)
         self.message_user(
             request,
             f'{updated} conductor(es) desactivado(s) exitosamente.'
@@ -140,9 +136,9 @@ class ConductorAdmin(admin.ModelAdmin):
     
     def marcar_disponibles(self, request, queryset):
         """Acción para marcar conductores como disponibles"""
-        updated = queryset.filter(es_activo=True).update(estado='disponible')
+        # Esta acción ya no es necesaria ya que el estado se maneja a través del usuario
         self.message_user(
             request,
-            f'{updated} conductor(es) marcado(s) como disponible(s).'
+            'El estado de los conductores se maneja a través del usuario vinculado.'
         )
     marcar_disponibles.short_description = "Marcar como disponibles"

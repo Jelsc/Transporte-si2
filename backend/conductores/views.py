@@ -10,8 +10,7 @@ from .serializers import (
     ConductorSerializer,
     ConductorCreateSerializer,
     ConductorUpdateSerializer,
-    ConductorUbicacionSerializer,
-    ConductorEstadoSerializer
+    ConductorUbicacionSerializer
 )
 
 
@@ -22,7 +21,7 @@ class ConductorViewSet(viewsets.ModelViewSet):
     serializer_class = ConductorSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['estado', 'es_activo', 'tipo_licencia']
+    filterset_fields = ['estado', 'tipo_licencia']
     search_fields = [
         'nombre',
         'apellido',
@@ -41,8 +40,6 @@ class ConductorViewSet(viewsets.ModelViewSet):
             return ConductorUpdateSerializer
         elif self.action == 'actualizar_ubicacion':
             return ConductorUbicacionSerializer
-        elif self.action == 'cambiar_estado':
-            return ConductorEstadoSerializer
         return ConductorSerializer
     
     def get_queryset(self):
@@ -117,36 +114,6 @@ class ConductorViewSet(viewsets.ModelViewSet):
             modulo="CONDUCTORES"
         )
     
-    @action(detail=True, methods=['post'])
-    def cambiar_estado(self, request, pk=None):
-        """Cambiar estado del conductor"""
-        if not request.user.tiene_permiso('gestionar_conductores'):
-            return Response(
-                {'error': 'No tienes permisos para cambiar el estado de conductores'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        conductor = self.get_object()
-        serializer = self.get_serializer(conductor, data=request.data)
-        
-        if serializer.is_valid():
-            conductor = serializer.save()
-            
-            # Registrar en bitácora
-            registrar_bitacora(
-                request=request,
-                usuario=request.user,
-                accion="Cambiar Estado",
-                descripcion=f"Se cambió el estado del conductor {conductor.nombre_completo} a {conductor.estado}",
-                modulo="CONDUCTORES"
-            )
-            
-            return Response({
-                'message': f'Estado del conductor {conductor.nombre_completo} actualizado a {conductor.estado}',
-                'conductor': ConductorSerializer(conductor).data
-            })
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'])
     def actualizar_ubicacion(self, request, pk=None):
@@ -181,11 +148,10 @@ class ConductorViewSet(viewsets.ModelViewSet):
         
         stats = {
             'total': queryset.count(),
-            'activos': queryset.filter(es_activo=True).count(),
-            'inactivos': queryset.filter(es_activo=False).count(),
-            'por_estado': dict(queryset.values('estado').annotate(
-                count=models.Count('id')
-            ).values_list('estado', 'count')),
+            'disponibles': queryset.filter(estado='disponible').count(),
+            'ocupados': queryset.filter(estado='ocupado').count(),
+            'descanso': queryset.filter(estado='descanso').count(),
+            'inactivos': queryset.filter(estado='inactivo').count(),
             'por_tipo_licencia': dict(queryset.values('tipo_licencia').annotate(
                 count=models.Count('id')
             ).values_list('tipo_licencia', 'count')),
@@ -214,8 +180,7 @@ class ConductorViewSet(viewsets.ModelViewSet):
         
         # Conductores que no tienen usuario vinculado
         conductores_disponibles = Conductor.objects.filter(
-            usuario__isnull=True,
-            es_activo=True
+            usuario__isnull=True
         ).values(
             'id',
             'nombre',
@@ -240,8 +205,7 @@ class ConductorViewSet(viewsets.ModelViewSet):
         # Conductores con licencias que vencen en los próximos 30 días
         conductores = Conductor.objects.filter(
             fecha_venc_licencia__lte=timezone.now().date() + timezone.timedelta(days=30),
-            fecha_venc_licencia__gte=timezone.now().date(),
-            es_activo=True
+            fecha_venc_licencia__gte=timezone.now().date()
         )
         
         serializer = self.get_serializer(conductores, many=True)
@@ -258,8 +222,7 @@ class ConductorViewSet(viewsets.ModelViewSet):
         
         # Conductores con licencias vencidas
         conductores = Conductor.objects.filter(
-            fecha_venc_licencia__lt=timezone.now().date(),
-            es_activo=True
+            fecha_venc_licencia__lt=timezone.now().date()
         )
         
         serializer = self.get_serializer(conductores, many=True)

@@ -28,11 +28,11 @@ interface UseUsuariosState {
   }>;
   conductoresDisponibles: Array<{
     id: number;
-    personal__nombre: string;
-    personal__apellido: string;
-    personal__email: string;
-    personal__ci: string;
-    personal__telefono: string;
+    nombre: string; // Cambiado de personal__nombre
+    apellido: string; // Cambiado de personal__apellido
+    email: string; // Cambiado de personal__email
+    ci: string; // Cambiado de personal__ci
+    telefono: string; // Cambiado de personal__telefono
     nro_licencia: string;
   }>;
 }
@@ -44,7 +44,7 @@ interface UseUsuariosActions {
   createItem: (data: UsuarioFormData) => Promise<boolean>;
   updateItem: (id: number, data: UsuarioFormData) => Promise<boolean>;
   deleteItem: (id: number) => Promise<boolean>;
-  toggleStatus: (id: number, es_activo: boolean) => Promise<boolean>;
+  toggleStatus: (id: number, is_active: boolean) => Promise<boolean>;
   
   // UI state management
   openStoreModal: (item?: Usuario) => void;
@@ -220,18 +220,18 @@ export function useUsuarios(): UseUsuariosState & UseUsuariosActions {
     }
   }, [loadData, state.filters]);
 
-  const toggleStatus = useCallback(async (id: number, es_activo: boolean): Promise<boolean> => {
+  const toggleStatus = useCallback(async (id: number, is_active: boolean): Promise<boolean> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      const response = await usuariosApi.toggleStatus(id, es_activo);
+      const response = await usuariosApi.toggleStatus(id, is_active);
       
       if (response.success) {
         setState(prev => ({ 
           ...prev, 
           loading: false 
         }));
-        toast.success(`Usuario ${es_activo ? 'activado' : 'desactivado'} exitosamente`);
+        toast.success(`Usuario ${is_active ? 'activado' : 'desactivado'} exitosamente`);
         await loadData(state.filters); // Recargar datos
         return true;
       } else {

@@ -61,16 +61,6 @@ class Conductor(models.Model):
         default=""
     )
     
-    # Relación con Personal (opcional)
-    personal = models.OneToOneField(
-        'personal.Personal',
-        on_delete=models.SET_NULL,
-        related_name='conductor_profile',
-        verbose_name="Personal",
-        null=True,
-        blank=True
-    )
-    
     # Relación con el usuario (opcional)
     usuario = models.OneToOneField(
         User, 
@@ -102,11 +92,11 @@ class Conductor(models.Model):
         verbose_name="Fecha de Vencimiento de Licencia"
     )
     
-    # Estado del conductor
+    # Estado operacional del conductor
     estado = models.CharField(
         max_length=20,
         choices=ESTADOS_CHOICES,
-        default='inactivo',
+        default='disponible',
         verbose_name="Estado"
     )
     
@@ -131,10 +121,6 @@ class Conductor(models.Model):
     )
     
     # Campos de control
-    es_activo = models.BooleanField(
-        default=True,
-        verbose_name="Activo"
-    )
     
     fecha_creacion = models.DateTimeField(
         auto_now_add=True,
@@ -191,6 +177,13 @@ class Conductor(models.Model):
         return self.get_full_name()
     
     @property
+    def estado_usuario(self):
+        """Estado del usuario (activo/inactivo)"""
+        if self.usuario:
+            return 'activo' if self.usuario.is_active else 'inactivo'
+        return 'sin_usuario'
+    
+    @property
     def licencia_vencida(self):
         """Verifica si la licencia está vencida"""
         from django.utils import timezone
@@ -207,7 +200,7 @@ class Conductor(models.Model):
         return dias_restantes
     
     def cambiar_estado(self, nuevo_estado):
-        """Cambia el estado del conductor"""
+        """Cambia el estado operacional del conductor"""
         if nuevo_estado in [choice[0] for choice in self.ESTADOS_CHOICES]:
             self.estado = nuevo_estado
             self.save(update_fields=['estado', 'fecha_actualizacion'])
@@ -231,7 +224,8 @@ class Conductor(models.Model):
     def puede_conducir(self):
         """Verifica si el conductor puede conducir (activo, licencia válida, etc.)"""
         return (
-            self.es_activo and 
+            self.usuario and 
+            self.usuario.is_active and 
             not self.licencia_vencida and 
             self.estado in ['disponible', 'ocupado']
         )

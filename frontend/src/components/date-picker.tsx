@@ -13,16 +13,17 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-function formatDate(date: Date | undefined) {
+function formatDate(date: Date | undefined | null): string {
   if (!date) {
     return ""
   }
 
-  return date.toLocaleDateString("es-ES", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  })
+  // Formato más simple para el input: DD/MM/YYYY
+  const day = date.getDate().toString().padStart(2, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const year = date.getFullYear()
+  
+  return `${day}/${month}/${year}`
 }
 
 function isValidDate(date: Date | undefined) {
@@ -67,7 +68,7 @@ export function DatePicker({
   const [open, setOpen] = React.useState(false)
   const [date, setDate] = React.useState<Date | undefined>(value || undefined)
   const [month, setMonth] = React.useState<Date | undefined>(date)
-  const [inputValue, setInputValue] = React.useState(formatDate(date))
+  const [inputValue, setInputValue] = React.useState(formatDate(value || undefined))
 
   // Sincronizar con el valor externo
   React.useEffect(() => {
@@ -84,13 +85,35 @@ export function DatePicker({
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputDate = new Date(e.target.value)
-    setInputValue(e.target.value)
+    const inputValue = e.target.value
+    setInputValue(inputValue)
+    
+    // Intentar parsear la fecha en diferentes formatos
+    let inputDate: Date | undefined
+    
+    // Formato DD/MM/YYYY
+    const ddmmyyyy = inputValue.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+    if (ddmmyyyy) {
+      const [, day, month, year] = ddmmyyyy
+      inputDate = new Date(parseInt(year || '0'), parseInt(month || '1') - 1, parseInt(day || '1'))
+    }
+    // Formato YYYY-MM-DD
+    else if (inputValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      inputDate = new Date(inputValue)
+    }
+    // Formato estándar
+    else {
+      inputDate = new Date(inputValue)
+    }
     
     if (isValidDate(inputDate)) {
       setDate(inputDate)
       setMonth(inputDate)
       onChange?.(inputDate)
+    } else if (inputValue === '') {
+      setDate(undefined)
+      setMonth(undefined)
+      onChange?.(null)
     }
   }
 
@@ -112,11 +135,12 @@ export function DatePicker({
       <div className="relative flex gap-2">
         <Input
           id={id}
-          value={inputValue}
-          placeholder={placeholder}
+          value={inputValue || ""}
+          placeholder={placeholder || "DD/MM/YYYY"}
           className="bg-background pr-10"
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onFocus={() => setOpen(true)}
           disabled={disabled}
           required={required}
         />
@@ -142,12 +166,10 @@ export function DatePicker({
               mode="single"
               selected={date}
               captionLayout="dropdown"
-              // Limita el rango del dropdown de años para permitir selección futura
-              fromYear={fromYear ?? (minDate ? minDate.getFullYear() : 1900)}
-              toYear={toYear ?? (maxDate ? maxDate.getFullYear() : new Date().getFullYear() + 50)}
-              // También definimos límites de navegación cuando corresponda
-              {...(minDate ? { fromDate: minDate } as const : {})}
-              {...(maxDate ? { toDate: maxDate } as const : {})}
+              fromYear={fromYear ?? 1900}
+              toYear={toYear ?? (new Date().getFullYear() + 50)}
+              {...(minDate && { fromDate: minDate })}
+              {...(maxDate && { toDate: maxDate })}
               month={month || new Date()}
               onMonthChange={setMonth}
               onSelect={handleDateSelect}

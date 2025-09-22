@@ -15,7 +15,15 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 import { MoreHorizontal, Edit, Trash2, Eye, AlertTriangle } from 'lucide-react';
 import type { Conductor } from '@/types';
 
@@ -25,6 +33,9 @@ interface ConductorTableProps {
   onEdit: (item: Conductor) => void;
   onDelete: (item: Conductor) => void;
   onView?: (item: Conductor) => void;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 export function ConductorTable({ 
@@ -32,7 +43,10 @@ export function ConductorTable({
   loading, 
   onEdit, 
   onDelete, 
-  onView 
+  onView,
+  page,
+  totalPages,
+  onPageChange
 }: ConductorTableProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -57,7 +71,7 @@ export function ConductorTable({
     
     if (diasRestantes < 0) {
       return (
-        <Badge variant="destructive" className="flex items-center gap-1">
+        <Badge variant="outline" className="text-red-600 border-red-600">
           <AlertTriangle className="h-3 w-3" />
           Vencida
         </Badge>
@@ -85,6 +99,29 @@ export function ConductorTable({
     );
   };
 
+  const getOperationalStatusBadge = (estado: string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      'disponible': 'default',
+      'ocupado': 'secondary',
+      'descanso': 'outline',
+      'inactivo': 'destructive',
+    };
+
+    const labels: Record<string, string> = {
+      'disponible': 'Disponible',
+      'ocupado': 'Ocupado',
+      'descanso': 'Descanso',
+      'inactivo': 'Inactivo',
+    };
+
+    return (
+      <Badge variant={variants[estado] || 'outline'}>
+        {labels[estado] || estado}
+      </Badge>
+    );
+  };
+
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -104,73 +141,134 @@ export function ConductorTable({
   }
 
   return (
-    <ScrollArea className="h-[600px] w-full">
-      <Table>
-        <TableHeader className="sticky top-0 bg-background z-10">
-          <TableRow>
-            <TableHead>Nombre Completo</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Teléfono</TableHead>
-            <TableHead>Nro. Licencia</TableHead>
-            <TableHead>Vencimiento Licencia</TableHead>
-            <TableHead>Experiencia</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="w-[70px]">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((conductor) => (
-            <TableRow key={conductor.id}>
-              <TableCell className="font-medium">
-                {conductor.nombre} {conductor.apellido}
-              </TableCell>
-              <TableCell>{conductor.email}</TableCell>
-              <TableCell>{conductor.telefono}</TableCell>
-              <TableCell>{getLicenseNumberBadge(conductor.nro_licencia)}</TableCell>
-              <TableCell>
-                <div className="space-y-1">
-                  <div className="text-sm">{formatDate(conductor.fecha_venc_licencia)}</div>
-                  {getLicenseStatusBadge(conductor.fecha_venc_licencia)}
-                </div>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline">
-                  {conductor.experiencia_anios} años
-                </Badge>
-              </TableCell>
-              <TableCell>{getStatusBadge(conductor.es_activo)}</TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {onView && (
-                      <DropdownMenuItem onClick={() => onView(conductor)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver detalles
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => onEdit(conductor)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => onDelete(conductor)}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Eliminar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+    <>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nombre Completo</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Teléfono</TableHead>
+              <TableHead>Nro. Licencia</TableHead>
+              <TableHead>Vencimiento Licencia</TableHead>
+              <TableHead>Experiencia</TableHead>
+              <TableHead>Estado Operacional</TableHead>
+              <TableHead>Acciones</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </ScrollArea>
+          </TableHeader>
+          <TableBody>
+            {data.map((conductor) => (
+              <TableRow key={conductor.id}>
+                <TableCell className="font-medium">
+                  {conductor.nombre} {conductor.apellido}
+                </TableCell>
+                <TableCell>{conductor.email}</TableCell>
+                <TableCell>{conductor.telefono}</TableCell>
+                <TableCell>{getLicenseNumberBadge(conductor.nro_licencia)}</TableCell>
+                <TableCell>
+                  <div className="space-y-1">
+                    <div className="text-sm">{formatDate(conductor.fecha_venc_licencia)}</div>
+                    {getLicenseStatusBadge(conductor.fecha_venc_licencia)}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {conductor.experiencia_anios} años
+                  </Badge>
+                </TableCell>
+                <TableCell>{getOperationalStatusBadge(conductor.estado)}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onView && (
+                        <DropdownMenuItem onClick={() => onView(conductor)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver detalles
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => onEdit(conductor)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(conductor)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Paginación */}
+      <div className="flex justify-center mt-4">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => page > 1 && onPageChange(page - 1)}
+                size="default"
+                className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+            
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const pageNumber = i + 1;
+              const isActive = pageNumber === page;
+              
+              return (
+                <PaginationItem key={pageNumber}>
+                  <PaginationLink
+                    onClick={() => onPageChange(pageNumber)}
+                    isActive={isActive}
+                    size="icon"
+                    className="cursor-pointer"
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+            
+            {totalPages > 5 && (
+              <>
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink
+                    onClick={() => onPageChange(totalPages)}
+                    isActive={page === totalPages}
+                    size="icon"
+                    className="cursor-pointer"
+                  >
+                    {totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              </>
+            )}
+            
+            <PaginationItem>
+              <PaginationNext 
+                onClick={() => page < totalPages && onPageChange(page + 1)}
+                size="default"
+                className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    </>
   );
 }

@@ -11,14 +11,18 @@ import type {
 // Mappers para convertir entre formatos del frontend y backend
 const toDTO = (data: UsuarioFormData) => ({
   username: data.username,
-  first_name: data.nombre,
-  last_name: data.apellido,
   email: data.email,
+  first_name: data.first_name,
+  last_name: data.last_name,
   telefono: data.telefono,
+  direccion: data.direccion,
+  ci: data.ci,
+  fecha_nacimiento: data.fecha_nacimiento ? data.fecha_nacimiento.toISOString().split('T')[0] : undefined,
   rol_id: data.rol_id,
-  is_admin_portal: data.is_admin_portal,
-  personal_id: data.personal_id,
-  conductor_id: data.conductor_id,
+  is_superuser: data.is_superuser,
+  is_active: data.is_active, // Unificado con es_activo
+  personal_id: data.personal, // Cambiar de personal a personal_id
+  conductor_id: data.conductor, // Cambiar de conductor a conductor_id
   password: data.password,
   password_confirm: data.password_confirm,
 });
@@ -26,26 +30,27 @@ const toDTO = (data: UsuarioFormData) => ({
 const fromDTO = (data: any): Usuario => ({
   id: data.id,
   username: data.username,
-  nombre: data.first_name || data.nombre,
-  apellido: data.last_name || data.apellido,
   email: data.email,
-  telefono: data.telefono,
-  rol: (data.rol?.nombre as Usuario['rol']) || 'Cliente',
-  is_admin_portal: data.is_admin_portal,
-  personal_id: data.personal,
-  conductor_id: data.conductor,
-  created_at: data.created_at || data.fecha_creacion,
-  updated_at: data.updated_at || data.fecha_actualizacion,
   first_name: data.first_name,
   last_name: data.last_name,
+  telefono: data.telefono,
   direccion: data.direccion,
   ci: data.ci,
   fecha_nacimiento: data.fecha_nacimiento,
-  puede_acceder_admin: data.puede_acceder_admin,
-  es_activo: data.es_activo,
+  rol: data.rol,
+  is_superuser: data.is_superuser,
+  is_active: data.is_active, // Unificado con es_activo
   fecha_creacion: data.fecha_creacion,
   fecha_ultimo_acceso: data.fecha_ultimo_acceso,
-  rol_obj: data.rol,
+  // Relaciones opcionales
+  personal: data.personal,
+  conductor: data.conductor,
+  // Campos derivados
+  puede_acceder_admin: data.puede_acceder_admin,
+  es_administrativo: data.es_administrativo,
+  es_cliente: data.es_cliente,
+  rol_nombre: data.rol_nombre,
+  rol_obj: data.rol_obj,
 });
 
 // Nota: las opciones de roles se obtienen desde la API. No hardcodear IDs.
@@ -56,10 +61,10 @@ export const usuariosApi = {
     const params = new URLSearchParams();
     
     if (filters?.search) params.append('search', filters.search);
-  // Filtrar por nombre de rol (requiere soporte BE: filterset_fields=['rol__nombre'])
-  if (filters?.rol) params.append('rol__nombre', filters.rol);
-    if (filters?.is_admin_portal !== undefined) params.append('is_admin_portal', filters.is_admin_portal.toString());
-    if (filters?.es_activo !== undefined) params.append('es_activo', filters.es_activo.toString());
+    // Filtrar por nombre de rol (requiere soporte BE: filterset_fields=['rol__nombre'])
+    if (filters?.rol) params.append('rol__nombre', filters.rol);
+    if (filters?.is_staff !== undefined) params.append('is_staff', filters.is_staff.toString());
+    if (filters?.is_active !== undefined) params.append('is_active', filters.is_active.toString());
     
     const query = params.toString();
     const response = await apiRequest(`/api/admin/users/${query ? `?${query}` : ''}`);
@@ -159,27 +164,44 @@ export const usuariosApi = {
     ci: string;
     telefono: string;
   }>>> {
-    return apiRequest('/api/admin/users/personal_disponible/');
+    const response = await apiRequest('/api/admin/users/personal_disponible/');
+    return response as ApiResponse<Array<{
+      id: number;
+      nombre: string;
+      apellido: string;
+      email: string;
+      ci: string;
+      telefono: string;
+    }>>;
   },
 
   // Obtener conductores disponibles para autocompletado
   async getConductoresDisponibles(): Promise<ApiResponse<Array<{
     id: number;
-    personal__nombre: string;
-    personal__apellido: string;
-    personal__email: string;
-    personal__ci: string;
-    personal__telefono: string;
+    nombre: string; // Cambiado de personal__nombre
+    apellido: string; // Cambiado de personal__apellido
+    email: string; // Cambiado de personal__email
+    ci: string; // Cambiado de personal__ci
+    telefono: string; // Cambiado de personal__telefono
     nro_licencia: string;
   }>>> {
-    return apiRequest('/api/admin/users/conductores_disponibles/');
+    const response = await apiRequest('/api/admin/users/conductores_disponibles/');
+    return response as ApiResponse<Array<{
+      id: number;
+      nombre: string;
+      apellido: string;
+      email: string;
+      ci: string;
+      telefono: string;
+      nro_licencia: string;
+    }>>;
   },
 
   // Activar/desactivar usuario
-  async toggleStatus(id: number, es_activo: boolean): Promise<ApiResponse> {
+  async toggleStatus(id: number, is_active: boolean): Promise<ApiResponse> {
     return apiRequest(`/api/admin/users/${id}/`, {
       method: 'PATCH',
-      body: JSON.stringify({ es_activo }),
+      body: JSON.stringify({ is_active }), // Cambiado de es_activo a is_active
     });
   },
 };

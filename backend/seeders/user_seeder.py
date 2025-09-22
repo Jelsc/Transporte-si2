@@ -55,6 +55,7 @@ class UserSeeder(BaseSeeder):
                     first_name="Administrador",
                     last_name="Sistema",
                     rol=admin_rol,
+                    is_active=True,  # Usar is_active en lugar de es_activo
                 )
                 print(f"✓ Superusuario '{username}' creado con rol de Administrador")
                 

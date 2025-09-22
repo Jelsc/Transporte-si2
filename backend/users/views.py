@@ -1,3 +1,25 @@
+"""
+VIEWS.PY - MÓDULO DE GESTIÓN Y CRUD
+
+RESPONSABILIDADES:
+- CRUD completo de usuarios (UserViewSet)
+- CRUD completo de roles (RolViewSet)
+- Registro de usuarios administrativos
+- Cambio de contraseñas
+- Autenticación con Google OAuth
+- Gestión de permisos y roles
+- Estadísticas y reportes
+- Clases de autenticación con bitácora (CustomLoginView, CustomLogoutView, CustomRegisterView)
+
+DIFERENCIA CON AUTH_VIEWS.PY:
+- auth_views.py: Login/Logout con JWT y diferenciación Admin/Cliente
+- views.py: Login/Logout con dj_rest_auth y registro automático en bitácora
+
+NO INCLUYE:
+- Información del usuario autenticado (ver auth_views.py)
+- Datos del dashboard (ver auth_views.py)
+"""
+
 from rest_framework import generics, status, permissions, viewsets, filters
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
@@ -26,84 +48,9 @@ from .decorators import requiere_permisos, requiere_permisos_viewset
 User = get_user_model()
 
 
-class AdminTokenObtainPairView(TokenObtainPairView):
-    """Vista personalizada para login de administradores con JWT"""
+# AdminTokenObtainPairView movido a auth_views.py para evitar duplicación
 
-    serializer_class = AdminLoginSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        user = serializer.validated_data["user"]
-        refresh = RefreshToken.for_user(user)
-
-        user.fecha_ultimo_acceso = timezone.now()
-        
-        #BITACORA
-        registrar_bitacora(
-        request=request,
-        usuario=user,
-        accion="Login",
-        descripcion="Administrador inicio sesion",
-        modulo="ADMINISTRACION"
-        )    
-        
-        user.save(update_fields=["fecha_ultimo_acceso"])
-
-        return Response(
-            {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-                "user": UserSerializer(user).data,
-            }
-        )
-
-@api_view(["POST"])
-@permission_classes([permissions.IsAuthenticated])
-def admin_logout(request):
-    """Logout para administradores (invalidar token)"""
-    try:
-        refresh_token = request.data["refresh"]
-        token = RefreshToken(refresh_token)
-        user = request.user
-        user.fecha_ultimo_acceso = timezone.now()
-        user.save(update_fields=["fecha_ultimo_acceso"])
-        
-        token.blacklist()
-        return Response(
-            {"message": "Logout exitoso"}, status=status.HTTP_205_RESET_CONTENT
-        )
-    except Exception as e:
-        return Response({"error": "Token inválido"}, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(["POST"])
-@permission_classes([permissions.IsAuthenticated])
-def client_logout(request):
-    """Logout para clientes (invalidar token)"""
-    try:
-        refresh_token = request.data["refresh"]
-        token = RefreshToken(refresh_token)
-        
-        # Actualizar fecha de último acceso
-        user = request.user
-        user.fecha_ultimo_acceso = timezone.now()
-        user.save(update_fields=["fecha_ultimo_acceso"])
-        
-        token.blacklist()
-        return Response(
-            {"message": "Logout exitoso"}, status=status.HTTP_205_RESET_CONTENT
-        )
-    
-    except Exception as e:
-        registrar_bitacora(
-        request=request,
-        accion="Logout",
-        descripcion="Administrador cerro sesion",
-        modulo="ADMINISTRACION"
-        )   
-        return Response({"error": "Token inválido"}, status=status.HTTP_400_BAD_REQUEST)
+# Funciones de logout movidas a auth_views.py para evitar duplicación
 
 
 class AdminRegistrationView(generics.CreateAPIView):
@@ -330,8 +277,8 @@ class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    # Alinear con filtros del frontend: permitir rol__nombre e is_admin_portal
-    filterset_fields = ['rol', 'rol__nombre', 'is_admin_portal', 'is_active', 'es_activo']
+    # Alinear con filtros del frontend: permitir rol__nombre e is_staff
+    filterset_fields = ['rol', 'rol__nombre', 'is_staff', 'is_active']
     search_fields = [
         'username',
         'email',
@@ -382,7 +329,7 @@ class UserViewSet(viewsets.ModelViewSet):
             'activos': queryset.filter(is_active=True).count(),
             'administrativos': queryset.filter(rol__es_administrativo=True).count(),
             'clientes': queryset.filter(rol__es_administrativo=False).count(),
-            'con_acceso_admin': queryset.filter(is_admin_portal=True).count(),
+            'con_acceso_admin': queryset.filter(is_staff=True).count(),
             'por_rol': dict(queryset.values('rol__nombre').annotate(
                 count=models.Count('id')
             ).values_list('rol__nombre', 'count')),
@@ -407,7 +354,7 @@ class UserViewSet(viewsets.ModelViewSet):
             # Personal que no tiene usuario vinculado
             personal_disponible = Personal.objects.filter(
                 usuario__isnull=True,
-                es_activo=True
+                estado=True
             ).values('id', 'nombre', 'apellido', 'email', 'ci', 'telefono')
             
             return Response(list(personal_disponible))
@@ -427,15 +374,14 @@ class UserViewSet(viewsets.ModelViewSet):
             from conductores.models import Conductor
             # Conductores que no tienen usuario vinculado
             conductores_disponibles = Conductor.objects.filter(
-                usuario__isnull=True,
-                es_activo=True
-            ).select_related('personal').values(
+                usuario__isnull=True
+            ).values(
                 'id',
-                'personal__nombre',
-                'personal__apellido',
-                'personal__email',
-                'personal__ci',
-                'personal__telefono',
+                'nombre',
+                'apellido',
+                'email',
+                'ci',
+                'telefono',
                 'nro_licencia'
             )
             
@@ -444,27 +390,7 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response([])
 
 
-@api_view(["GET"])
-@permission_classes([permissions.IsAuthenticated])
-def user_dashboard_data(request):
-    """Datos del dashboard del usuario"""
-    user = request.user
-
-    if user.es_administrativo:
-        # Datos para administradores
-        data = {
-            "tipo_usuario": "administrativo",
-            "rol": user.rol.nombre if user.rol else "Sin rol",
-            "permisos": user.rol.permisos if user.rol else [],
-        }
-    else:
-        # Datos para clientes
-        data = {
-            "tipo_usuario": "cliente",
-            "rol": user.rol.nombre if user.rol else "Sin rol",
-        }
-
-    return Response(data)
+# user_dashboard_data movido a auth_views.py para evitar duplicación
 
 
 @api_view(["POST"])

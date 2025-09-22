@@ -20,9 +20,9 @@ const toDTO = (data: ConductorFormData) => ({
   tipo_licencia: data.tipo_licencia,
   fecha_venc_licencia: data.fecha_venc_licencia ? data.fecha_venc_licencia.toISOString().split('T')[0] : undefined,
   experiencia_anios: Number.isFinite(data.experiencia_anios) ? data.experiencia_anios : 0,
+  estado: data.estado, // Nuevo campo operacional
   telefono_emergencia: data.telefono_emergencia,
   contacto_emergencia: data.contacto_emergencia,
-  es_activo: data.es_activo ?? true,
 });
 
 const fromDTO = (data: any): Conductor => ({
@@ -33,30 +33,23 @@ const fromDTO = (data: any): Conductor => ({
   telefono: data.telefono,
   email: data.email,
   ci: data.ci,
-  created_at: data.created_at || data.fecha_creacion,
-  updated_at: data.updated_at || data.fecha_actualizacion,
-  estado: data.estado,
+  // Campos específicos de Conductor
+  nro_licencia: data.nro_licencia,
+  tipo_licencia: data.tipo_licencia,
+  fecha_venc_licencia: data.fecha_venc_licencia,
+  experiencia_anios: data.experiencia_anios,
+  estado: data.estado, // Nuevo campo operacional
   telefono_emergencia: data.telefono_emergencia,
   contacto_emergencia: data.contacto_emergencia,
-  es_activo: data.es_activo,
-  nombre_completo: data.nombre_completo,
   fecha_creacion: data.fecha_creacion,
   fecha_actualizacion: data.fecha_actualizacion,
   usuario: data.usuario,
-  username: data.username,
-  
-  // Campos específicos de Conductor
-  nro_licencia: data.nro_licencia,
-  fecha_venc_licencia: data.fecha_venc_licencia,
-  experiencia_anios: data.experiencia_anios,
-  personal: data.personal,
-  tipo_licencia: data.tipo_licencia,
+  // Campos calculados/derivados
+  nombre_completo: data.nombre_completo,
   licencia_vencida: data.licencia_vencida || false,
   dias_para_vencer_licencia: data.dias_para_vencer_licencia || 0,
   puede_conducir: data.puede_conducir || false,
-  ultima_ubicacion_lat: data.ultima_ubicacion_lat,
-  ultima_ubicacion_lng: data.ultima_ubicacion_lng,
-  ultima_actualizacion_ubicacion: data.ultima_actualizacion_ubicacion,
+  estado_usuario: data.estado_usuario || 'sin_usuario',
 });
 
 export const conductoresApi = {
@@ -65,9 +58,8 @@ export const conductoresApi = {
     const params = new URLSearchParams();
     
     if (filters?.search) params.append('search', filters.search);
-  if (filters?.licencia_vencida !== undefined) params.append('licencia_vencida', filters.licencia_vencida.toString());
+    if (filters?.estado) params.append('estado', filters.estado);
     if (filters?.tipo_licencia) params.append('tipo_licencia', filters.tipo_licencia);
-    if (filters?.es_activo !== undefined) params.append('es_activo', filters.es_activo.toString());
     
     const query = params.toString();
     const response = await apiRequest(`/api/conductores/${query ? `?${query}` : ''}`);
@@ -153,11 +145,11 @@ export const conductoresApi = {
         success: true,
         data: data.map((item: any) => ({
           id: item.id,
-          personal__nombre: item.personal__nombre,
-          personal__apellido: item.personal__apellido,
-          personal__email: item.personal__email,
-          personal__ci: item.personal__ci,
-          personal__telefono: item.personal__telefono,
+          nombre: item.nombre, // Cambiado de personal__nombre
+          apellido: item.apellido, // Cambiado de personal__apellido
+          email: item.email, // Cambiado de personal__email
+          ci: item.ci, // Cambiado de personal__ci
+          telefono: item.telefono, // Cambiado de personal__telefono
           nro_licencia: item.nro_licencia,
         })),
       };
@@ -199,9 +191,10 @@ export const conductoresApi = {
   // Obtener estadísticas
   async getStatistics(): Promise<ApiResponse<{
     total: number;
-    activos: number;
+    disponibles: number;
+    ocupados: number;
+    en_descanso: number;
     inactivos: number;
-    por_estado: Record<string, number>;
     por_tipo_licencia: Record<string, number>;
     licencias_vencidas: number;
     licencias_por_vencer: number;

@@ -7,35 +7,26 @@ export type Personal = {
   telefono: string;
   email: string;
   ci: string;
-  created_at: string;
-  updated_at: string;
-  // Campos adicionales del backend
+  // Campos actualizados según refactorización del backend
   codigo_empleado: string;
-  departamento?: string;
-  fecha_ingreso?: string;
-  horario_trabajo?: string;
-  estado?: string;
-  supervisor?: number;
-  supervisor_nombre?: string;
-  supervisor_codigo?: string;
+  fecha_ingreso: string;
+  estado: boolean; // Cambiado a boolean
   telefono_emergencia?: string;
   contacto_emergencia?: string;
-  es_activo: boolean;
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+  usuario?: number; // FK a CustomUser (nullable)
+  // Campos calculados/derivados
   nombre_completo: string;
   anos_antiguedad: number;
   puede_acceder_sistema: boolean;
-  ultimo_acceso?: string;
-  fecha_creacion: string;
-  fecha_actualizacion: string;
-  usuario?: number;
-  username?: string;
 };
 
 export type Conductor = {
   id: number;
   nombre: string;
   apellido: string;
-  fecha_nacimiento: string | null;
+  fecha_nacimiento: string;
   telefono: string;
   email: string;
   ci: string;
@@ -44,51 +35,51 @@ export type Conductor = {
   tipo_licencia: string;
   fecha_venc_licencia: string;
   experiencia_anios: number;
-  estado?: string;
+  estado: 'disponible' | 'ocupado' | 'descanso' | 'inactivo'; // Nuevo campo operacional
   telefono_emergencia?: string;
   contacto_emergencia?: string;
-  es_activo: boolean;
-  // Calculados
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+  usuario?: number; // FK a CustomUser (nullable)
+  // Campos calculados/derivados
   nombre_completo: string;
   licencia_vencida: boolean;
   dias_para_vencer_licencia: number;
   puede_conducir: boolean;
-  // Relacionales y tracking
-  personal?: number;
-  usuario?: number;
-  username?: string;
-  ultima_ubicacion_lat?: number;
-  ultima_ubicacion_lng?: number;
-  ultima_actualizacion_ubicacion?: string;
-  fecha_creacion: string;
-  fecha_actualizacion: string;
-  created_at?: string;
-  updated_at?: string;
+  estado_usuario: 'activo' | 'inactivo' | 'sin_usuario'; // Estado del usuario vinculado
 };
 
 export type Usuario = {
   id: number;
   username: string;
-  nombre: string;
-  apellido: string;
   email: string;
-  telefono: string;
-  rol: "Administrador" | "Cliente" | "Supervisor" | "Conductor" | "Operador";
-  is_admin_portal: boolean;
-  personal_id?: number;
-  conductor_id?: number;
-  created_at: string;
-  updated_at: string;
-  // Campos adicionales del backend
   first_name: string;
   last_name: string;
+  telefono?: string;
   direccion?: string;
   ci?: string;
   fecha_nacimiento?: string;
-  puede_acceder_admin: boolean;
-  es_activo: boolean;
+  rol?: {
+    id: number;
+    nombre: string;
+    descripcion: string;
+    es_administrativo: boolean;
+    permisos: string[];
+    fecha_creacion: string;
+    fecha_actualizacion: string;
+  }; // Objeto completo del rol
+  is_superuser: boolean;
+  is_active: boolean; // Unificado con es_activo
   fecha_creacion: string;
   fecha_ultimo_acceso?: string;
+  // Relaciones opcionales
+  personal?: number; // FK a Personal
+  conductor?: number; // FK a Conductor
+  // Campos derivados
+  puede_acceder_admin: boolean;
+  es_administrativo: boolean;
+  es_cliente: boolean;
+  rol_nombre?: string;
   rol_obj?: {
     id: number;
     nombre: string;
@@ -119,12 +110,9 @@ export type PersonalFormData = {
   codigo_empleado: string;
   fecha_ingreso: Date | null;
   // Opcionales
-  departamento?: string | undefined;
-  horario_trabajo?: string | undefined;
-  supervisor?: number | undefined;
   telefono_emergencia?: string | undefined;
   contacto_emergencia?: string | undefined;
-  es_activo?: boolean | undefined;
+  estado?: boolean | undefined; // Cambiado de es_activo a estado
 };
 
 // Conductor no incluye campos laborales de Personal (codigo_empleado, etc.)
@@ -139,22 +127,27 @@ export type ConductorFormData = {
   fecha_venc_licencia: Date | null;
   experiencia_anios: number;
   tipo_licencia: string;
+  estado: 'disponible' | 'ocupado' | 'descanso' | 'inactivo'; // Nuevo campo operacional
   telefono_emergencia?: string | undefined;
   contacto_emergencia?: string | undefined;
-  es_activo?: boolean | undefined;
 };
 
 export type UsuarioFormData = {
   username: string;
-  nombre: string;
-  apellido: string;
   email: string;
-  telefono: string;
+  first_name: string;
+  last_name: string;
+  telefono?: string | undefined;
+  direccion?: string | undefined;
+  ci?: string | undefined;
+  fecha_nacimiento?: Date | null | undefined;
   // Identificador del rol (FK), obtenido desde /api/admin/roles
   rol_id?: number | undefined;
-  is_admin_portal: boolean;
-  personal_id?: number | undefined;
-  conductor_id?: number | undefined;
+  is_superuser: boolean;
+  is_active: boolean; // Unificado con es_activo
+  // Relaciones opcionales
+  personal?: number | undefined;
+  conductor?: number | undefined;
   password?: string | undefined;
   password_confirm?: string | undefined;
 };
@@ -162,23 +155,20 @@ export type UsuarioFormData = {
 // Tipos para filtros
 export type PersonalFilters = {
   search?: string;
-  departamento?: string;
-  estado?: string;
-  es_activo?: boolean;
+  estado?: boolean; // Cambiado de string a boolean
 };
 
 export type ConductorFilters = {
   search?: string;
-  licencia_vencida?: boolean;
+  estado?: 'disponible' | 'ocupado' | 'descanso' | 'inactivo';
   tipo_licencia?: string;
-  es_activo?: boolean;
 };
 
 export type UsuarioFilters = {
   search?: string;
   rol?: string;
-  is_admin_portal?: boolean;
-  es_activo?: boolean;
+  is_staff?: boolean; // Cambiado de is_admin_portal
+  is_active?: boolean; // Cambiado de es_activo
 };
 
 // Tipos para respuestas de API
@@ -208,10 +198,10 @@ export type PersonalOption = {
 
 export type ConductorOption = {
   id: number;
-  personal__nombre: string;
-  personal__apellido: string;
-  personal__email: string;
-  personal__ci: string;
-  personal__telefono: string;
+  nombre: string; // Cambiado de personal__nombre
+  apellido: string; // Cambiado de personal__apellido
+  email: string; // Cambiado de personal__email
+  ci: string; // Cambiado de personal__ci
+  telefono: string; // Cambiado de personal__telefono
   nro_licencia: string;
 };

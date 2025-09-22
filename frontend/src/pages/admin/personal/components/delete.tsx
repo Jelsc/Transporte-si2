@@ -54,57 +54,74 @@ export function PersonalDelete({
             <AlertTriangle className="h-5 w-5 text-red-500" />
             Confirmar Eliminación
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4">
-            <p>
-              ¿Estás seguro de que deseas eliminar este miembro del personal? 
-              Esta acción no se puede deshacer.
-            </p>
-            
-            <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-              <h4 className="font-medium text-gray-900">Información del Personal:</h4>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="font-medium">Nombre:</span>
-                  <p>{personal.nombre} {personal.apellido}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Email:</span>
-                  <p>{personal.email}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Teléfono:</span>
-                  <p>{personal.telefono}</p>
-                </div>
-                <div>
-                  <span className="font-medium">CI:</span>
-                  <p>{personal.ci}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Departamento:</span>
-                  <p>{personal.departamento || 'No asignado'}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Estado:</span>
-                  <Badge variant={personal.es_activo ? "default" : "secondary"}>
-                    {personal.es_activo ? "Activo" : "Inactivo"}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="font-medium">Fecha de Nacimiento:</span>
-                  <p>{formatDate(personal.fecha_nacimiento)}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Código de Empleado:</span>
-                  <p>{personal.codigo_empleado || 'No asignado'}</p>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4">
+              <p>
+                ¿Estás seguro de que deseas eliminar este miembro del personal? 
+                Esta acción no se puede deshacer.
+              </p>
+              
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="font-medium text-gray-900">Información del Personal:</div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="font-medium">Nombre:</span>
+                    <div>{personal.nombre} {personal.apellido}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Email:</span>
+                    <div>{personal.email}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Teléfono:</span>
+                    <div>{personal.telefono}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">CI:</span>
+                    <div>{personal.ci}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Código de Empleado:</span>
+                    <div className="font-mono">{personal.codigo_empleado}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Fecha de Ingreso:</span>
+                    <div>{formatDate(personal.fecha_ingreso)}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Estado:</span>
+                    <Badge variant={personal.estado ? "default" : "secondary"}>
+                      {personal.estado ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium">Usuario:</span>
+                    <div>
+                      {personal.usuario ? (
+                        <Badge variant="secondary">Usuario #{personal.usuario}</Badge>
+                      ) : (
+                        <span className="text-gray-400">Sin usuario</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-              <p className="text-red-800 text-sm">
-                <strong>Advertencia:</strong> Al eliminar este personal, se perderá 
-                toda la información asociada y no podrá ser recuperada.
-              </p>
+              <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+                <div className="text-red-800 text-sm">
+                  <strong>Advertencia:</strong> Al eliminar este personal, se perderá 
+                  toda la información asociada y no podrá ser recuperada.
+                </div>
+              </div>
+
+              {personal.usuario && (
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                  <div className="text-yellow-800 text-sm">
+                    <strong>Nota:</strong> Este personal tiene un usuario asociado. 
+                    Asegúrate de que no tenga sesiones activas antes de eliminarlo.
+                  </div>
+                </div>
+              )}
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

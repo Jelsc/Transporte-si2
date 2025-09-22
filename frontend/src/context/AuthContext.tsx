@@ -395,6 +395,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error) {
       console.error("Error en logout de admin:", error);
+      // Continuar con el logout local aunque falle el servidor
     } finally {
       tokenUtils.clearTokens();
       dispatch({ type: "AUTH_LOGOUT" });

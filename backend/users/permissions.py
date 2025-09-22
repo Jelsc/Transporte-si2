@@ -16,7 +16,7 @@ class IsAdminPortalUser(permissions.BasePermission):
             return False
         
         # Verificar que tenga acceso al panel administrativo
-        if not request.user.is_admin_portal:
+        if not request.user.is_staff:
             return False
         
         return True
@@ -77,7 +77,7 @@ class IsOwnerOrAdmin(permissions.BasePermission):
     
     def has_object_permission(self, request, view, obj):
         # Administradores pueden acceder a todo
-        if request.user.is_admin_portal and request.user.es_administrativo:
+        if request.user.is_staff and request.user.es_administrativo:
             return True
         
         # El propietario puede acceder a su propio objeto

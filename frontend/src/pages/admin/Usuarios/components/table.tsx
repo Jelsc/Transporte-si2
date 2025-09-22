@@ -15,7 +15,15 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 import { MoreHorizontal, Edit, Trash2, Eye, UserCheck, UserX } from 'lucide-react';
 import type { Usuario } from '@/types';
 
@@ -26,6 +34,9 @@ interface UsuarioTableProps {
   onDelete: (item: Usuario) => void;
   onToggleStatus?: (item: Usuario) => void;
   onView?: (item: Usuario) => void;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 export function UsuarioTable({ 
@@ -34,7 +45,10 @@ export function UsuarioTable({
   onEdit, 
   onDelete, 
   onToggleStatus,
-  onView 
+  onView,
+  page,
+  totalPages,
+  onPageChange
 }: UsuarioTableProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -68,129 +82,153 @@ export function UsuarioTable({
     );
   };
 
-  const getAdminPortalBadge = (isAdminPortal: boolean) => {
-    return (
-      <Badge variant={isAdminPortal ? "default" : "outline"}>
-        {isAdminPortal ? "Admin Portal" : "Cliente"}
-      </Badge>
-    );
-  };
 
   if (loading) {
-    return (
-      <div className="space-y-3">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-12 bg-gray-200 animate-pulse rounded" />
-        ))}
-      </div>
-    );
+    return <p>Cargando usuarios...</p>;
   }
 
   if (!data || data.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        No se encontraron usuarios registrados
-      </div>
-    );
+    return <p>No se encontraron usuarios.</p>;
   }
 
   return (
-    <ScrollArea className="h-[600px] w-full">
-      <Table>
-        <TableHeader className="sticky top-0 bg-background z-10">
-          <TableRow>
-            <TableHead>Usuario</TableHead>
-            <TableHead>Nombre Completo</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Teléfono</TableHead>
-            <TableHead>Rol</TableHead>
-            <TableHead>Portal</TableHead>
-            <TableHead>Vinculaciones</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="w-[70px]">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((usuario) => (
-            <TableRow key={usuario.id}>
-              <TableCell className="font-medium">
-                {usuario.username}
-              </TableCell>
-              <TableCell>
-                {usuario.nombre} {usuario.apellido}
-              </TableCell>
-              <TableCell>{usuario.email}</TableCell>
-              <TableCell>{usuario.telefono}</TableCell>
-              <TableCell>{getRolBadge(usuario.rol)}</TableCell>
-              <TableCell>{getAdminPortalBadge(usuario.is_admin_portal)}</TableCell>
-              <TableCell>
-                <div className="space-y-1">
-                  {usuario.personal_id && (
-                    <Badge variant="outline" className="text-xs">
-                      Personal #{usuario.personal_id}
-                    </Badge>
-                  )}
-                  {usuario.conductor_id && (
-                    <Badge variant="outline" className="text-xs">
-                      Conductor #{usuario.conductor_id}
-                    </Badge>
-                  )}
-                  {!usuario.personal_id && !usuario.conductor_id && (
-                    <span className="text-gray-400 text-xs">Sin vinculaciones</span>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell>{getStatusBadge(usuario.es_activo)}</TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {onView && (
-                      <DropdownMenuItem onClick={() => onView(usuario)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver detalles
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => onEdit(usuario)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </DropdownMenuItem>
-                    {onToggleStatus && (
-                      <DropdownMenuItem 
-                        onClick={() => onToggleStatus(usuario)}
-                        className={usuario.es_activo ? "text-orange-600" : "text-green-600"}
-                      >
-                        {usuario.es_activo ? (
-                          <>
-                            <UserX className="mr-2 h-4 w-4" />
-                            Desactivar
-                          </>
-                        ) : (
-                          <>
-                            <UserCheck className="mr-2 h-4 w-4" />
-                            Activar
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem 
-                      onClick={() => onDelete(usuario)}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Eliminar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+    <>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableCell>Usuario</TableCell>
+              <TableCell>Nombre Completo</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Teléfono</TableCell>
+              <TableCell>Rol</TableCell>
+              <TableCell>Estado</TableCell>
+              <TableCell>Acciones</TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </ScrollArea>
+          </TableHeader>
+          <TableBody>
+            {data.map((usuario) => (
+              <TableRow key={usuario.id}>
+                <TableCell className="font-medium">
+                  {usuario.username}
+                </TableCell>
+                <TableCell>
+                  {usuario.first_name} {usuario.last_name}
+                </TableCell>
+                <TableCell>{usuario.email}</TableCell>
+                <TableCell>{usuario.telefono}</TableCell>
+                <TableCell>{getRolBadge(usuario.rol?.nombre || 'Sin rol')}</TableCell>
+                <TableCell>{getStatusBadge(usuario.is_active)}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onView && (
+                        <DropdownMenuItem onClick={() => onView(usuario)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver detalles
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => onEdit(usuario)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      {onToggleStatus && (
+                        <DropdownMenuItem 
+                          onClick={() => onToggleStatus(usuario)}
+                          className={usuario.is_active ? "text-orange-600" : "text-green-600"}
+                        >
+                          {usuario.is_active ? (
+                            <>
+                              <UserX className="mr-2 h-4 w-4" />
+                              Desactivar
+                            </>
+                          ) : (
+                            <>
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              Activar
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(usuario)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Paginación */}
+      <div className="flex justify-center mt-4">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => page > 1 && onPageChange(page - 1)}
+                size="default"
+                className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+            
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const pageNumber = i + 1;
+              const isActive = pageNumber === page;
+              
+              return (
+                <PaginationItem key={pageNumber}>
+                  <PaginationLink
+                    onClick={() => onPageChange(pageNumber)}
+                    isActive={isActive}
+                    size="icon"
+                    className="cursor-pointer"
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+            
+            {totalPages > 5 && (
+              <>
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink
+                    onClick={() => onPageChange(totalPages)}
+                    isActive={page === totalPages}
+                    size="icon"
+                    className="cursor-pointer"
+                  >
+                    {totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              </>
+            )}
+            
+            <PaginationItem>
+              <PaginationNext 
+                onClick={() => page < totalPages && onPageChange(page + 1)}
+                size="default"
+                className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    </>
   );
 }
