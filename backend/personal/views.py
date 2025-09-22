@@ -1,28 +1,28 @@
 from rest_framework import viewsets, status, permissions, filters
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import models
 from django.utils import timezone
 from bitacora.utils import registrar_bitacora
-from .models import Personal, Departamento
+from .models import Personal
 from .serializers import (
     PersonalSerializer,
     PersonalCreateSerializer,
     PersonalUpdateSerializer,
-    PersonalEstadoSerializer,
-    DepartamentoSerializer
+    PersonalEstadoSerializer
 )
 
 
 class PersonalViewSet(viewsets.ModelViewSet):
-    """ViewSet para el CRUD de personal"""
+    """ViewSet para el CRUD de personal - Refactorizado"""
     
     queryset = Personal.objects.all()
     serializer_class = PersonalSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['estado', 'es_activo', 'departamento']
+    filterset_fields = ['estado', 'usuario']
     search_fields = [
         'nombre',
         'apellido',
@@ -49,17 +49,21 @@ class PersonalViewSet(viewsets.ModelViewSet):
         
         # Si el usuario no tiene permisos para gestionar personal, solo puede ver su propio perfil
         if not self.request.user.tiene_permiso('gestionar_personal'):
-            if hasattr(self.request.user, 'personal_profile'):
-                return queryset.filter(id=self.request.user.personal_profile.id)
-            else:
+            try:
+                personal_profile = self.request.user.personal_profile.first()
+                if personal_profile:
+                    return queryset.filter(id=personal_profile.id)
+                else:
+                    return queryset.none()
+            except:
                 return queryset.none()
         
-        return queryset.select_related('usuario', 'supervisor')
+        return queryset.select_related('usuario')
     
     def perform_create(self, serializer):
         """Crear un nuevo empleado"""
         if not self.request.user.tiene_permiso('gestionar_personal'):
-            raise permissions.PermissionDenied("No tienes permisos para crear empleados")
+            raise PermissionDenied("No tienes permisos para crear empleados")
         
         empleado = serializer.save()
         
@@ -75,7 +79,7 @@ class PersonalViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Actualizar un empleado"""
         if not self.request.user.tiene_permiso('gestionar_personal'):
-            raise permissions.PermissionDenied("No tienes permisos para actualizar empleados")
+            raise PermissionDenied("No tienes permisos para actualizar empleados")
         
         empleado = serializer.save()
         
@@ -91,7 +95,7 @@ class PersonalViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         """Eliminar un empleado"""
         if not self.request.user.tiene_permiso('gestionar_personal'):
-            raise permissions.PermissionDenied("No tienes permisos para eliminar empleados")
+            raise PermissionDenied("No tienes permisos para eliminar empleados")
         
         nombre_empleado = instance.nombre_completo
         instance.delete()
@@ -125,12 +129,12 @@ class PersonalViewSet(viewsets.ModelViewSet):
                 request=request,
                 usuario=request.user,
                 accion="Cambiar Estado",
-                descripcion=f"Se cambió el estado del empleado {empleado.nombre_completo} a {empleado.estado}",
+                descripcion=f"Se cambió el estado del empleado {empleado.nombre_completo} a {'Activo' if empleado.estado else 'Inactivo'}",
                 modulo="PERSONAL"
             )
             
             return Response({
-                'message': f'Estado del empleado {empleado.nombre_completo} actualizado a {empleado.estado}',
+                'message': f'Estado del empleado {empleado.nombre_completo} actualizado a {"Activo" if empleado.estado else "Inactivo"}',
                 'empleado': PersonalSerializer(empleado).data
             })
         
@@ -149,14 +153,10 @@ class PersonalViewSet(viewsets.ModelViewSet):
         
         stats = {
             'total': queryset.count(),
-            'activos': queryset.filter(es_activo=True).count(),
-            'inactivos': queryset.filter(es_activo=False).count(),
-            'por_estado': dict(queryset.values('estado').annotate(
-                count=models.Count('id')
-            ).values_list('estado', 'count')),
-            'por_departamento': dict(queryset.values('departamento').annotate(
-                count=models.Count('id')
-            ).values_list('departamento', 'count')),
+            'activos': queryset.filter(estado=True).count(),
+            'inactivos': queryset.filter(estado=False).count(),
+            'con_usuario': queryset.filter(usuario__isnull=False).count(),
+            'sin_usuario': queryset.filter(usuario__isnull=True).count(),
             'nuevos_este_mes': queryset.filter(
                 fecha_creacion__gte=timezone.now().replace(day=1)
             ).count()
@@ -173,78 +173,10 @@ class PersonalViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Personal que no tiene usuario vinculado
+        # Personal que no tiene usuario vinculado y está activo
         personal_disponible = Personal.objects.filter(
             usuario__isnull=True,
-            es_activo=True
+            estado=True
         ).values('id', 'nombre', 'apellido', 'email', 'ci', 'telefono')
         
         return Response(list(personal_disponible))
-
-
-class DepartamentoViewSet(viewsets.ModelViewSet):
-    """ViewSet para el CRUD de departamentos"""
-    
-    queryset = Departamento.objects.all()
-    serializer_class = DepartamentoSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['es_activo']
-    search_fields = ['nombre', 'descripcion']
-    ordering_fields = ['nombre', 'fecha_creacion']
-    ordering = ['nombre']
-    
-    def get_queryset(self):
-        """Filtra el queryset según los permisos del usuario"""
-        if not self.request.user.tiene_permiso('gestionar_personal'):
-            return Departamento.objects.none()
-        return super().get_queryset().select_related('jefe_departamento')
-    
-    def perform_create(self, serializer):
-        """Crear un nuevo departamento"""
-        if not self.request.user.tiene_permiso('gestionar_personal'):
-            raise permissions.PermissionDenied("No tienes permisos para crear departamentos")
-        
-        departamento = serializer.save()
-        
-        # Registrar en bitácora
-        registrar_bitacora(
-            request=self.request,
-            usuario=self.request.user,
-            accion="Crear",
-            descripcion=f"Se creó el departamento {departamento.nombre}",
-            modulo="PERSONAL"
-        )
-    
-    def perform_update(self, serializer):
-        """Actualizar un departamento"""
-        if not self.request.user.tiene_permiso('gestionar_personal'):
-            raise permissions.PermissionDenied("No tienes permisos para actualizar departamentos")
-        
-        departamento = serializer.save()
-        
-        # Registrar en bitácora
-        registrar_bitacora(
-            request=self.request,
-            usuario=self.request.user,
-            accion="Actualizar",
-            descripcion=f"Se actualizó el departamento {departamento.nombre}",
-            modulo="PERSONAL"
-        )
-    
-    def perform_destroy(self, instance):
-        """Eliminar un departamento"""
-        if not self.request.user.tiene_permiso('gestionar_personal'):
-            raise permissions.PermissionDenied("No tienes permisos para eliminar departamentos")
-        
-        nombre_departamento = instance.nombre
-        instance.delete()
-        
-        # Registrar en bitácora
-        registrar_bitacora(
-            request=self.request,
-            usuario=self.request.user,
-            accion="Eliminar",
-            descripcion=f"Se eliminó el departamento {nombre_departamento}",
-            modulo="PERSONAL"
-        )

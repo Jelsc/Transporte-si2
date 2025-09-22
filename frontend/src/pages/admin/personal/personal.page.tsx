@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Users } from 'lucide-react';
@@ -9,7 +9,14 @@ import { PersonalStore } from './components/store';
 import { PersonalDelete } from './components/delete';
 import AdminLayout from '@/app/layout/admin-layout';
 
+const ITEMS_PER_PAGE = 10;
+
 export default function PersonalPage() {
+  const [page, setPage] = useState<number>(1);
+  const [search, setSearch] = useState<string>("");
+  const [searchDebounced, setSearchDebounced] = useState<string>("");
+  const [estadoFilter, setEstadoFilter] = useState<string>("all");
+
   const {
     data,
     loading,
@@ -17,7 +24,6 @@ export default function PersonalPage() {
     selectedItem,
     isStoreModalOpen,
     isDeleteModalOpen,
-    filters,
     loadData,
     createItem,
     updateItem,
@@ -26,19 +32,32 @@ export default function PersonalPage() {
     closeStoreModal,
     openDeleteModal,
     closeDeleteModal,
-    setFilters,
     clearError,
   } = usePersonal();
 
-  // Cargar datos al montar el componente
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // Función para cargar datos con filtros y paginación
+  const fetchPersonal = async (pageNumber = 1, searchQuery = "", estado = "all") => {
+    const filters = {
+      ...(searchQuery && { search: searchQuery }),
+      ...(estado !== "all" && { estado: estado === "true" }),
+    };
+    
+    await loadData(filters);
+  };
 
-  // Aplicar filtros cuando cambien
+  // Debounce para el campo de búsqueda
   useEffect(() => {
-    loadData(filters);
-  }, [filters, loadData]);
+    const timer = setTimeout(() => {
+      setSearchDebounced(search);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Cargar datos al montar el componente y cuando cambien los filtros
+  useEffect(() => {
+    fetchPersonal(page, searchDebounced, estadoFilter);
+  }, [page, searchDebounced, estadoFilter]);
 
   const handleCreate = () => {
     openStoreModal();
@@ -67,26 +86,20 @@ export default function PersonalPage() {
     return false;
   };
 
-  const handleFiltersChange = (newFilters: any) => {
-    setFilters(newFilters);
-  };
-
-  const handleClearFilters = () => {
-    setFilters({});
-  };
+  const totalPages = Math.ceil((data?.count || 0) / ITEMS_PER_PAGE);
 
   return (
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Gestión de Personal</h1>
             <p className="text-muted-foreground">
               Administra la información del personal de la empresa
             </p>
           </div>
-          <Button onClick={handleCreate} className="flex items-center gap-2">
+          <Button onClick={handleCreate} className="flex items-center gap-2 w-full sm:w-auto">
             <Plus className="h-4 w-4" />
             Agregar Personal
           </Button>
@@ -116,7 +129,7 @@ export default function PersonalPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {data?.results?.filter(p => p.es_activo).length || 0}
+              {data?.results?.filter(p => p.estado).length || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               En el sistema
@@ -131,7 +144,7 @@ export default function PersonalPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {data?.results?.filter(p => !p.es_activo).length || 0}
+              {data?.results?.filter(p => !p.estado).length || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               Fuera del sistema
@@ -142,9 +155,10 @@ export default function PersonalPage() {
 
       {/* Filtros */}
       <PersonalFiltersComponent
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClearFilters={handleClearFilters}
+        search={search}
+        estadoFilter={estadoFilter}
+        onSearchChange={setSearch}
+        onEstadoFilterChange={setEstadoFilter}
         loading={loading}
       />
 
@@ -173,6 +187,12 @@ export default function PersonalPage() {
             loading={loading}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            page={page}
+            totalPages={totalPages}
+            onPageChange={(newPage) => {
+              setPage(newPage);
+              fetchPersonal(newPage, searchDebounced, estadoFilter);
+            }}
           />
         </CardContent>
       </Card>

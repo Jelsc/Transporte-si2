@@ -18,12 +18,9 @@ const toDTO = (data: PersonalFormData) => ({
   ci: data.ci,
   codigo_empleado: data.codigo_empleado,
   fecha_ingreso: data.fecha_ingreso ? data.fecha_ingreso.toISOString().split('T')[0] : undefined,
-  departamento: data.departamento,
-  horario_trabajo: data.horario_trabajo,
-  supervisor: data.supervisor,
   telefono_emergencia: data.telefono_emergencia,
   contacto_emergencia: data.contacto_emergencia,
-  es_activo: data.es_activo ?? true,
+  estado: data.estado ?? true, // Cambiado de es_activo a estado
 });
 
 const fromDTO = (data: any): Personal => ({
@@ -35,26 +32,17 @@ const fromDTO = (data: any): Personal => ({
   email: data.email,
   ci: data.ci,
   codigo_empleado: data.codigo_empleado,
-  departamento: data.departamento,
-  created_at: data.created_at || data.fecha_creacion,
-  updated_at: data.updated_at || data.fecha_actualizacion,
   fecha_ingreso: data.fecha_ingreso,
-  horario_trabajo: data.horario_trabajo,
-  estado: data.estado,
-  supervisor: data.supervisor,
-  supervisor_nombre: data.supervisor_nombre,
-  supervisor_codigo: data.supervisor_codigo,
+  estado: data.estado, // Cambiado a boolean
   telefono_emergencia: data.telefono_emergencia,
   contacto_emergencia: data.contacto_emergencia,
-  es_activo: data.es_activo,
-  nombre_completo: data.nombre_completo,
-  anos_antiguedad: data.anos_antiguedad,
-  puede_acceder_sistema: data.puede_acceder_sistema,
-  ultimo_acceso: data.ultimo_acceso,
   fecha_creacion: data.fecha_creacion,
   fecha_actualizacion: data.fecha_actualizacion,
   usuario: data.usuario,
-  username: data.username,
+  // Campos calculados/derivados
+  nombre_completo: data.nombre_completo,
+  anos_antiguedad: data.anos_antiguedad,
+  puede_acceder_sistema: data.puede_acceder_sistema,
 });
 
 export const personalApi = {
@@ -63,9 +51,7 @@ export const personalApi = {
     const params = new URLSearchParams();
     
     if (filters?.search) params.append('search', filters.search);
-  if (filters?.departamento) params.append('departamento', filters.departamento);
-    if (filters?.estado) params.append('estado', filters.estado);
-    if (filters?.es_activo !== undefined) params.append('es_activo', filters.es_activo.toString());
+    if (filters?.estado !== undefined) params.append('estado', filters.estado.toString());
     
     const query = params.toString();
     const response = await apiRequest(`/api/personal/${query ? `?${query}` : ''}`);
@@ -168,8 +154,6 @@ export const personalApi = {
     total: number;
     activos: number;
     inactivos: number;
-    por_estado: Record<string, number>;
-    por_departamento: Record<string, number>;
     nuevos_este_mes: number;
   }>> {
     return apiRequest('/api/personal/estadisticas/');

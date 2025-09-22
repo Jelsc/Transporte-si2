@@ -13,6 +13,7 @@ import BitacoraPage from "@/pages/admin/bitacora.page";
 import PersonalPage from "../pages/admin/personal/personal.page";
 import ConductoresPage from "../pages/admin/conductores/driver.page";
 import UsuariosPage from "../pages/admin/usuarios/users.page";
+import AccountSettingsPage from "../pages/profile/account-settings.page";
 
 
 export default function AppRouter() {
@@ -128,6 +129,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <div>Perfil de usuario (protegido)</div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/edit"
+          element={
+            <ProtectedRoute>
+              <AccountSettingsPage />
             </ProtectedRoute>
           }
         />

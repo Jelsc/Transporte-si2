@@ -55,7 +55,7 @@ urlpatterns = [
     # # Depuración de autenticación con Google
     # path("google-debug/", views.google_auth_debug, name="google_debug"),
 
-       # ===== BITACORA =====
+    # ===== BITACORA =====
     # Login / Logout con bitácora
     path("auth/login/", CustomLoginView.as_view(), name="custom_login"),
     path("auth/logout/", CustomLogoutView.as_view(), name="custom_logout"),

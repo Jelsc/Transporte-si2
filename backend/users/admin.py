@@ -84,10 +84,9 @@ class CustomUserAdmin(BaseUserAdmin):
         "first_name",
         "last_name",
         "rol",
-        "es_activo",
         "fecha_creacion",
     ]
-    list_filter = ["rol", "es_activo", "is_staff", "is_superuser", "fecha_creacion"]
+    list_filter = ["rol", "is_active", "is_staff", "is_superuser", "fecha_creacion"]
     search_fields = ["username", "email", "first_name", "last_name", "codigo_empleado"]
     ordering = ["-fecha_creacion"]
 
@@ -98,7 +97,7 @@ class CustomUserAdmin(BaseUserAdmin):
         ),
         (
             "Información Laboral",
-            {"fields": ("rol", "codigo_empleado", "departamento", "es_activo")},
+            {"fields": ("rol", "codigo_empleado", "departamento")},
         ),
         (
             "Fechas",

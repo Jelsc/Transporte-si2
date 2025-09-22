@@ -15,7 +15,15 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from '@/components/ui/pagination';
 import { MoreHorizontal, Edit, Trash2, Eye } from 'lucide-react';
 import type { Personal } from '@/types';
 
@@ -25,6 +33,9 @@ interface PersonalTableProps {
   onEdit: (item: Personal) => void;
   onDelete: (item: Personal) => void;
   onView?: (item: Personal) => void;
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
 export function PersonalTable({ 
@@ -32,7 +43,10 @@ export function PersonalTable({
   loading, 
   onEdit, 
   onDelete, 
-  onView 
+  onView,
+  page,
+  totalPages,
+  onPageChange
 }: PersonalTableProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-ES', {
@@ -69,70 +83,129 @@ export function PersonalTable({
   }
 
   return (
-    <ScrollArea className="h-[600px] w-full">
-      <Table>
-        <TableHeader className="sticky top-0 bg-background z-10">
-          <TableRow>
-            <TableHead>Nombre Completo</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Teléfono</TableHead>
-            <TableHead>CI</TableHead>
-            <TableHead>Fecha Nacimiento</TableHead>
-            <TableHead>Departamento</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="w-[70px]">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((personal) => (
-            <TableRow key={personal.id}>
-              <TableCell className="font-medium">
-                {personal.nombre} {personal.apellido}
-              </TableCell>
-              <TableCell>{personal.email}</TableCell>
-              <TableCell>{personal.telefono}</TableCell>
-              <TableCell>{personal.ci}</TableCell>
-              <TableCell>{formatDate(personal.fecha_nacimiento)}</TableCell>
-              <TableCell>
-                {personal.departamento ? (
-                  <Badge variant="outline">{personal.departamento}</Badge>
-                ) : (
-                  <span className="text-gray-400">-</span>
-                )}
-              </TableCell>
-              <TableCell>{getStatusBadge(personal.es_activo)}</TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {onView && (
-                      <DropdownMenuItem onClick={() => onView(personal)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Ver detalles
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => onEdit(personal)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => onDelete(personal)}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Eliminar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+    <>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Código Empleado</TableHead>
+              <TableHead>Nombre Completo</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Teléfono</TableHead>
+              <TableHead>CI</TableHead>
+              <TableHead>Fecha Ingreso</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Acciones</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </ScrollArea>
+          </TableHeader>
+          <TableBody>
+            {data.map((personal) => (
+              <TableRow key={personal.id}>
+                <TableCell>
+                  <Badge variant="outline" className="font-mono">
+                    {personal.codigo_empleado}
+                  </Badge>
+                </TableCell>
+                <TableCell className="font-medium">
+                  {personal.nombre} {personal.apellido}
+                </TableCell>
+                <TableCell>{personal.email}</TableCell>
+                <TableCell>{personal.telefono}</TableCell>
+                <TableCell>{personal.ci}</TableCell>
+                <TableCell>{formatDate(personal.fecha_ingreso)}</TableCell>
+                <TableCell>{getStatusBadge(personal.estado)}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onView && (
+                        <DropdownMenuItem onClick={() => onView(personal)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Ver detalles
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => onEdit(personal)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(personal)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Paginación */}
+      <div className="flex justify-center mt-4">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => page > 1 && onPageChange(page - 1)}
+                size="default"
+                className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+            
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              const pageNumber = i + 1;
+              const isActive = pageNumber === page;
+              
+              return (
+                <PaginationItem key={pageNumber}>
+                  <PaginationLink
+                    onClick={() => onPageChange(pageNumber)}
+                    isActive={isActive}
+                    size="icon"
+                    className="cursor-pointer"
+                  >
+                    {pageNumber}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+            
+            {totalPages > 5 && (
+              <>
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationLink
+                    onClick={() => onPageChange(totalPages)}
+                    isActive={page === totalPages}
+                    size="icon"
+                    className="cursor-pointer"
+                  >
+                    {totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              </>
+            )}
+            
+            <PaginationItem>
+              <PaginationNext 
+                onClick={() => page < totalPages && onPageChange(page + 1)}
+                size="default"
+                className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    </>
   );
 }

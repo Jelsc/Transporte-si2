@@ -84,105 +84,101 @@ export function UsuarioDelete({
             <AlertTriangle className="h-5 w-5 text-red-500" />
             Confirmar Eliminación de Usuario
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-4">
-            <p>
-              ¿Estás seguro de que deseas eliminar este usuario? 
-              Esta acción no se puede deshacer y afectará todas las operaciones asociadas.
-            </p>
-            
-            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-              <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Información del Usuario:
-              </h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="font-medium">Username:</span>
-                  <p className="font-mono">{usuario.username}</p>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4">
+              <p>
+                ¿Estás seguro de que deseas eliminar este usuario? 
+                Esta acción no se puede deshacer y afectará todas las operaciones asociadas.
+              </p>
+              
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div className="font-medium text-gray-900 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Información del Usuario:
                 </div>
-                <div>
-                  <span className="font-medium">Nombre:</span>
-                  <p>{usuario.nombre} {usuario.apellido}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Email:</span>
-                  <p>{usuario.email}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Teléfono:</span>
-                  <p>{usuario.telefono}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Rol:</span>
-                  <div className="mt-1">
-                    {getRolBadge(usuario.rol)}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="font-medium">Username:</span>
+                    <div className="font-mono">{usuario.username}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Nombre:</span>
+                    <div>{usuario.first_name} {usuario.last_name}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Email:</span>
+                    <div>{usuario.email}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Teléfono:</span>
+                    <div>{usuario.telefono || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Rol:</span>
+                    <div className="mt-1">
+                      {getRolBadge(usuario.rol?.nombre || 'Sin rol')}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Estado:</span>
+                    <Badge variant={usuario.is_active ? "default" : "secondary"}>
+                      {usuario.is_active ? "Activo" : "Inactivo"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span className="font-medium">Fecha de Creación:</span>
+                    <div>{formatDate(usuario.fecha_creacion)}</div>
                   </div>
                 </div>
-                <div>
-                  <span className="font-medium">Portal:</span>
-                  <Badge variant={usuario.is_admin_portal ? "default" : "outline"}>
-                    {usuario.is_admin_portal ? "Admin Portal" : "Cliente"}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="font-medium">Estado:</span>
-                  <Badge variant={usuario.es_activo ? "default" : "secondary"}>
-                    {usuario.es_activo ? "Activo" : "Inactivo"}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="font-medium">Fecha de Creación:</span>
-                  <p>{formatDate(usuario.created_at)}</p>
+
+                {/* Vinculaciones */}
+                {(usuario.personal || usuario.conductor) && (
+                  <div className="mt-3 pt-3 border-t">
+                    <span className="font-medium">Vinculaciones:</span>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {usuario.personal && (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <User className="h-3 w-3" />
+                          Personal #{usuario.personal}
+                        </Badge>
+                      )}
+                      {usuario.conductor && (
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Car className="h-3 w-3" />
+                          Conductor #{usuario.conductor}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+                <div className="text-red-800 text-sm">
+                  <strong>Advertencia:</strong> Al eliminar este usuario, se perderá 
+                  toda la información asociada incluyendo historial de sesiones, 
+                  permisos y no podrá ser recuperada.
                 </div>
               </div>
 
-              {/* Vinculaciones */}
-              {(usuario.personal_id || usuario.conductor_id) && (
-                <div className="mt-3 pt-3 border-t">
-                  <span className="font-medium">Vinculaciones:</span>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {usuario.personal_id && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        Personal #{usuario.personal_id}
-                      </Badge>
-                    )}
-                    {usuario.conductor_id && (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        <Car className="h-3 w-3" />
-                        Conductor #{usuario.conductor_id}
-                      </Badge>
-                    )}
+              {usuario.is_active && (
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
+                  <div className="text-yellow-800 text-sm">
+                    <strong>Nota:</strong> Este usuario está actualmente activo. 
+                    Asegúrate de que no tenga sesiones activas antes de eliminarlo.
+                  </div>
+                </div>
+              )}
+
+              {usuario.rol?.nombre === 'Administrador' && (
+                <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
+                  <div className="text-orange-800 text-sm">
+                    <strong>Advertencia:</strong> Este usuario tiene rol de Administrador. 
+                    Asegúrate de que existan otros administradores en el sistema.
                   </div>
                 </div>
               )}
             </div>
-
-            <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-              <p className="text-red-800 text-sm">
-                <strong>Advertencia:</strong> Al eliminar este usuario, se perderá 
-                toda la información asociada incluyendo historial de sesiones, 
-                permisos y no podrá ser recuperada.
-              </p>
-            </div>
-
-            {usuario.es_activo && (
-              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                <p className="text-yellow-800 text-sm">
-                  <strong>Nota:</strong> Este usuario está actualmente activo. 
-                  Asegúrate de que no tenga sesiones activas antes de eliminarlo.
-                </p>
-              </div>
-            )}
-
-            {usuario.rol === 'Administrador' && (
-              <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg">
-                <p className="text-orange-800 text-sm">
-                  <strong>Advertencia:</strong> Este usuario tiene rol de Administrador. 
-                  Asegúrate de que existan otros administradores en el sistema.
-                </p>
-              </div>
-            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         

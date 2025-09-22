@@ -38,13 +38,14 @@ class UserSerializer(serializers.ModelSerializer):
             "fecha_nacimiento",
             "rol",
             "rol_id",
-            "is_admin_portal",
+            "is_staff",
+            "is_superuser",
+            "is_active",
             "password",
             "password_confirm",
             "personal_id",
             "conductor_id",
             "puede_acceder_admin",
-            "es_activo",
             "fecha_creacion",
             "fecha_ultimo_acceso",
         ]
@@ -112,20 +113,19 @@ class UserSerializer(serializers.ModelSerializer):
                 from conductores.models import Conductor
                 conductor = Conductor.objects.get(id=conductor_id)
                 user.conductor = conductor
-                # Autocompletar datos del personal asociado
-                personal = conductor.personal
+                # Autocompletar datos directos del conductor
                 if not user.first_name:
-                    user.first_name = personal.nombre
+                    user.first_name = conductor.nombre
                 if not user.last_name:
-                    user.last_name = personal.apellido
+                    user.last_name = conductor.apellido
                 if not user.telefono:
-                    user.telefono = personal.telefono
+                    user.telefono = conductor.telefono
                 if not user.email:
-                    user.email = personal.email
+                    user.email = conductor.email
                 if not user.ci:
-                    user.ci = personal.ci
+                    user.ci = conductor.ci
                 if not user.fecha_nacimiento:
-                    user.fecha_nacimiento = personal.fecha_nacimiento
+                    user.fecha_nacimiento = conductor.fecha_nacimiento
             except Conductor.DoesNotExist:
                 pass
         
@@ -201,7 +201,7 @@ class AdminLoginSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     "Acceso denegado: se requiere rol administrativo"
                 )
-            if not user.is_admin_portal:
+            if not user.is_staff:
                 raise serializers.ValidationError(
                     "Acceso denegado: el usuario no tiene acceso al panel administrativo"
                 )
@@ -228,8 +228,6 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
             "rol_id",
             "telefono",
             "direccion",
-            "codigo_empleado",
-            "departamento",
         ]
 
     def validate(self, attrs):
@@ -335,7 +333,7 @@ class CustomRegisterSerializer(RegisterSerializer):
         user.telefono = self.validated_data.get('telefono', '')
         user.ci = self.validated_data.get('ci', '')
         user.fecha_nacimiento = self.validated_data.get('fecha_nacimiento')
-        user.is_admin_portal = False  # Los clientes no tienen acceso administrativo
+        user.is_staff = False  # Los clientes no tienen acceso administrativo
         user.save()
         
         return user

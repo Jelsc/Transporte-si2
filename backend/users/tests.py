@@ -86,7 +86,7 @@ class CustomUserModelTest(TestCase):
             ci="12345678",
             fecha_nacimiento="1990-01-01",
             rol=self.rol,
-            is_admin_portal=True
+            is_staff=True
         )
     
     def test_user_creation(self):
@@ -97,7 +97,7 @@ class CustomUserModelTest(TestCase):
         self.assertEqual(self.user.last_name, "User")
         self.assertEqual(self.user.ci, "12345678")
         self.assertEqual(self.user.rol, self.rol)
-        self.assertTrue(self.user.is_admin_portal)
+        self.assertTrue(self.user.is_staff)
     
     def test_user_str_representation(self):
         """Test de representación string del usuario"""
@@ -144,7 +144,7 @@ class CustomUserModelTest(TestCase):
             email="noadmin@test.com",
             password="testpass123",
             rol=self.rol,
-            is_admin_portal=False
+            is_staff=False
         )
         self.assertFalse(user_no_admin.puede_acceder_admin)
     
@@ -168,7 +168,7 @@ class CustomUserModelTest(TestCase):
             email="sinpermisos@test.com",
             password="testpass123"
         )
-        self.assertFalse(user_sin_permisos.tiene_permiso("cualquier_permiso"))
+        self.assertFalse(user_sin_rol.tiene_permiso("cualquier_permiso"))
     
     def test_tiene_permisos(self):
         """Test del método tiene_permisos"""
@@ -224,9 +224,7 @@ class CustomUserWithPersonalTest(TestCase):
             email="juan@test.com",
             telefono="123456789",
             fecha_nacimiento="1990-01-01",
-            tipo_personal="operador",
-            departamento="Operaciones",
-            cargo="Operador",
+            codigo_empleado="EMP001",
             fecha_ingreso=date.today()
         )
         
@@ -244,7 +242,7 @@ class CustomUserWithPersonalTest(TestCase):
             last_name="Pérez",
             rol=self.rol,
             personal=self.personal,
-            is_admin_portal=True
+            is_staff=True
         )
     
     def test_user_vinculado_personal(self):
@@ -266,14 +264,17 @@ class CustomUserWithConductorTest(TestCase):
             email="pedro@test.com",
             telefono="987654321",
             fecha_nacimiento="1985-05-15",
-            tipo_personal="conductor",
-            departamento="Operaciones",
-            cargo="Conductor",
+            codigo_empleado="EMP002",
             fecha_ingreso=date.today()
         )
         
         self.conductor = Conductor.objects.create(
-            personal=self.personal,
+            nombre="Pedro",
+            apellido="García",
+            ci="87654321",
+            email="pedro@test.com",
+            telefono="987654321",
+            fecha_nacimiento="1985-05-15",
             nro_licencia="LIC002",
             tipo_licencia="D",
             fecha_venc_licencia=date.today() + timedelta(days=365),
@@ -294,7 +295,7 @@ class CustomUserWithConductorTest(TestCase):
             last_name="García",
             rol=self.rol,
             conductor=self.conductor,
-            is_admin_portal=False
+            is_staff=False
         )
     
     def test_user_vinculado_conductor(self):

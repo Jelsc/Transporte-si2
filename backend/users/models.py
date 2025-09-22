@@ -57,10 +57,8 @@ class CustomUser(AbstractUser):
     
     # Rol y permisos
     rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True, blank=True)
-    is_admin_portal = models.BooleanField(default=False, verbose_name="Acceso al Panel Administrativo")
     
     # Estado y control
-    es_activo = models.BooleanField(default=True)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_ultimo_acceso = models.DateTimeField(null=True, blank=True)
     
@@ -82,7 +80,7 @@ class CustomUser(AbstractUser):
     @property
     def puede_acceder_admin(self):
         """Verifica si el usuario puede acceder al panel administrativo"""
-        return self.is_admin_portal and self.es_administrativo
+        return self.is_staff and self.es_administrativo
         
     def tiene_permiso(self, permiso):
         """Verifica si el usuario tiene un permiso específico"""

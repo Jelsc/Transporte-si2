@@ -17,12 +17,12 @@ class ConductorSerializer(serializers.ModelSerializer):
     licencia_vencida = serializers.BooleanField(read_only=True)
     dias_para_vencer_licencia = serializers.IntegerField(read_only=True)
     puede_conducir = serializers.BooleanField(read_only=True)
+    estado_usuario = serializers.CharField(read_only=True)
     
     class Meta:
         model = Conductor
         fields = [
             'id',
-            'personal',
             'usuario',
             'username',
             'nombre',
@@ -38,11 +38,11 @@ class ConductorSerializer(serializers.ModelSerializer):
             'experiencia_anios',
             'telefono_emergencia',
             'contacto_emergencia',
-            'es_activo',
             'nombre_completo',
             'licencia_vencida',
             'dias_para_vencer_licencia',
             'puede_conducir',
+            'estado_usuario',
             'ultima_ubicacion_lat',
             'ultima_ubicacion_lng',
             'ultima_actualizacion_ubicacion',
@@ -91,10 +91,10 @@ class ConductorCreateSerializer(serializers.ModelSerializer):
             'nro_licencia',
             'tipo_licencia',
             'fecha_venc_licencia',
+            'estado',
             'experiencia_anios',
             'telefono_emergencia',
-            'contacto_emergencia',
-            'es_activo'
+            'contacto_emergencia'
         ]
     
     def validate_nro_licencia(self, value):
@@ -140,8 +140,7 @@ class ConductorUpdateSerializer(serializers.ModelSerializer):
             'estado',
             'experiencia_anios',
             'telefono_emergencia',
-            'contacto_emergencia',
-            'es_activo'
+            'contacto_emergencia'
         ]
     
     def validate_nro_licencia(self, value):
@@ -201,19 +200,3 @@ class ConductorUbicacionSerializer(serializers.ModelSerializer):
             )
         return value
 
-
-class ConductorEstadoSerializer(serializers.ModelSerializer):
-    """Serializer para cambiar estado del conductor"""
-    
-    class Meta:
-        model = Conductor
-        fields = ['estado']
-    
-    def validate_estado(self, value):
-        """Valida que el estado sea válido"""
-        estados_validos = [choice[0] for choice in Conductor.ESTADOS_CHOICES]
-        if value not in estados_validos:
-            raise serializers.ValidationError(
-                f"Estado inválido. Debe ser uno de: {', '.join(estados_validos)}"
-            )
-        return value

@@ -48,7 +48,7 @@ class AdminPortalMiddleware(MiddlewareMixin):
             }, status=403)
         
         # Verificar si el usuario tiene acceso al panel administrativo
-        if not request.user.is_admin_portal:
+        if not request.user.is_staff:
             return JsonResponse({
                 'error': 'Acceso denegado',
                 'detail': 'El usuario no tiene acceso al panel administrativo'
