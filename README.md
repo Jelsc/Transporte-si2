@@ -8,9 +8,10 @@ En DEV usamos Docker para **db + backend + frontend**. Flutter se corre fuera de
 ```
 transporte-si2/
 ├─ backend/         # Django + DRF
+│  ├─ .env.example  # Variables de entorno para el backend (copia a .env)
 ├─ frontend/        # React + Vite + TS + Tailwind
+│  ├─ .env.example  # Variables de entorno para el frontend (copia a .env)
 ├─ mobile/          # Flutter (fuera de Docker en dev)
-├─ .env.example     # vars del backend/compose (copia a .env)
 ├─ docker-compose.yml
 └─ README.md
 ```
@@ -33,11 +34,11 @@ transporte-si2/
 git clone <URL-DEL-REPO>
 
 # Linux/Mac
-cp .env.example .env
+cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 
 # Windows PowerShell
-copy .env.example .env
+copy backend\.env.example backend\.env
 copy frontend\.env.example frontend\.env
 ```
 

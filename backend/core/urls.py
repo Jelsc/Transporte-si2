@@ -45,13 +45,6 @@ urlpatterns = [
     # Personal: gestión de personal de empresa
     path("api/personal/", include("personal.urls")),
     
-    # ML: servicios de inteligencia artificial
-    path("api/ml/", include("services.urls")),
-    
-    # Aquí puedes añadir nuevas apps cuando las crees, por ejemplo:
-    # path("api/vehiculos/", include("vehiculos.urls")),
-    # path("api/rutas/", include("rutas.urls")),
-    # path("api/viajes/", include("viajes.urls")),
     
     path("api/bitacora/", include("bitacora.urls")),
 

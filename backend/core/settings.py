@@ -13,12 +13,13 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 from datetime import timedelta
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# load_dotenv(BASE_DIR.parent / ".env")
+# Cargar variables de entorno desde el archivo .env
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -45,6 +46,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://10.0.2.2:8000",
     "http://10.0.2.2:5173",
 ]
+
+# Opcionalmente, permitir orígenes adicionales desde variables de entorno
+if os.getenv("CORS_ALLOWED_ORIGINS"):
+    CORS_ALLOWED_ORIGINS.extend(os.getenv("CORS_ALLOWED_ORIGINS").split(","))
 CORS_ALLOW_CREDENTIALS = True  # Por si usas sesión/cookies
 # Application definition
 
@@ -208,9 +213,7 @@ ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = (
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # username o email
-ACCOUNT_EMAIL_VERIFICATION = (
-    "none"  # Desactivado para nuestro sistema móvil personalizado
-)
+ACCOUNT_EMAIL_VERIFICATION = os.getenv("ACCOUNT_EMAIL_VERIFICATION", "none")
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # link de confirmación hace login al abrirlo
 ACCOUNT_UNIQUE_EMAIL = True  # Cada email debe ser único
 LOGIN_ON_EMAIL_CONFIRMATION = True
@@ -220,13 +223,13 @@ ACCOUNT_EMAIL_VERIFICATION_METHOD = (
 )
 
 
-# En desarrollo, manda emails a la consola
+# Configuración de Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = (
-    "mailhog"  # Asegúrate que este es el nombre del servicio en tu docker-compose.yml
-)
-EMAIL_PORT = 1025
-DEFAULT_FROM_EMAIL = "no-reply@localhost"
+EMAIL_HOST = os.getenv("EMAIL_HOST", "mailhog")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "1025"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False") == "True"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@localhost")
 
 # ====== DRF + JWT ======
 REST_FRAMEWORK = {
@@ -292,4 +295,4 @@ GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_OAUTH2_CLIENT_ID", "")
 GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET", "")
 
 # Configuración de sitios para allauth
-SITE_ID = 1
+SITE_ID = int(os.getenv("SITE_ID", "1"))
