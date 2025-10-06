@@ -58,7 +58,11 @@ export function PersonalTable({
 
   const getStatusBadge = (esActivo: boolean) => {
     return (
-      <Badge variant={esActivo ? "default" : "secondary"}>
+      <Badge 
+        variant={esActivo ? "success" : "error"} 
+        badgeType="icon"
+        size="sm"
+      >
         {esActivo ? "Activo" : "Inactivo"}
       </Badge>
     );
@@ -102,7 +106,7 @@ export function PersonalTable({
             {data.map((personal) => (
               <TableRow key={personal.id}>
                 <TableCell>
-                  <Badge variant="outline" className="font-mono">
+                  <Badge variant="brand" badgeType="no-icon" size="sm" className="font-mono">
                     {personal.codigo_empleado}
                   </Badge>
                 </TableCell>

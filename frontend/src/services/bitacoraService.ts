@@ -1,7 +1,8 @@
 import axios from "axios";
 import type { BitacoraLog } from "@/types/bitacora";
+import { getApiBaseUrl } from "@/lib/api";
 
-const API_URL = "http://localhost:8000/api/bitacora/";
+const API_URL = `${getApiBaseUrl()}/api/bitacora/`;
 
 export interface PaginatedBitacora {
   count: number;

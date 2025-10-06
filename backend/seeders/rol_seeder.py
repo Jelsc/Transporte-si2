@@ -17,40 +17,17 @@ class RolSeeder(BaseSeeder):
         """
         try:
             from users.models import Rol
-            from users.constants import GRUPOS_PERMISOS
+            from users.constants import ROLES_CONFIG
 
-            roles_data = [
-                {
-                    "nombre": "Cliente",
-                    "descripcion": "Usuario final que utiliza el servicio de transporte",
-                    "es_administrativo": False,
-                    "permisos": GRUPOS_PERMISOS["cliente"],
-                },
-                {
-                    "nombre": "Administrador",
-                    "descripcion": "Administrador general del sistema con todos los permisos",
-                    "es_administrativo": True,
-                    "permisos": GRUPOS_PERMISOS["administrador"],
-                },
-                {
-                    "nombre": "Supervisor",
-                    "descripcion": "Supervisor con permisos de monitoreo y gestión básica",
-                    "es_administrativo": True,
-                    "permisos": GRUPOS_PERMISOS["supervisor"],
-                },
-                {
-                    "nombre": "Conductor",
-                    "descripcion": "Conductor del sistema",
-                    "es_administrativo": False,
-                    "permisos": GRUPOS_PERMISOS["conductor"],
-                },
-                {
-                    "nombre": "Operador",
-                    "descripcion": "Operador con permisos de gestión operativa",
-                    "es_administrativo": True,
-                    "permisos": GRUPOS_PERMISOS["operador"],
-                },
-            ]
+            # Usar la configuración de roles desde constants.py
+            roles_data = []
+            for nombre_rol, config in ROLES_CONFIG.items():
+                roles_data.append({
+                    "nombre": nombre_rol,
+                    "descripcion": config["descripcion"],
+                    "es_administrativo": config["es_administrativo"],
+                    "permisos": config["permisos"],
+                })
 
             for role_data in roles_data:
                 rol, created = Rol.objects.get_or_create(
@@ -78,15 +55,10 @@ class RolSeeder(BaseSeeder):
         """
         try:
             from users.models import Rol
+            from users.constants import ROLES_CONFIG
 
             # Ejecutar si no existen todos los roles esperados
-            roles_esperados = [
-                "Cliente",
-                "Administrador",
-                "Supervisor",
-                "Conductor",
-                "Operador",
-            ]
+            roles_esperados = list(ROLES_CONFIG.keys())
             roles_existentes = set(Rol.objects.values_list("nombre", flat=True))
             return not all(rol in roles_existentes for rol in roles_esperados)
         except:

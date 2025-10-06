@@ -38,19 +38,22 @@ export function NavUserHeader() {
               direccion: "",
               ci: "",
               fecha_nacimiento: "",
-              is_admin_portal: false,
+              is_superuser: false,
+              is_active: false,
+              date_joined: "",
+              last_login: "",
               puede_acceder_admin: false,
+              es_administrativo: false,
+              es_cliente: false,
               rol: {
                 id: 0,
                 nombre: "Invitado",
+                descripcion: "Usuario invitado",
                 es_administrativo: false,
                 permisos: [],
+                fecha_creacion: "",
+                fecha_actualizacion: "",
               },
-              es_activo: false,
-              fecha_creacion: "",
-              fecha_ultimo_acceso: "",
-              codigo_empleado: "",
-              departamento: "",
             }
           }
         />

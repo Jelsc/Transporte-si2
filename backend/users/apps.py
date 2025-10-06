@@ -1,25 +1,28 @@
 from django.apps import AppConfig
-from django.utils import timezone
 
 
 class UsersConfig(AppConfig):
+    """
+    Configuración de la aplicación users
+    
+    Sistema de usuarios refactorizado con:
+    - Autenticación unificada
+    - Registro diferenciado
+    - Permisos simplificados
+    - Gestión de roles optimizada
+    """
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'users'
+    verbose_name = 'Sistema de Usuarios'
     
     def ready(self):
-        """Configurar señales para seguimiento de login/logout"""
-        from django.contrib.auth.signals import user_logged_in, user_logged_out
-        from django.dispatch import receiver
+        """
+        Configuración inicial de la aplicación
         
-        @receiver(user_logged_in)
-        def update_last_login(sender, request, user, **kwargs):
-            """Actualizar fecha_ultimo_acceso cuando un usuario inicia sesión"""
-            user.fecha_ultimo_acceso = timezone.now()
-            user.save(update_fields=["fecha_ultimo_acceso"])
-        
-        @receiver(user_logged_out)
-        def update_last_logout(sender, request, user, **kwargs):
-            """Actualizar fecha_ultimo_acceso cuando un usuario cierra sesión"""
-            if user:  # A veces user puede ser None en logout
-                user.fecha_ultimo_acceso = timezone.now()
-                user.save(update_fields=["fecha_ultimo_acceso"])
+        Nota: Django maneja automáticamente date_joined y last_login.
+        No necesitamos señales personalizadas para esto.
+        """
+        # Django maneja automáticamente:
+        # - date_joined: Se establece al crear el usuario
+        # - last_login: Se actualiza automáticamente en cada login
+        pass

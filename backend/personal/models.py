@@ -56,15 +56,7 @@ class Personal(models.Model):
         max_length=100, blank=True, null=True, verbose_name="Contacto de Emergencia"
     )
     
-    # Relación con el usuario (nullable FK)
-    usuario = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL,
-        related_name='personal_profile',
-        verbose_name="Usuario",
-        null=True,
-        blank=True
-    )
+    # Relación con el usuario eliminada - se maneja desde users.models.CustomUser
     
     # Campos de control automáticos
     fecha_creacion = models.DateTimeField(
@@ -128,10 +120,5 @@ class Personal(models.Model):
 
     def puede_acceder_sistema(self):
         """Verifica si el empleado puede acceder al sistema"""
-        if self.usuario:
-            return (
-                self.estado and 
-                self.usuario.is_active
-            )
-        else:
-            return self.estado
+        # Ahora se verifica desde el modelo CustomUser que tiene la relación
+        return self.estado

@@ -2,21 +2,21 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { usuariosApi } from '@/services/usuariosService';
 import type { 
-  Usuario, 
-  UsuarioFormData, 
-  UsuarioFilters, 
+  User, 
+  UserFormData, 
+  UserFilters, 
   PaginatedResponse,
   Role 
 } from '@/types';
 
 interface UseUsuariosState {
-  data: PaginatedResponse<Usuario> | null;
+  data: PaginatedResponse<User> | null;
   loading: boolean;
   error: string | null;
-  selectedItem: Usuario | null;
+  selectedItem: User | null;
   isStoreModalOpen: boolean;
   isDeleteModalOpen: boolean;
-  filters: UsuarioFilters;
+  filters: UserFilters;
   roles: Role[];
   personalDisponible: Array<{
     id: number;
@@ -39,19 +39,19 @@ interface UseUsuariosState {
 
 interface UseUsuariosActions {
   // Data operations
-  loadData: (filters?: UsuarioFilters) => Promise<void>;
+  loadData: (filters?: UserFilters) => Promise<void>;
   loadItem: (id: number) => Promise<void>;
-  createItem: (data: UsuarioFormData) => Promise<boolean>;
-  updateItem: (id: number, data: UsuarioFormData) => Promise<boolean>;
+  createItem: (data: UserFormData) => Promise<boolean>;
+  updateItem: (id: number, data: UserFormData) => Promise<boolean>;
   deleteItem: (id: number) => Promise<boolean>;
   toggleStatus: (id: number, is_active: boolean) => Promise<boolean>;
   
   // UI state management
-  openStoreModal: (item?: Usuario) => void;
+  openStoreModal: (item?: User) => void;
   closeStoreModal: () => void;
-  openDeleteModal: (item: Usuario) => void;
+  openDeleteModal: (item: User) => void;
   closeDeleteModal: () => void;
-  setFilters: (filters: UsuarioFilters) => void;
+  setFilters: (filters: UserFilters) => void;
   clearError: () => void;
   
   // Utility functions
@@ -74,7 +74,7 @@ export function useUsuarios(): UseUsuariosState & UseUsuariosActions {
     conductoresDisponibles: [],
   });
 
-  const loadData = useCallback(async (filters?: UsuarioFilters) => {
+  const loadData = useCallback(async (filters?: UserFilters) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
@@ -127,7 +127,7 @@ export function useUsuarios(): UseUsuariosState & UseUsuariosActions {
     }
   }, []);
 
-  const createItem = useCallback(async (data: UsuarioFormData): Promise<boolean> => {
+  const createItem = useCallback(async (data: UserFormData): Promise<boolean> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
@@ -158,7 +158,7 @@ export function useUsuarios(): UseUsuariosState & UseUsuariosActions {
     }
   }, [loadData, state.filters]);
 
-  const updateItem = useCallback(async (id: number, data: UsuarioFormData): Promise<boolean> => {
+  const updateItem = useCallback(async (id: number, data: UserFormData): Promise<boolean> => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
@@ -249,7 +249,7 @@ export function useUsuarios(): UseUsuariosState & UseUsuariosActions {
     }
   }, [loadData, state.filters]);
 
-  const openStoreModal = useCallback((item?: Usuario) => {
+  const openStoreModal = useCallback((item?: User) => {
     setState(prev => ({ 
       ...prev, 
       isStoreModalOpen: true, 
@@ -265,7 +265,7 @@ export function useUsuarios(): UseUsuariosState & UseUsuariosActions {
     }));
   }, []);
 
-  const openDeleteModal = useCallback((item: Usuario) => {
+  const openDeleteModal = useCallback((item: User) => {
     setState(prev => ({ 
       ...prev, 
       isDeleteModalOpen: true, 
@@ -281,7 +281,7 @@ export function useUsuarios(): UseUsuariosState & UseUsuariosActions {
     }));
   }, []);
 
-  const setFilters = useCallback((filters: UsuarioFilters) => {
+  const setFilters = useCallback((filters: UserFilters) => {
     setState(prev => ({ ...prev, filters }));
   }, []);
 

@@ -54,20 +54,20 @@ export function ConductorDelete({
     if (diasRestantes < 0) {
       return {
         status: 'Vencida',
-        variant: 'destructive' as const,
-        icon: <AlertTriangle className="h-3 w-3" />
+        variant: 'error' as const,
+        badgeType: 'icon' as const
       };
     } else if (diasRestantes <= 30) {
       return {
         status: `Por vencer (${diasRestantes} días)`,
-        variant: 'secondary' as const,
-        icon: null
+        variant: 'warning' as const,
+        badgeType: 'icon' as const
       };
     } else {
       return {
         status: 'Vigente',
-        variant: 'outline' as const,
-        icon: null
+        variant: 'success' as const,
+        badgeType: 'dot' as const
       };
     }
   };
@@ -113,11 +113,19 @@ export function ConductorDelete({
                   </div>
                   <div>
                     <span className="font-medium">Número de Licencia:</span>
-                    <div className="font-mono">{conductor.nro_licencia}</div>
+                    <div className="mt-1">
+                      <Badge variant="neutral" badgeType="no-icon" size="sm" className="font-mono">
+                        {conductor.nro_licencia}
+                      </Badge>
+                    </div>
                   </div>
                   <div>
                     <span className="font-medium">Tipo de Licencia:</span>
-                    <div>Tipo {conductor.tipo_licencia}</div>
+                    <div className="mt-1">
+                      <Badge variant="information" badgeType="no-icon" size="sm">
+                        Tipo {conductor.tipo_licencia}
+                      </Badge>
+                    </div>
                   </div>
                   <div>
                     <span className="font-medium">Vencimiento:</span>
@@ -125,20 +133,35 @@ export function ConductorDelete({
                   </div>
                   <div>
                     <span className="font-medium">Estado de Licencia:</span>
-                    <Badge variant={licenseStatus.variant} className="flex items-center gap-1 w-fit">
-                      {licenseStatus.icon}
-                      {licenseStatus.status}
-                    </Badge>
+                    <div className="mt-1">
+                      <Badge 
+                        variant={licenseStatus.variant} 
+                        badgeType={licenseStatus.badgeType}
+                        size="sm"
+                      >
+                        {licenseStatus.status}
+                      </Badge>
+                    </div>
                   </div>
                   <div>
                     <span className="font-medium">Experiencia:</span>
-                    <div>{conductor.experiencia_anios} años</div>
+                    <div className="mt-1">
+                      <Badge variant="brand" badgeType="no-icon" size="sm">
+                        {conductor.experiencia_anios} años
+                      </Badge>
+                    </div>
                   </div>
                   <div>
                     <span className="font-medium">Estado Operacional:</span>
-                    <Badge variant={conductor.estado === 'disponible' ? "default" : "secondary"}>
-                      {conductor.estado}
-                    </Badge>
+                    <div className="mt-1">
+                      <Badge 
+                        variant={conductor.estado === 'disponible' ? 'success' : conductor.estado === 'ocupado' ? 'warning' : conductor.estado === 'descanso' ? 'information' : 'error'}
+                        badgeType={conductor.estado === 'disponible' ? 'dot' : 'icon'}
+                        size="sm"
+                      >
+                        {conductor.estado.charAt(0).toUpperCase() + conductor.estado.slice(1)}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </div>

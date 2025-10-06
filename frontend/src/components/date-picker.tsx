@@ -18,12 +18,12 @@ function formatDate(date: Date | undefined | null): string {
     return ""
   }
 
-  // Formato más simple para el input: DD/MM/YYYY
-  const day = date.getDate().toString().padStart(2, '0')
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const year = date.getFullYear()
-  
-  return `${day}/${month}/${year}`
+  // Formato en español: DD de MMMM de YYYY
+  return date.toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  })
 }
 
 function isValidDate(date: Date | undefined) {
@@ -45,7 +45,6 @@ interface DatePickerProps {
   minDate?: Date
   maxDate?: Date
   disableDate?: (date: Date) => boolean
-  // Rango de años para el selector (si no se proveen, se derivan de min/max o 1900..hoy+50)
   fromYear?: number
   toYear?: number
 }
@@ -136,7 +135,7 @@ export function DatePicker({
         <Input
           id={id}
           value={inputValue || ""}
-          placeholder={placeholder || "DD/MM/YYYY"}
+          placeholder={placeholder || "01 de enero de 2025"}
           className="bg-background pr-10"
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
@@ -157,7 +156,7 @@ export function DatePicker({
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-auto overflow-hidden p-0"
+            className="w-auto p-0 [&_.rdp-nav]:!flex [&_.rdp-nav]:!justify-between [&_.rdp-nav]:!items-center [&_.rdp-nav]:!gap-2 [&_.rdp-nav]:!px-2 [&_.rdp-nav]:!py-1 [&_.rdp-button_previous]:!order-1 [&_.rdp-month_caption]:!order-2 [&_.rdp-button_next]:!order-3"
             align="end"
             alignOffset={-8}
             sideOffset={10}
@@ -173,6 +172,16 @@ export function DatePicker({
               month={month || new Date()}
               onMonthChange={setMonth}
               onSelect={handleDateSelect}
+              formatters={{
+                formatMonthDropdown: (date) =>
+                  date.toLocaleDateString("es-ES", { month: "short" }),
+                formatYearDropdown: (date) =>
+                  date.toLocaleDateString("es-ES", { year: "numeric" }),
+                formatWeekdayName: (date) =>
+                  date.toLocaleDateString("es-ES", { weekday: "short" }),
+                formatCaption: (date) =>
+                  date.toLocaleDateString("es-ES", { month: "long", year: "numeric" }),
+              }}
               disabled={(d) => {
                 const min = minDate ?? new Date("1900-01-01")
                 const isBeforeMin = d < min

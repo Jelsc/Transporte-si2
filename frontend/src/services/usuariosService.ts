@@ -1,15 +1,15 @@
-import { apiRequest } from './api';
+import { apiRequest } from './authService';
 import type {
-  Usuario,
-  UsuarioFormData,
-  UsuarioFilters,
+  User,
+  UserFormData,
+  UserFilters,
   PaginatedResponse,
   ApiResponse,
   Role,
 } from '@/types';
 
 // Mappers para convertir entre formatos del frontend y backend
-const toDTO = (data: UsuarioFormData) => ({
+const toDTO = (data: UserFormData) => ({
   username: data.username,
   email: data.email,
   first_name: data.first_name,
@@ -19,15 +19,14 @@ const toDTO = (data: UsuarioFormData) => ({
   ci: data.ci,
   fecha_nacimiento: data.fecha_nacimiento ? data.fecha_nacimiento.toISOString().split('T')[0] : undefined,
   rol_id: data.rol_id,
-  is_superuser: data.is_superuser,
   is_active: data.is_active, // Unificado con es_activo
-  personal_id: data.personal, // Cambiar de personal a personal_id
-  conductor_id: data.conductor, // Cambiar de conductor a conductor_id
+  personal_id: data.personal_id, // Usar personal_id directamente
+  conductor_id: data.conductor_id, // Usar conductor_id directamente
   password: data.password,
   password_confirm: data.password_confirm,
 });
 
-const fromDTO = (data: any): Usuario => ({
+const fromDTO = (data: any): User => ({
   id: data.id,
   username: data.username,
   email: data.email,
@@ -40,11 +39,11 @@ const fromDTO = (data: any): Usuario => ({
   rol: data.rol,
   is_superuser: data.is_superuser,
   is_active: data.is_active, // Unificado con es_activo
-  fecha_creacion: data.fecha_creacion,
-  fecha_ultimo_acceso: data.fecha_ultimo_acceso,
-  // Relaciones opcionales
-  personal: data.personal,
-  conductor: data.conductor,
+  date_joined: data.date_joined,
+  last_login: data.last_login,
+  // Relaciones opcionales (solo IDs)
+  personal_id: data.personal_id,
+  conductor_id: data.conductor_id,
   // Campos derivados
   puede_acceder_admin: data.puede_acceder_admin,
   es_administrativo: data.es_administrativo,
@@ -57,7 +56,7 @@ const fromDTO = (data: any): Usuario => ({
 
 export const usuariosApi = {
   // Listar usuarios con filtros y paginación
-  async list(filters?: UsuarioFilters): Promise<ApiResponse<PaginatedResponse<Usuario>>> {
+  async list(filters?: UserFilters): Promise<ApiResponse<PaginatedResponse<User>>> {
     const params = new URLSearchParams();
     
     if (filters?.search) params.append('search', filters.search);
@@ -82,11 +81,11 @@ export const usuariosApi = {
       };
     }
     
-    return response as ApiResponse<PaginatedResponse<Usuario>>;
+    return response as ApiResponse<PaginatedResponse<User>>;
   },
 
   // Obtener usuario por ID
-  async get(id: number): Promise<ApiResponse<Usuario>> {
+  async get(id: number): Promise<ApiResponse<User>> {
     const response = await apiRequest(`/api/admin/users/${id}/`);
     
     if (response.success && response.data) {
@@ -96,11 +95,11 @@ export const usuariosApi = {
       };
     }
     
-    return response as ApiResponse<Usuario>;
+    return response as ApiResponse<User>;
   },
 
   // Crear nuevo usuario
-  async create(data: UsuarioFormData): Promise<ApiResponse<Usuario>> {
+  async create(data: UserFormData): Promise<ApiResponse<User>> {
     const response = await apiRequest('/api/admin/users/', {
       method: 'POST',
       body: JSON.stringify(toDTO(data)),
@@ -113,11 +112,11 @@ export const usuariosApi = {
       };
     }
     
-    return response as ApiResponse<Usuario>;
+    return response as ApiResponse<User>;
   },
 
   // Actualizar usuario
-  async update(id: number, data: UsuarioFormData): Promise<ApiResponse<Usuario>> {
+  async update(id: number, data: UserFormData): Promise<ApiResponse<User>> {
     const response = await apiRequest(`/api/admin/users/${id}/`, {
       method: 'PUT',
       body: JSON.stringify(toDTO(data)),
@@ -130,7 +129,7 @@ export const usuariosApi = {
       };
     }
     
-    return response as ApiResponse<Usuario>;
+    return response as ApiResponse<User>;
   },
 
   // Eliminar usuario

@@ -82,7 +82,11 @@ export function PersonalDelete({
                   </div>
                   <div>
                     <span className="font-medium">Código de Empleado:</span>
-                    <div className="font-mono">{personal.codigo_empleado}</div>
+                    <div className="mt-1">
+                      <Badge variant="brand" badgeType="no-icon" size="sm" className="font-mono">
+                        {personal.codigo_empleado}
+                      </Badge>
+                    </div>
                   </div>
                   <div>
                     <span className="font-medium">Fecha de Ingreso:</span>
@@ -90,15 +94,23 @@ export function PersonalDelete({
                   </div>
                   <div>
                     <span className="font-medium">Estado:</span>
-                    <Badge variant={personal.estado ? "default" : "secondary"}>
-                      {personal.estado ? "Activo" : "Inactivo"}
-                    </Badge>
+                    <div className="mt-1">
+                      <Badge 
+                        variant={personal.estado ? "success" : "error"} 
+                        badgeType="icon"
+                        size="sm"
+                      >
+                        {personal.estado ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </div>
                   </div>
                   <div>
                     <span className="font-medium">Usuario:</span>
-                    <div>
+                    <div className="mt-1">
                       {personal.usuario ? (
-                        <Badge variant="secondary">Usuario #{personal.usuario}</Badge>
+                        <Badge variant="information" badgeType="no-icon" size="sm">
+                          Usuario #{personal.usuario}
+                        </Badge>
                       ) : (
                         <span className="text-gray-400">Sin usuario</span>
                       )}

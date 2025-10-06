@@ -31,6 +31,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { DatePicker } from '@/components/date-picker';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2 } from 'lucide-react';
 import type { Conductor, ConductorFormData } from '@/types';
 
@@ -149,14 +150,16 @@ export function ConductorStore({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] p-0">
+        <ScrollArea className="max-h-[90vh]">
+          <div className="p-6">
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{description}</DialogDescription>
+            </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             {/* Información Personal */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Información Personal</h3>
@@ -423,6 +426,8 @@ export function ConductorStore({
             </DialogFooter>
           </form>
         </Form>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
