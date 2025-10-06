@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import '../../services/auth_service.dart';
 import 'login_screen.dart';
-import 'home_screen.dart';
 import 'email_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -26,6 +25,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
+
+  // Helper para crear campos con estilo sutil
+  InputDecoration _inputDecoration(String labelText, IconData icon) {
+    return InputDecoration(
+      labelText: labelText,
+      prefixIcon: Icon(icon, color: Colors.grey.shade600),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.blue, width: 2),
+      ),
+      filled: true,
+      fillColor: Colors.grey.shade50,
+    );
+  }
 
   @override
   void dispose() {
@@ -52,33 +69,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final userData = RegisterData(
+      final userData = ClienteRegisterData(
         username: _usernameController.text.trim(),
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         email: _emailController.text.trim(),
         telefono: _telefonoController.text.trim(),
         ci: _ciController.text.trim(),
-        password1: _passwordController.text,
-        password2: _confirmPasswordController.text,
+        password: _passwordController.text,
+        passwordConfirm: _confirmPasswordController.text,
+        direccion: null, // Opcional, se puede agregar un campo si es necesario
+        fechaNacimiento: null, // Opcional, se puede agregar un campo si es necesario
       );
 
-      final response = await _authService.register(userData);
+      final response = await _authService.registerCliente(userData);
 
       if (response.success) {
         _authService.showSuccessToast('¡Cuenta creada exitosamente!');
-
-        if (mounted) {
-          // Redirigir a pantalla de verificación de email
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => EmailVerificationScreen(
-                email: _emailController.text.trim(),
-                username: _usernameController.text.trim(),
+        
+        // Extraer user_id de la respuesta
+        final userId = response.data?['user_id'];
+        if (userId != null) {
+          if (mounted) {
+            // Redirigir a pantalla de verificación de email
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationScreen(
+                  email: _emailController.text.trim(),
+                  username: _usernameController.text.trim(),
+                  userId: userId,
+                ),
               ),
-            ),
-          );
+            );
+          }
+        } else {
+          _authService.showErrorToast('Error: No se recibió ID de usuario');
         }
       } else {
         _authService.showErrorToast(response.error ?? 'Error en el registro');
@@ -112,28 +138,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Logo y título
-                const Icon(Icons.directions_bus, size: 60, color: Colors.green),
-                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.directions_bus, size: 50, color: Colors.blue),
+                ),
+                const SizedBox(height: 20),
                 const Text(
                   'MoviFleet',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: Colors.blue,
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
 
                 // Título del formulario
-                const Text(
-                  'Únete a nuestra comunidad',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Crea tu cuenta para empezar a viajar',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Únete a nuestra comunidad',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Crea tu cuenta para empezar a viajar',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 32),
@@ -141,11 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Campo de nombre de usuario
                 TextFormField(
                   controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre de usuario',
-                    prefixIcon: Icon(Icons.person),
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: _inputDecoration('Nombre de usuario', Icons.person),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu nombre de usuario';
@@ -162,11 +203,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Campo de nombre
                 TextFormField(
                   controller: _firstNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre',
-                    prefixIcon: Icon(Icons.person),
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: _inputDecoration('Nombre', Icons.person),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu nombre';
@@ -180,11 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Campo de apellido
                 TextFormField(
                   controller: _lastNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Apellido',
-                    prefixIcon: Icon(Icons.person),
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: _inputDecoration('Apellido', Icons.person),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu apellido';
@@ -199,11 +232,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: _inputDecoration('Correo electrónico', Icons.email),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu email';
@@ -221,11 +250,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _telefonoController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Teléfono',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: _inputDecoration('Teléfono', Icons.phone),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu teléfono';
@@ -240,10 +265,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _ciController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Cédula de Identidad',
-                    prefixIcon: Icon(Icons.badge),
-                    border: OutlineInputBorder(),
+                  decoration: _inputDecoration('Cédula de Identidad', Icons.badge).copyWith(
                     hintText: '1234567',
                   ),
                   validator: (value) {
@@ -265,14 +287,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    prefixIcon: const Icon(Icons.lock),
+                  decoration: _inputDecoration('Contraseña', Icons.lock).copyWith(
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_off
                             : Icons.visibility,
+                        color: Colors.grey.shade600,
                       ),
                       onPressed: () {
                         setState(() {
@@ -280,7 +301,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         });
                       },
                     ),
-                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -304,14 +324,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
-                  decoration: InputDecoration(
-                    labelText: 'Confirmar contraseña',
-                    prefixIcon: const Icon(Icons.lock),
+                  decoration: _inputDecoration('Confirmar contraseña', Icons.lock).copyWith(
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword
                             ? Icons.visibility_off
                             : Icons.visibility,
+                        color: Colors.grey.shade600,
                       ),
                       onPressed: () {
                         setState(() {
@@ -319,7 +338,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         });
                       },
                     ),
-                    border: const OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -335,63 +353,76 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 24),
 
                 // Checkbox de términos y condiciones
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _acceptTerms,
-                      onChanged: (value) {
-                        setState(() {
-                          _acceptTerms = value ?? false;
-                        });
-                      },
-                    ),
-                    Expanded(
-                      child: RichText(
-                        text: const TextSpan(
-                          style: TextStyle(color: Colors.black87),
-                          children: [
-                            TextSpan(text: 'Acepto los '),
-                            TextSpan(
-                              text: 'términos y condiciones',
-                              style: TextStyle(
-                                color: Colors.green,
-                                decoration: TextDecoration.underline,
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: _acceptTerms,
+                        activeColor: Colors.blue,
+                        onChanged: (value) {
+                          setState(() {
+                            _acceptTerms = value ?? false;
+                          });
+                        },
+                      ),
+                      Expanded(
+                        child: RichText(
+                          text: const TextSpan(
+                            style: TextStyle(color: Colors.black87),
+                            children: [
+                              TextSpan(text: 'Acepto los '),
+                              TextSpan(
+                                text: 'términos y condiciones',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            TextSpan(text: ' y la '),
-                            TextSpan(
-                              text: 'política de privacidad',
-                              style: TextStyle(
-                                color: Colors.green,
-                                decoration: TextDecoration.underline,
+                              TextSpan(text: ' y la '),
+                              TextSpan(
+                                text: 'política de privacidad',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 32),
 
                 // Botón de registro
                 SizedBox(
-                  height: 50,
+                  height: 56,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
+                      elevation: 4,
+                      shadowColor: Colors.blue.withOpacity(0.3),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
                             'Crear cuenta',
-                            style: TextStyle(fontSize: 16),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                           ),
                   ),
                 ),
@@ -400,7 +431,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Botón de login
                 SizedBox(
-                  height: 50,
+                  height: 56,
                   child: OutlinedButton(
                     onPressed: () {
                       Navigator.pushReplacement(
@@ -411,14 +442,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.blue),
+                      side: const BorderSide(color: Colors.blue, width: 2),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: const Text(
                       '¿Ya tienes cuenta? Inicia sesión',
-                      style: TextStyle(fontSize: 16, color: Colors.blue),
+                      style: TextStyle(fontSize: 16, color: Colors.blue, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),

@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import 'home_screen.dart';
+import '../../services/auth_service.dart';
+import '../client/client_home_screen.dart';
 import 'login_screen.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
   final String username;
+  final int userId;
 
   const EmailVerificationScreen({
     super.key,
     required this.email,
     required this.username,
+    required this.userId,
   });
 
   @override
@@ -23,7 +25,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
   final _codeController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
-  bool _isCodeSent = false;
   int _resendCountdown = 0;
   String? _errorMessage;
 
@@ -46,13 +47,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     });
 
     try {
-      final response = await _authService.sendMobileVerificationCode(
-        widget.email,
-      );
+      final response = await _authService.resendVerificationCode(widget.userId);
 
       if (response.success) {
         setState(() {
-          _isCodeSent = true;
           _resendCountdown = 60; // 60 segundos de espera
         });
         _authService.showSuccessToast('Código enviado a ${widget.email}');
@@ -93,18 +91,18 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     });
 
     try {
-      final response = await _authService.verifyMobileCode(
-        widget.email,
+      final response = await _authService.verifyCode(
+        widget.userId,
         _codeController.text.trim(),
       );
 
-      if (response.success) {
+      if (response.success && response.data != null) {
         _authService.showSuccessToast('¡Email verificado exitosamente!');
 
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            MaterialPageRoute(builder: (context) => const ClientHomeScreen()),
             (route) => false,
           );
         }
@@ -131,9 +129,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
     });
 
     try {
-      final response = await _authService.resendMobileVerificationCode(
-        widget.email,
-      );
+      final response = await _authService.resendVerificationCode(widget.userId);
 
       if (response.success) {
         setState(() {
@@ -175,14 +171,21 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Logo y título
-                const Icon(Icons.email_outlined, size: 80, color: Colors.green),
-                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.email_outlined, size: 60, color: Colors.blue),
+                ),
+                const SizedBox(height: 20),
                 const Text(
                   'Verificación de Email',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green,
+                    color: Colors.blue,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -192,9 +195,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green.shade200),
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
                   ),
                   child: Column(
                     children: [
@@ -203,7 +206,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                          color: Colors.blue,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -220,7 +223,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                          color: Colors.blue,
                         ),
                       ),
                     ],
@@ -242,10 +245,19 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   decoration: InputDecoration(
                     labelText: 'Código de verificación',
                     hintText: '123456',
-                    border: const OutlineInputBorder(),
-                    prefixIcon: const Icon(Icons.security),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.blue, width: 2),
+                    ),
+                    prefixIcon: Icon(Icons.security, color: Colors.grey.shade600),
                     helperText:
                         'Ingresa el código de 6 dígitos que recibiste por email',
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -290,21 +302,23 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
                 // Botón de verificar
                 SizedBox(
-                  height: 50,
+                  height: 56,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _verifyCode,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
+                      elevation: 4,
+                      shadowColor: Colors.blue.withOpacity(0.3),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
                             'Verificar Código',
-                            style: TextStyle(fontSize: 16),
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                           ),
                   ),
                 ),
@@ -313,15 +327,15 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
                 // Botón de reenviar código
                 SizedBox(
-                  height: 50,
+                  height: 56,
                   child: OutlinedButton(
                     onPressed: (_isLoading || _resendCountdown > 0)
                         ? null
                         : _resendCode,
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.blue),
+                      side: const BorderSide(color: Colors.blue, width: 2),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                     child: _resendCountdown > 0
@@ -330,11 +344,12 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w600,
                             ),
                           )
                         : const Text(
                             'Reenviar Código',
-                            style: TextStyle(fontSize: 16, color: Colors.blue),
+                            style: TextStyle(fontSize: 16, color: Colors.blue, fontWeight: FontWeight.w600),
                           ),
                   ),
                 ),
@@ -345,9 +360,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
                   ),
                   child: Column(
                     children: [
@@ -382,7 +397,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
                 // Botón para volver al login
                 SizedBox(
-                  height: 50,
+                  height: 56,
                   child: TextButton(
                     onPressed: () {
                       Navigator.pushAndRemoveUntil(
@@ -395,7 +410,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     },
                     child: const Text(
                       'Volver al inicio de sesión',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(fontSize: 16, color: Colors.blue, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),

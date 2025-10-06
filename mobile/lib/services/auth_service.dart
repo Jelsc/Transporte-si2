@@ -3,9 +3,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:flutter/material.dart';
+import '../utils/ip_detection.dart';
 
-// Configuración base de la API
-const String API_BASE_URL = "http://10.0.2.2:8000"; // Para emulador Android
+// Configuración base de la API - Ahora con detección automática
 
 // Tipos de datos para la API
 class ApiResponse<T> {
@@ -31,6 +31,52 @@ class ApiResponse<T> {
   }
 }
 
+// Modelo de Rol basado en el backend
+class Rol {
+  final int id;
+  final String nombre;
+  final String descripcion;
+  final bool esAdministrativo;
+  final List<String> permisos;
+  final DateTime fechaCreacion;
+  final DateTime fechaActualizacion;
+
+  Rol({
+    required this.id,
+    required this.nombre,
+    required this.descripcion,
+    required this.esAdministrativo,
+    required this.permisos,
+    required this.fechaCreacion,
+    required this.fechaActualizacion,
+  });
+
+  factory Rol.fromJson(Map<String, dynamic> json) {
+    return Rol(
+      id: json['id'] ?? 0,
+      nombre: json['nombre'] ?? '',
+      descripcion: json['descripcion'] ?? '',
+      esAdministrativo: json['es_administrativo'] ?? false,
+      permisos: List<String>.from(json['permisos'] ?? []),
+      fechaCreacion: DateTime.parse(json['fecha_creacion'] ?? DateTime.now().toIso8601String()),
+      fechaActualizacion: DateTime.parse(json['fecha_actualizacion'] ?? DateTime.now().toIso8601String()),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'descripcion': descripcion,
+      'es_administrativo': esAdministrativo,
+      'permisos': permisos,
+      'fecha_creacion': fechaCreacion.toIso8601String(),
+      'fecha_actualizacion': fechaActualizacion.toIso8601String(),
+    };
+  }
+}
+
+// Modelo de Usuario actualizado basado en el backend
 class User {
   final int id;
   final String username;
@@ -38,7 +84,19 @@ class User {
   final String firstName;
   final String lastName;
   final String? telefono;
+  final String? direccion;
+  final String? ci;
+  final DateTime? fechaNacimiento;
   final bool isActive;
+  final bool isStaff;
+  final DateTime dateJoined;
+  final DateTime? lastLogin;
+  final Rol? rol;
+  
+  // Propiedades calculadas
+  final bool esAdministrativo;
+  final bool esCliente;
+  final bool puedeAccederAdmin;
 
   User({
     required this.id,
@@ -47,7 +105,17 @@ class User {
     required this.firstName,
     required this.lastName,
     this.telefono,
+    this.direccion,
+    this.ci,
+    this.fechaNacimiento,
     required this.isActive,
+    required this.isStaff,
+    required this.dateJoined,
+    this.lastLogin,
+    this.rol,
+    required this.esAdministrativo,
+    required this.esCliente,
+    required this.puedeAccederAdmin,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -58,7 +126,21 @@ class User {
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       telefono: json['telefono'],
+      direccion: json['direccion'],
+      ci: json['ci'],
+      fechaNacimiento: json['fecha_nacimiento'] != null 
+          ? DateTime.parse(json['fecha_nacimiento']) 
+          : null,
       isActive: json['is_active'] ?? false,
+      isStaff: json['is_staff'] ?? false,
+      dateJoined: DateTime.parse(json['date_joined'] ?? DateTime.now().toIso8601String()),
+      lastLogin: json['last_login'] != null 
+          ? DateTime.parse(json['last_login']) 
+          : null,
+      rol: json['rol'] != null ? Rol.fromJson(json['rol']) : null,
+      esAdministrativo: json['es_administrativo'] ?? false,
+      esCliente: json['es_cliente'] ?? false,
+      puedeAccederAdmin: json['puede_acceder_admin'] ?? false,
     );
   }
 
@@ -70,59 +152,180 @@ class User {
       'first_name': firstName,
       'last_name': lastName,
       'telefono': telefono,
+      'direccion': direccion,
+      'ci': ci,
+      'fecha_nacimiento': fechaNacimiento?.toIso8601String(),
       'is_active': isActive,
+      'is_staff': isStaff,
+      'date_joined': dateJoined.toIso8601String(),
+      'last_login': lastLogin?.toIso8601String(),
+      'rol': rol?.toJson(),
+      'es_administrativo': esAdministrativo,
+      'es_cliente': esCliente,
+      'puede_acceder_admin': puedeAccederAdmin,
     };
   }
 }
 
+// Credenciales de login unificado (acepta username o email)
 class LoginCredentials {
-  final String email;
+  final String? username;
+  final String? email;
   final String password;
-  final bool rememberMe;
 
   LoginCredentials({
-    required this.email,
+    this.username,
+    this.email,
     required this.password,
-    this.rememberMe = false,
   });
 
   Map<String, dynamic> toJson() {
-    return {'email': email, 'password': password};
+    return {
+      if (username != null) 'username': username,
+      if (email != null) 'email': email,
+      'password': password,
+    };
   }
 }
 
-class RegisterData {
+// Datos de registro para clientes (basado en ClienteRegisterSerializer)
+class ClienteRegisterData {
   final String username;
+  final String email;
   final String firstName;
   final String lastName;
-  final String email;
+  final String password;
+  final String passwordConfirm;
   final String telefono;
+  final String? direccion;
   final String ci;
-  final String password1;
-  final String password2;
+  final DateTime? fechaNacimiento;
 
-  RegisterData({
+  ClienteRegisterData({
     required this.username,
+    required this.email,
     required this.firstName,
     required this.lastName,
-    required this.email,
+    required this.password,
+    required this.passwordConfirm,
     required this.telefono,
+    this.direccion,
     required this.ci,
-    required this.password1,
-    required this.password2,
+    this.fechaNacimiento,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'username': username,
+      'email': email,
       'first_name': firstName,
       'last_name': lastName,
-      'email': email,
+      'password': password,
+      'password_confirm': passwordConfirm,
       'telefono': telefono,
+      if (direccion != null) 'direccion': direccion,
       'ci': ci,
-      'password1': password1,
-      'password2': password2,
+      if (fechaNacimiento != null) 'fecha_nacimiento': fechaNacimiento!.toIso8601String().split('T')[0],
     };
+  }
+}
+
+// Datos de registro para administradores (basado en AdminCreateSerializer)
+class AdminCreateData {
+  final String username;
+  final String email;
+  final String firstName;
+  final String lastName;
+  final String password;
+  final String passwordConfirm;
+  final int rolId;
+  final String? telefono;
+  final String? direccion;
+
+  AdminCreateData({
+    required this.username,
+    required this.email,
+    required this.firstName,
+    required this.lastName,
+    required this.password,
+    required this.passwordConfirm,
+    required this.rolId,
+    this.telefono,
+    this.direccion,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'username': username,
+      'email': email,
+      'first_name': firstName,
+      'last_name': lastName,
+      'password': password,
+      'password_confirm': passwordConfirm,
+      'rol_id': rolId,
+      if (telefono != null) 'telefono': telefono,
+      if (direccion != null) 'direccion': direccion,
+    };
+  }
+}
+
+// Respuesta de login unificado
+class LoginResponse {
+  final String access;
+  final String refresh;
+  final User user;
+  final String tipoLogin;
+  final bool puedeAccederAdmin;
+
+  LoginResponse({
+    required this.access,
+    required this.refresh,
+    required this.user,
+    required this.tipoLogin,
+    required this.puedeAccederAdmin,
+  });
+
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    return LoginResponse(
+      access: json['access'] ?? '',
+      refresh: json['refresh'] ?? '',
+      user: User.fromJson(json['user'] ?? {}),
+      tipoLogin: json['tipo_login'] ?? 'cliente',
+      puedeAccederAdmin: json['puede_acceder_admin'] ?? false,
+    );
+  }
+}
+
+// Datos del dashboard
+class DashboardData {
+  final String tipoUsuario;
+  final String rol;
+  final List<String> permisos;
+  final String? departamento;
+  final String? codigoEmpleado;
+  final List<Map<String, dynamic>> menuItems;
+  final Map<String, dynamic> estadisticas;
+
+  DashboardData({
+    required this.tipoUsuario,
+    required this.rol,
+    required this.permisos,
+    this.departamento,
+    this.codigoEmpleado,
+    required this.menuItems,
+    required this.estadisticas,
+  });
+
+  factory DashboardData.fromJson(Map<String, dynamic> json) {
+    return DashboardData(
+      tipoUsuario: json['tipo_usuario'] ?? 'cliente',
+      rol: json['rol'] ?? 'Sin rol',
+      permisos: List<String>.from(json['permisos'] ?? []),
+      departamento: json['departamento'],
+      codigoEmpleado: json['codigo_empleado'],
+      menuItems: List<Map<String, dynamic>>.from(json['menu_items'] ?? []),
+      estadisticas: Map<String, dynamic>.from(json['estadisticas'] ?? {}),
+    );
   }
 }
 
@@ -147,14 +350,15 @@ class AuthService {
     return headers;
   }
 
-  // Función para hacer peticiones HTTP
+  // Función para hacer peticiones HTTP con manejo automático de tokens
   Future<ApiResponse<T>> _apiRequest<T>(
     String endpoint, {
     String method = 'GET',
     Map<String, dynamic>? body,
     T Function(dynamic)? fromJson,
   }) async {
-    final url = Uri.parse('$API_BASE_URL$endpoint');
+    final baseUrl = await IPDetection.getBaseUrl();
+    final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _authHeaders;
 
     try {
@@ -183,6 +387,44 @@ class AuthService {
           break;
         default:
           throw Exception('Método HTTP no soportado: $method');
+      }
+
+      // Si el token expiró (401), intentar refrescar
+      if (response.statusCode == 401) {
+        final refreshResponse = await refreshToken();
+        if (refreshResponse.success) {
+          // Reintentar la petición con el nuevo token
+          final newHeaders = await _authHeaders;
+          switch (method.toUpperCase()) {
+            case 'GET':
+              response = await http.get(url, headers: newHeaders);
+              break;
+            case 'POST':
+              response = await http.post(
+                url,
+                headers: newHeaders,
+                body: body != null ? jsonEncode(body) : null,
+              );
+              break;
+            case 'PUT':
+              response = await http.put(
+                url,
+                headers: newHeaders,
+                body: body != null ? jsonEncode(body) : null,
+              );
+              break;
+            case 'DELETE':
+              response = await http.delete(url, headers: newHeaders);
+              break;
+          }
+        } else {
+          // Si no se pudo refrescar el token, limpiar tokens y retornar error
+          await clearTokens();
+          return ApiResponse<T>(
+            success: false,
+            error: 'Sesión expirada. Por favor, inicia sesión nuevamente.',
+          );
+        }
       }
 
       final responseData = jsonDecode(response.body);
@@ -235,7 +477,8 @@ class AuthService {
     Map<String, dynamic>? body,
     T Function(dynamic)? fromJson,
   }) async {
-    final url = Uri.parse('$API_BASE_URL$endpoint');
+    final baseUrl = await IPDetection.getBaseUrl();
+    final url = Uri.parse('$baseUrl$endpoint');
     final headers = _defaultHeaders;
 
     try {
@@ -311,8 +554,8 @@ class AuthService {
 
   // ===== MÉTODOS DE AUTENTICACIÓN =====
 
-  // Login
-  Future<ApiResponse<User>> login(LoginCredentials credentials) async {
+  // Login unificado (detecta automáticamente el tipo de usuario)
+  Future<ApiResponse<LoginResponse>> login(LoginCredentials credentials) async {
     try {
       final response = await _apiRequestWithoutAuth<Map<String, dynamic>>(
         '/api/auth/login/',
@@ -321,94 +564,123 @@ class AuthService {
       );
 
       if (response.success && response.data != null) {
-        // Guardar tokens si vienen en la respuesta
-        final data = response.data!;
-        if (data['access'] != null) {
-          await saveToken(data['access']);
-        }
+        final loginResponse = LoginResponse.fromJson(response.data!);
+        
+        // Guardar tokens
+        await saveToken(loginResponse.access);
+        await saveRefreshToken(loginResponse.refresh);
 
-        // Obtener perfil del usuario
-        final profileResponse = await getCurrentUser();
-        if (profileResponse.success && profileResponse.data != null) {
-          return ApiResponse<User>(
+        return ApiResponse<LoginResponse>(
             success: true,
-            data: profileResponse.data,
+          data: loginResponse,
             message: 'Inicio de sesión exitoso',
           );
         } else {
-          return ApiResponse<User>(
-            success: false,
-            error: 'Error al obtener perfil del usuario',
-          );
-        }
-      } else {
-        return ApiResponse<User>(
+        return ApiResponse<LoginResponse>(
           success: false,
           error: response.error ?? 'Error en el login',
         );
       }
     } catch (e) {
-      return ApiResponse<User>(success: false, error: 'Error en el login: $e');
+      return ApiResponse<LoginResponse>(success: false, error: 'Error en el login: $e');
     }
   }
 
-  // Registro
-  Future<ApiResponse<User>> register(RegisterData userData) async {
+  // Registro de clientes (público con verificación)
+  Future<ApiResponse<Map<String, dynamic>>> registerCliente(ClienteRegisterData userData) async {
     try {
-      final response = await _apiRequestWithoutAuth<User>(
-        '/api/admin/mobile/register/',
+      final response = await _apiRequestWithoutAuth<Map<String, dynamic>>(
+        '/api/register/',
         method: 'POST',
         body: userData.toJson(),
-        fromJson: (data) => User.fromJson(data),
       );
-
-      if (response.success && response.data != null) {
-        // Simular token para mantener la sesión
-        await saveToken('mock_token_${DateTime.now().millisecondsSinceEpoch}');
-      }
 
       return response;
     } catch (e) {
-      return ApiResponse<User>(
+      return ApiResponse<Map<String, dynamic>>(
         success: false,
         error: 'Error en el registro: $e',
       );
     }
   }
 
-  // ===== MÉTODOS DE VERIFICACIÓN MÓVIL =====
-
-  // Enviar código de verificación móvil
-  Future<ApiResponse<Map<String, dynamic>>> sendMobileVerificationCode(
-    String email,
-  ) async {
+  // Creación de administradores (requiere autenticación)
+  Future<ApiResponse<User>> createAdmin(AdminCreateData userData) async {
     try {
-      return await _apiRequestWithoutAuth<Map<String, dynamic>>(
-        '/api/admin/mobile/send-code/',
+      final response = await _apiRequest<User>(
+        '/api/admin/create/',
         method: 'POST',
-        body: {'email': email},
+        body: userData.toJson(),
+        fromJson: (data) => User.fromJson(data),
       );
+
+      return response;
     } catch (e) {
-      return ApiResponse<Map<String, dynamic>>(
+      return ApiResponse<User>(
         success: false,
-        error: 'Error al enviar código: $e',
+        error: 'Error al crear administrador: $e',
       );
     }
   }
 
-  // Verificar código móvil
-  Future<ApiResponse<Map<String, dynamic>>> verifyMobileCode(
-    String email,
-    String code,
-  ) async {
+  // Autenticación con Google
+  Future<ApiResponse<LoginResponse>> loginWithGoogle(String accessToken) async {
     try {
-      return await _apiRequestWithoutAuth<Map<String, dynamic>>(
-        '/api/admin/mobile/verify-code/',
+      final response = await _apiRequestWithoutAuth<Map<String, dynamic>>(
+        '/api/google/',
         method: 'POST',
-        body: {'email': email, 'code': code},
+        body: {'access_token': accessToken},
       );
+
+      if (response.success && response.data != null) {
+        final loginResponse = LoginResponse.fromJson(response.data!);
+        
+        // Guardar tokens
+        await saveToken(loginResponse.access);
+        await saveRefreshToken(loginResponse.refresh);
+
+        return ApiResponse<LoginResponse>(
+          success: true,
+          data: loginResponse,
+          message: 'Inicio de sesión con Google exitoso',
+        );
+      } else {
+        return ApiResponse<LoginResponse>(
+        success: false,
+          error: response.error ?? 'Error en el login con Google',
+        );
+      }
     } catch (e) {
-      return ApiResponse<Map<String, dynamic>>(
+      return ApiResponse<LoginResponse>(success: false, error: 'Error en el login con Google: $e');
+    }
+  }
+
+  // ===== MÉTODOS DE VERIFICACIÓN =====
+
+  // Verificar código de verificación para clientes
+  Future<ApiResponse<User>> verifyCode(int userId, String code) async {
+    try {
+      final response = await _apiRequestWithoutAuth<Map<String, dynamic>>(
+        '/api/verify/',
+        method: 'POST',
+        body: {'user_id': userId, 'code': code},
+      );
+
+      if (response.success && response.data != null) {
+        final user = User.fromJson(response.data!['user']);
+        return ApiResponse<User>(
+          success: true,
+          data: user,
+          message: 'Usuario verificado exitosamente',
+        );
+      } else {
+        return ApiResponse<User>(
+          success: false,
+          error: response.error ?? 'Error al verificar código',
+        );
+      }
+    } catch (e) {
+      return ApiResponse<User>(
         success: false,
         error: 'Error al verificar código: $e',
       );
@@ -416,14 +688,12 @@ class AuthService {
   }
 
   // Reenviar código de verificación
-  Future<ApiResponse<Map<String, dynamic>>> resendMobileVerificationCode(
-    String email,
-  ) async {
+  Future<ApiResponse<Map<String, dynamic>>> resendVerificationCode(int userId) async {
     try {
       return await _apiRequestWithoutAuth<Map<String, dynamic>>(
-        '/api/admin/mobile/resend-code/',
+        '/api/resend-code/',
         method: 'POST',
-        body: {'email': email},
+        body: {'user_id': userId},
       );
     } catch (e) {
       return ApiResponse<Map<String, dynamic>>(
@@ -433,11 +703,13 @@ class AuthService {
     }
   }
 
+  // ===== MÉTODOS DE INFORMACIÓN DEL USUARIO =====
+
   // Obtener información del usuario actual
   Future<ApiResponse<User>> getCurrentUser() async {
     try {
       return await _apiRequest<User>(
-        '/api/auth/user/',
+        '/api/auth/user-info/',
         fromJson: (data) => User.fromJson(data),
       );
     } catch (e) {
@@ -448,32 +720,82 @@ class AuthService {
     }
   }
 
-  // Logout
+  // Obtener datos del dashboard según tipo de usuario
+  Future<ApiResponse<DashboardData>> getDashboardData() async {
+    try {
+      final response = await _apiRequest<Map<String, dynamic>>(
+        '/api/auth/dashboard-data/',
+      );
+
+      if (response.success && response.data != null) {
+        final dashboardData = DashboardData.fromJson(response.data!);
+        return ApiResponse<DashboardData>(
+          success: true,
+          data: dashboardData,
+          message: 'Datos del dashboard obtenidos exitosamente',
+        );
+      } else {
+        return ApiResponse<DashboardData>(
+          success: false,
+          error: response.error ?? 'Error al obtener datos del dashboard',
+        );
+      }
+    } catch (e) {
+      return ApiResponse<DashboardData>(
+        success: false,
+        error: 'Error al obtener datos del dashboard: $e',
+      );
+    }
+  }
+
+  // Logout unificado
   Future<void> logout() async {
     try {
-      await _apiRequest('/api/auth/logout/', method: 'POST');
+      final refreshToken = await getRefreshToken();
+      if (refreshToken != null) {
+        await _apiRequest('/api/auth/logout/', method: 'POST', body: {'refresh': refreshToken});
+      }
     } catch (e) {
       // Ignorar errores en logout
     } finally {
-      await clearToken();
+      await clearTokens();
     }
   }
 
   // ===== MÉTODOS DE TOKEN =====
 
-  // Guardar token
+  // Guardar access token
   Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
   }
 
-  // Obtener token
+  // Guardar refresh token
+  Future<void> saveRefreshToken(String refreshToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('refresh_token', refreshToken);
+  }
+
+  // Obtener access token
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
   }
 
-  // Limpiar token
+  // Obtener refresh token
+  Future<String?> getRefreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('refresh_token');
+  }
+
+  // Limpiar todos los tokens
+  Future<void> clearTokens() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('refresh_token');
+  }
+
+  // Limpiar solo access token (para compatibilidad)
   Future<void> clearToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
@@ -485,6 +807,30 @@ class AuthService {
     return token != null;
   }
 
+  // Refrescar token usando refresh token
+  Future<ApiResponse<LoginResponse>> refreshToken() async {
+    try {
+      final refreshToken = await getRefreshToken();
+      if (refreshToken == null) {
+        return ApiResponse<LoginResponse>(
+          success: false,
+          error: 'No hay refresh token disponible',
+        );
+      }
+
+      // El backend no tiene endpoint de refresh, usar logout y requerir login
+      return ApiResponse<LoginResponse>(
+        success: false,
+        error: 'Sesión expirada. Por favor, inicia sesión nuevamente.',
+      );
+    } catch (e) {
+      return ApiResponse<LoginResponse>(
+        success: false,
+        error: 'Error al refrescar token: $e',
+      );
+    }
+  }
+
   // ===== MÉTODOS DE UI =====
 
   // Mostrar toast de éxito
@@ -493,7 +839,7 @@ class AuthService {
       msg: message,
       toastLength: Toast.LENGTH_LONG,
       gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.green,
+      backgroundColor: Colors.blue,
       textColor: Colors.white,
     );
   }
@@ -507,5 +853,47 @@ class AuthService {
       backgroundColor: Colors.red,
       textColor: Colors.white,
     );
+  }
+
+  // ===== MÉTODOS DE DETECCIÓN DE IP =====
+
+  // Obtener información del entorno actual
+  Future<Map<String, dynamic>> getEnvironmentInfo() async {
+    return await IPDetection.getEnvironmentInfo();
+  }
+
+  // Forzar nueva detección de IP (útil para cambios de red)
+  Future<String> forceIPDetection() async {
+    return await IPDetection.forceDetection();
+  }
+
+  // Verificar conectividad con el backend
+  Future<bool> checkBackendConnection() async {
+    try {
+      final baseUrl = await IPDetection.getBaseUrl();
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/health/'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(const Duration(seconds: 5));
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Mostrar información del entorno en un toast
+  Future<void> showEnvironmentInfo() async {
+    final envInfo = await getEnvironmentInfo();
+    final isConnected = await checkBackendConnection();
+    
+    final message = '''
+Entorno: ${envInfo['isCloud'] ? 'Nube' : 'Local'}
+URL: ${envInfo['baseUrl']}
+Plataforma: ${envInfo['platform']}
+Conectado: ${isConnected ? 'Sí' : 'No'}
+''';
+    
+    showSuccessToast(message);
   }
 }
