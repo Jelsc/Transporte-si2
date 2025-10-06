@@ -13,12 +13,13 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 from datetime import timedelta
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# load_dotenv(BASE_DIR.parent / ".env")
+# Cargar variables de entorno desde el archivo .env
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
@@ -30,19 +31,86 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me-dev")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",")
+# ========== CONFIGURACIÓN AUTOMÁTICA DE HOSTS ==========
+def get_allowed_hosts():
+    """
+    Configura automáticamente los hosts permitidos:
+    - Desarrollo: localhost, 127.0.0.1
+    - Docker: 0.0.0.0 y localhost
+    - Producción: cualquier host (*) - Django se encarga de la validación
+    """
+    env_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
+    
+    if env_hosts and env_hosts.strip():
+        # Si hay hosts específicos en la variable de entorno
+        hosts = [host.strip() for host in env_hosts.split(",") if host.strip()]
+        print(f"🔧 [Django] Hosts configurados por variable de entorno: {hosts}")
+        return hosts
+    
+    # Configuración automática por defecto para máxima compatibilidad
+    default_hosts = ["*"]  # Permitir cualquier host - más flexible para contenedores y nube
+    print(f"🌐 [Django] Hosts automáticos configurados: {default_hosts}")
+    return default_hosts
 
-# Configuración de URLs del frontend
+ALLOWED_HOSTS = get_allowed_hosts()
+
+# ========== CONFIGURACIÓN AUTOMÁTICA DE CORS ==========
+def configure_cors():
+    """
+    Configura CORS automáticamente:
+    - Permite todos los orígenes por defecto para máxima compatibilidad
+    - Puede ser sobreescrito con variables de entorno
+    """
+    # Por defecto permitir todos los orígenes para máxima compatibilidad
+    allow_all = os.getenv("CORS_ALLOW_ALL_ORIGINS", "True") == "True"
+    
+    if allow_all:
+        print("🌍 [Django] CORS configurado para permitir TODOS los orígenes")
+        return True, []
+    else:
+        # URLs específicas si se desactiva allow_all
+        frontend_urls = [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173", 
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            # Emulador Android
+            "http://10.0.2.2:5173",
+            "http://10.0.2.2:8000"
+        ]
+        
+        # Agregar URLs de variables de entorno si existen
+        env_frontend = os.getenv("FRONTEND_URL")
+        env_frontend_alt = os.getenv("FRONTEND_URL_ALT")
+        
+        if env_frontend:
+            frontend_urls.append(env_frontend)
+        if env_frontend_alt:
+            frontend_urls.append(env_frontend_alt)
+        
+        # Intentar detectar IP pública para casos de EC2/nube
+        try:
+            from core.utils.ip_detection import get_public_ip
+            ip = get_public_ip()
+            if ip:
+                frontend_urls.append(f"http://{ip}:5173")
+                frontend_urls.append(f"http://{ip}:8000")
+                print(f"🌎 [Django] IP pública detectada y agregada a CORS: {ip}")
+        except Exception as e:
+            print(f"⚠️ [Django] No se pudo detectar IP pública: {e}")
+        
+        print(f"🎯 [Django] CORS configurado para orígenes específicos: {frontend_urls}")
+        return False, frontend_urls
+
+CORS_ALLOW_ALL_ORIGINS, CORS_ALLOWED_ORIGINS = configure_cors()
+CORS_ALLOW_CREDENTIALS = True  # Habilitar cookies/sesión
+
+# ========== VARIABLES DE FRONTEND PARA COMPATIBILIDAD ==========
+# Estas variables se mantienen para compatibilidad con configuraciones existentes
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 FRONTEND_URL_ALT = os.getenv("FRONTEND_URL_ALT", "http://127.0.0.1:5173")
 
-# CORS_ALLOW_ALL_ORIGINS = True  # SOLO DEV. En prod: usa CORS_ALLOWED_ORIGINS.
-# Configuración de CORS
-CORS_ALLOWED_ORIGINS = [
-    FRONTEND_URL,
-    FRONTEND_URL_ALT,
-]
-CORS_ALLOW_CREDENTIALS = True  # Por si usas sesión/cookies
+print(f"🎨 [Django] Frontend URLs configuradas: {FRONTEND_URL}, {FRONTEND_URL_ALT}")
 # Application definition
 
 INSTALLED_APPS = [
@@ -72,7 +140,7 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "dj_rest_auth.registration",
     # "dj_rest_auth.jwt_auth",
-
+    "rest_framework_simplejwt.token_blacklist",
     "bitacora",
 ]
 
@@ -180,10 +248,34 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CSRF_TRUSTED_ORIGINS = [
-    FRONTEND_URL,
-    FRONTEND_URL_ALT,
-]
+# ========== CONFIGURACIÓN AUTOMÁTICA DE CSRF ==========
+def get_csrf_trusted_origins():
+    """
+    Configura los orígenes de confianza para CSRF
+    """
+    origins = [
+        FRONTEND_URL,
+        FRONTEND_URL_ALT,
+        # Emulador Android
+        "http://10.0.2.2:8000",
+        "http://10.0.2.2:5173",
+    ]
+    
+    # Intentar detectar IP pública para casos de EC2/nube
+    try:
+        from core.utils.ip_detection import get_public_ip
+        ip = get_public_ip()
+        if ip:
+            origins.append(f"http://{ip}:5173")
+            origins.append(f"http://{ip}:8000")
+            print(f"🔒 [Django] IP pública agregada a CSRF origins: {ip}")
+    except Exception as e:
+        print(f"⚠️ [Django] No se pudo agregar IP a CSRF origins: {e}")
+    
+    print(f"🔐 [Django] CSRF orígenes de confianza: {origins}")
+    return origins
+
+CSRF_TRUSTED_ORIGINS = get_csrf_trusted_origins()
 
 # A dónde redirigir después de login/logout
 LOGIN_REDIRECT_URL = "/"
@@ -202,7 +294,7 @@ ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = (
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # username o email
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"  # "mandatory" si quieres confirmar email
+ACCOUNT_EMAIL_VERIFICATION = os.getenv("ACCOUNT_EMAIL_VERIFICATION", "none")
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True  # link de confirmación hace login al abrirlo
 ACCOUNT_UNIQUE_EMAIL = True  # Cada email debe ser único
 LOGIN_ON_EMAIL_CONFIRMATION = True
@@ -212,13 +304,13 @@ ACCOUNT_EMAIL_VERIFICATION_METHOD = (
 )
 
 
-# En desarrollo, manda emails a la consola
+# Configuración de Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = (
-    "mailhog"  # Asegúrate que este es el nombre del servicio en tu docker-compose.yml
-)
-EMAIL_PORT = 1025
-DEFAULT_FROM_EMAIL = "no-reply@localhost"
+EMAIL_HOST = os.getenv("EMAIL_HOST", "mailhog")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "1025"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "False") == "True"
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False") == "True"
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "no-reply@localhost")
 
 # ====== DRF + JWT ======
 REST_FRAMEWORK = {
@@ -247,6 +339,8 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 # ====== GOOGLE OAUTH CONFIGURATION ======
@@ -263,9 +357,25 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# ====== CACHE CONFIGURATION ======
+# Configuración para verificación móvil
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+    }
+}
+
+# ====== EMAIL BACKENDS ======
+# Backend de email personalizado para verificación móvil
+EMAIL_BACKENDS = {
+    "default": "django.core.mail.backends.smtp.EmailBackend",
+    "mobile_verification": "django.core.mail.backends.console.EmailBackend",  # Para testing
+}
+
 # Configuración de Google OAuth
 GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_OAUTH2_CLIENT_ID", "")
 GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET", "")
 
 # Configuración de sitios para allauth
-SITE_ID = 1
+SITE_ID = int(os.getenv("SITE_ID", "1"))

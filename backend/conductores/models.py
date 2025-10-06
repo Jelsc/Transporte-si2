@@ -23,42 +23,48 @@ class Conductor(models.Model):
         ('E', 'Tipo E - Vehículos de transporte público'),
     ]
     
-    # Relación con el usuario (opcional)
-    usuario = models.OneToOneField(
-        User, 
-        on_delete=models.CASCADE,
-        related_name='conductor_profile',
-        verbose_name="Usuario",
+    # Datos personales básicos (obligatorios)
+    nombre = models.CharField(
+        max_length=100,
+        verbose_name="Nombre",
+        default=""
+    )
+    
+    apellido = models.CharField(
+        max_length=100,
+        verbose_name="Apellido",
+        default=""
+    )
+    
+    fecha_nacimiento = models.DateField(
+        verbose_name="Fecha de Nacimiento",
         null=True,
         blank=True
     )
     
-    # Datos personales básicos (para cuando no hay usuario vinculado)
-    first_name = models.CharField(
-        max_length=30,
-        blank=True,
-        verbose_name="Nombre"
-    )
-    
-    last_name = models.CharField(
-        max_length=150,
-        blank=True,
-        verbose_name="Apellido"
+    telefono = models.CharField(
+        max_length=20,
+        verbose_name="Teléfono",
+        default=""
     )
     
     email = models.EmailField(
-        blank=True,
-        verbose_name="Email"
+        unique=True,
+        verbose_name="Email",
+        default=""
     )
     
-    telefono = models.CharField(
+    ci = models.CharField(
         max_length=20,
-        blank=True,
-        verbose_name="Teléfono"
+        unique=True,
+        verbose_name="Cédula de Identidad",
+        default=""
     )
+    
+    # Relación con el usuario eliminada - se maneja desde users.models.CustomUser
     
     # Información específica del conductor
-    numero_licencia = models.CharField(
+    nro_licencia = models.CharField(
         max_length=20,
         unique=True,
         validators=[RegexValidator(
@@ -74,20 +80,20 @@ class Conductor(models.Model):
         verbose_name="Tipo de Licencia"
     )
     
-    fecha_vencimiento_licencia = models.DateField(
+    fecha_venc_licencia = models.DateField(
         verbose_name="Fecha de Vencimiento de Licencia"
     )
     
-    # Estado del conductor
+    # Estado operacional del conductor
     estado = models.CharField(
         max_length=20,
         choices=ESTADOS_CHOICES,
-        default='inactivo',
+        default='disponible',
         verbose_name="Estado"
     )
     
     # Información adicional
-    experiencia_anos = models.PositiveIntegerField(
+    experiencia_anios = models.PositiveIntegerField(
         default=0,
         verbose_name="Años de Experiencia"
     )
@@ -107,10 +113,6 @@ class Conductor(models.Model):
     )
     
     # Campos de control
-    es_activo = models.BooleanField(
-        default=True,
-        verbose_name="Activo"
-    )
     
     fecha_creacion = models.DateTimeField(
         auto_now_add=True,
@@ -149,19 +151,17 @@ class Conductor(models.Model):
         verbose_name = "Conductor"
         verbose_name_plural = "Conductores"
         ordering = ['-fecha_creacion']
+        indexes = [
+            models.Index(fields=['nro_licencia']),
+            models.Index(fields=['fecha_venc_licencia']),
+        ]
     
     def __str__(self):
-        if self.usuario:
-            return f"{self.usuario.get_full_name()} - {self.numero_licencia}"
-        else:
-            return f"{self.get_full_name()} - {self.numero_licencia}"
+        return f"{self.get_full_name()} - {self.nro_licencia}"
     
     def get_full_name(self):
         """Retorna el nombre completo del conductor"""
-        if self.usuario:
-            return self.usuario.get_full_name() or self.usuario.username
-        else:
-            return f"{self.first_name} {self.last_name}".strip() or "Sin nombre"
+        return f"{self.nombre} {self.apellido}".strip()
     
     @property
     def nombre_completo(self):
@@ -169,10 +169,16 @@ class Conductor(models.Model):
         return self.get_full_name()
     
     @property
+    def estado_usuario(self):
+        """Estado del usuario (activo/inactivo) - ahora se accede desde users.models.CustomUser"""
+        # Esta propiedad ahora se maneja desde el modelo CustomUser
+        return 'sin_usuario'  # Por defecto, ya que la relación se maneja desde users
+    
+    @property
     def licencia_vencida(self):
         """Verifica si la licencia está vencida"""
         from django.utils import timezone
-        return self.fecha_vencimiento_licencia < timezone.now().date()
+        return self.fecha_venc_licencia < timezone.now().date()
     
     @property
     def dias_para_vencer_licencia(self):
@@ -181,11 +187,11 @@ class Conductor(models.Model):
         from datetime import timedelta
         
         hoy = timezone.now().date()
-        dias_restantes = (self.fecha_vencimiento_licencia - hoy).days
+        dias_restantes = (self.fecha_venc_licencia - hoy).days
         return dias_restantes
     
     def cambiar_estado(self, nuevo_estado):
-        """Cambia el estado del conductor"""
+        """Cambia el estado operacional del conductor"""
         if nuevo_estado in [choice[0] for choice in self.ESTADOS_CHOICES]:
             self.estado = nuevo_estado
             self.save(update_fields=['estado', 'fecha_actualizacion'])
@@ -208,8 +214,8 @@ class Conductor(models.Model):
     
     def puede_conducir(self):
         """Verifica si el conductor puede conducir (activo, licencia válida, etc.)"""
+        # Ahora se verifica desde el modelo CustomUser que tiene la relación
         return (
-            self.es_activo and 
             not self.licencia_vencida and 
             self.estado in ['disponible', 'ocupado']
         )

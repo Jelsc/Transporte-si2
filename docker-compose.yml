@@ -2,6 +2,8 @@ services:
   db:
     image: postgres:16
     container_name: transporte_db
+    env_file:
+      - ./backend/.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-transporte}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -27,19 +29,21 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: transporte_backend
+    env_file:
+      - ./backend/.env
     environment:
-      DJANGO_DEBUG: "1"
       POSTGRES_HOST: db
-      FRONTEND_URL: "http://localhost:5173"
-      FRONTEND_URL_ALT: "http://127.0.0.1:5173"
-      GOOGLE_OAUTH2_CLIENT_ID: ${GOOGLE_OAUTH2_CLIENT_ID:-}
-      GOOGLE_OAUTH2_CLIENT_SECRET: ${GOOGLE_OAUTH2_CLIENT_SECRET:-}
+      REDIS_URL: "redis://redis:6379/0"
+      # IP automática habilitada
+      AUTO_DETECT_IP: "true"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./backend:/app
-    command: bash -lc "python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
+    command: bash -lc "python detect_ip.py && python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
 
@@ -49,10 +53,12 @@ services:
       dockerfile: Dockerfile
     container_name: transporte_frontend
     working_dir: /app
+    env_file:
+      - ./frontend/.env
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
-      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
-      # Vite necesita HOST para exponer en 0.0.0.0
+      HOST: "0.0.0.0"  # Vite necesita HOST para exponer en 0.0.0.0
+      # Dejamos VITE_API_URL vacío para habilitar detección automática
+      VITE_API_URL: ""
     volumes:
       - ./frontend:/app
     command: sh -lc "npm install && npm run dev -- --host"
@@ -60,6 +66,19 @@ services:
       - "5173:5173"
     depends_on:
       - backend
+
+  redis:
+    image: redis:7-alpine
+    container_name: transporte_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   mailhog:
     image: mailhog/mailhog
@@ -70,3 +89,4 @@ services:
 
 volumes:
   pgdata:
+  redis_data:

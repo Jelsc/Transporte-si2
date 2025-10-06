@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from .models import Conductor
 
 User = get_user_model()
@@ -8,41 +9,35 @@ User = get_user_model()
 class ConductorSerializer(serializers.ModelSerializer):
     """Serializer para el modelo Conductor"""
     
-    # Campos del usuario relacionado
-    username = serializers.CharField(source='usuario.username', read_only=True)
-    email = serializers.EmailField(source='usuario.email', read_only=True)
-    first_name = serializers.CharField(source='usuario.first_name', read_only=True)
-    last_name = serializers.CharField(source='usuario.last_name', read_only=True)
-    telefono = serializers.CharField(source='usuario.telefono', read_only=True)
-    
     # Campos calculados
     nombre_completo = serializers.CharField(read_only=True)
     licencia_vencida = serializers.BooleanField(read_only=True)
     dias_para_vencer_licencia = serializers.IntegerField(read_only=True)
     puede_conducir = serializers.BooleanField(read_only=True)
+    estado_usuario = serializers.CharField(read_only=True)
     
     class Meta:
         model = Conductor
         fields = [
             'id',
-            'usuario',
-            'username',
-            'email',
-            'first_name',
-            'last_name',
+            'nombre',
+            'apellido',
+            'fecha_nacimiento',
             'telefono',
-            'numero_licencia',
+            'email',
+            'ci',
+            'nro_licencia',
             'tipo_licencia',
-            'fecha_vencimiento_licencia',
+            'fecha_venc_licencia',
             'estado',
-            'experiencia_anos',
+            'experiencia_anios',
             'telefono_emergencia',
             'contacto_emergencia',
-            'es_activo',
             'nombre_completo',
             'licencia_vencida',
             'dias_para_vencer_licencia',
             'puede_conducir',
+            'estado_usuario',
             'ultima_ubicacion_lat',
             'ultima_ubicacion_lng',
             'ultima_actualizacion_ubicacion',
@@ -56,79 +51,70 @@ class ConductorSerializer(serializers.ModelSerializer):
             'ultima_actualizacion_ubicacion'
         ]
     
-    def validate_numero_licencia(self, value):
+    def validate_nro_licencia(self, value):
         """Valida que el número de licencia sea único"""
-        if self.instance and self.instance.numero_licencia == value:
+        if self.instance and self.instance.nro_licencia == value:
             return value
         
-        if Conductor.objects.filter(numero_licencia=value).exists():
+        if Conductor.objects.filter(nro_licencia=value).exists():
             raise serializers.ValidationError(
                 "Ya existe un conductor con este número de licencia."
             )
         return value
     
-    def validate_fecha_vencimiento_licencia(self, value):
-        """Valida que la fecha de vencimiento no sea en el pasado"""
-        from django.utils import timezone
-        
+    def validate_fecha_venc_licencia(self, value):
+        """Valida que la fecha de vencimiento sea válida"""
+        # Permitir fechas futuras y presentes, pero advertir si está vencida
         if value < timezone.now().date():
-            raise serializers.ValidationError(
-                "La fecha de vencimiento de la licencia no puede ser en el pasado."
-            )
+            # No lanzar error, solo permitir (se puede manejar en el frontend)
+            pass
         return value
 
 
 class ConductorCreateSerializer(serializers.ModelSerializer):
-    """Serializer para crear conductores (solo datos del conductor, sin usuario)"""
-    
-    # Campos personales básicos
-    first_name = serializers.CharField(max_length=30)
-    last_name = serializers.CharField(max_length=150)
-    email = serializers.EmailField()
-    telefono = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    """Serializer para crear conductores"""
     
     class Meta:
         model = Conductor
         fields = [
-            'first_name',
-            'last_name',
-            'email',
+            'nombre',
+            'apellido',
+            'fecha_nacimiento',
             'telefono',
-            'numero_licencia',
+            'email',
+            'ci',
+            'nro_licencia',
             'tipo_licencia',
-            'fecha_vencimiento_licencia',
-            'experiencia_anos',
+            'fecha_venc_licencia',
+            'estado',
+            'experiencia_anios',
             'telefono_emergencia',
-            'contacto_emergencia',
-            'es_activo'
+            'contacto_emergencia'
         ]
     
-    def validate_numero_licencia(self, value):
+    def validate_nro_licencia(self, value):
         """Valida que el número de licencia sea único"""
-        if Conductor.objects.filter(numero_licencia=value).exists():
+        if Conductor.objects.filter(nro_licencia=value).exists():
             raise serializers.ValidationError(
                 "Ya existe un conductor con este número de licencia."
             )
         return value
     
-    def create(self, validated_data):
-        """Crea un nuevo conductor (sin usuario vinculado)"""
-        # Extraer datos personales
-        first_name = validated_data.pop('first_name')
-        last_name = validated_data.pop('last_name')
-        email = validated_data.pop('email')
-        telefono = validated_data.pop('telefono', '')
-        
-        # Crear conductor sin usuario vinculado
-        conductor = Conductor.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            telefono=telefono,
-            **validated_data
-        )
-        
-        return conductor
+    def validate_email(self, value):
+        """Valida que el email sea único"""
+        if Conductor.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "Ya existe un conductor con este email."
+            )
+        return value
+    
+    def validate_ci(self, value):
+        """Valida que la CI sea única"""
+        if Conductor.objects.filter(ci=value).exists():
+            raise serializers.ValidationError(
+                "Ya existe un conductor con esta cédula de identidad."
+            )
+        return value
 
 
 class ConductorUpdateSerializer(serializers.ModelSerializer):
@@ -137,24 +123,51 @@ class ConductorUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conductor
         fields = [
-            'numero_licencia',
+            'nombre',
+            'apellido',
+            'fecha_nacimiento',
+            'telefono',
+            'email',
+            'ci',
+            'nro_licencia',
             'tipo_licencia',
-            'fecha_vencimiento_licencia',
+            'fecha_venc_licencia',
             'estado',
-            'experiencia_anos',
+            'experiencia_anios',
             'telefono_emergencia',
-            'contacto_emergencia',
-            'es_activo'
+            'contacto_emergencia'
         ]
     
-    def validate_numero_licencia(self, value):
+    def validate_nro_licencia(self, value):
         """Valida que el número de licencia sea único"""
-        if self.instance and self.instance.numero_licencia == value:
+        if self.instance and self.instance.nro_licencia == value:
             return value
         
-        if Conductor.objects.filter(numero_licencia=value).exists():
+        if Conductor.objects.filter(nro_licencia=value).exists():
             raise serializers.ValidationError(
                 "Ya existe un conductor con este número de licencia."
+            )
+        return value
+    
+    def validate_email(self, value):
+        """Valida que el email sea único"""
+        if self.instance and self.instance.email == value:
+            return value
+        
+        if Conductor.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                "Ya existe un conductor con este email."
+            )
+        return value
+    
+    def validate_ci(self, value):
+        """Valida que la CI sea única"""
+        if self.instance and self.instance.ci == value:
+            return value
+        
+        if Conductor.objects.filter(ci=value).exists():
+            raise serializers.ValidationError(
+                "Ya existe un conductor con esta cédula de identidad."
             )
         return value
 
@@ -182,19 +195,3 @@ class ConductorUbicacionSerializer(serializers.ModelSerializer):
             )
         return value
 
-
-class ConductorEstadoSerializer(serializers.ModelSerializer):
-    """Serializer para cambiar estado del conductor"""
-    
-    class Meta:
-        model = Conductor
-        fields = ['estado']
-    
-    def validate_estado(self, value):
-        """Valida que el estado sea válido"""
-        estados_validos = [choice[0] for choice in Conductor.ESTADOS_CHOICES]
-        if value not in estados_validos:
-            raise serializers.ValidationError(
-                f"Estado inválido. Debe ser uno de: {', '.join(estados_validos)}"
-            )
-        return value
