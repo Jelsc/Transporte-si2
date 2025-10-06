@@ -1,19 +1,19 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import HomePage from "../pages/home/home.page";
-import LoginPage from "../pages/auth/login.page";
-import RegisterPage from "../pages/auth/register.page";
-import CodeVerificationPage from "../pages/auth/code-verification.page";
-import AdminPage from "../pages/admin/admin.page";
+import HomePage from "@/pages/home/home.page";
+import LoginPage from "@/pages/auth/login.page";
+import RegisterPage from "@/pages/auth/register.page";
+import CodeVerificationPage from "@/pages/auth/code-verification.page";
+import AdminPage from "@/pages/admin/admin.page";
 import AdminLoginPage from "@/pages/auth/admin-login.page";
 import ProtectedRoute from "@/app/auth/ProtectedRoute";
-import RolesPage from "../pages/admin/roles/roles.page";
-import PermisosPage from "../pages/admin/permisos/permisos.page";
+import RolesPage from "@/pages/admin/roles/roles.page";
+import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
-import PersonalPage from "../pages/admin/personal/personal.page";
-import ConductoresPage from "../pages/admin/conductores/driver.page";
-import UsuariosPage from "../pages/admin/usuarios/users.page";
-import AccountSettingsPage from "../pages/auth/account-settings.page";
-import ClientLayout from "./layout/client-layout";
+import PersonalPage from "@/pages/admin/personal/personal.page";
+import ConductoresPage from "@/pages/admin/conductores/driver.page";
+import UsuariosPage from "@/pages/admin/usuarios/users.page";
+import AccountSettingsPage from "@/pages/auth/account-settings.page";
+import ClientLayout from "@/app/layout/client-layout";
 
 export default function AppRouter() {
   return (
