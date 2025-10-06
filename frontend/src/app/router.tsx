@@ -11,7 +11,7 @@ import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
 import PersonalPage from "@/pages/admin/personal/personal.page";
 import ConductoresPage from "@/pages/admin/conductores/driver.page";
-import UsuariosPage from "@/pages/admin/usuarios/users.page";
+import UsuariosPage from "@/pages/admin/users/users.page";
 import AccountSettingsPage from "@/pages/auth/account-settings.page";
 import ClientLayout from "@/app/layout/client-layout";
 
