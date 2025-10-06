@@ -867,16 +867,22 @@ class AuthService {
     return await IPDetection.forceDetection();
   }
 
+  // Forzar localhost (útil para desarrollo)
+  Future<String> forceLocalhost() async {
+    return await IPDetection.forceLocalhost();
+  }
+
   // Verificar conectividad con el backend
   Future<bool> checkBackendConnection() async {
     try {
       final baseUrl = await IPDetection.getBaseUrl();
       final response = await http.get(
-        Uri.parse('$baseUrl/api/health/'),
+        Uri.parse('$baseUrl/api/auth/login/'),
         headers: {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 5));
       
-      return response.statusCode == 200;
+      // Cualquier respuesta del servidor indica que está disponible
+      return response.statusCode >= 200 && response.statusCode < 500;
     } catch (e) {
       return false;
     }

@@ -12,30 +12,44 @@ class IPDetection {
   static Future<String> getBaseUrl() async {
     // Si ya tenemos una URL en caché, la usamos
     if (_cachedBaseUrl != null) {
+      print('🌐 Usando URL en caché: $_cachedBaseUrl');
       return _cachedBaseUrl!;
     }
     
+    print('🔍 Iniciando detección automática de IP...');
+    
     try {
-      // Primero intentamos con la URL de la nube
+      // Primero intentamos con localhost (para desarrollo)
+      final localhostUrl = _getLocalhostUrl();
+      print('🏠 Probando localhost: $localhostUrl');
+      if (await _isLocalhostAvailable()) {
+        _cachedBaseUrl = localhostUrl;
+        print('✅ Localhost disponible, usando: $localhostUrl');
+        return localhostUrl;
+      }
+      print('❌ Localhost no disponible');
+      
+      // Si localhost no está disponible, intentamos con la nube
+      print('☁️ Probando nube: $CLOUD_URL');
       if (await _isCloudAvailable()) {
         _cachedBaseUrl = CLOUD_URL;
+        print('✅ Nube disponible, usando: $CLOUD_URL');
         return CLOUD_URL;
       }
-      
-      // Si la nube no está disponible, usamos localhost
-      if (await _isLocalhostAvailable()) {
-        _cachedBaseUrl = _getLocalhostUrl();
-        return _getLocalhostUrl();
-      }
+      print('❌ Nube no disponible');
       
       // Si nada funciona, usar localhost por defecto
-      _cachedBaseUrl = _getLocalhostUrl();
-      return _getLocalhostUrl();
+      _cachedBaseUrl = localhostUrl;
+      print('⚠️ Usando localhost por defecto: $localhostUrl');
+      return localhostUrl;
       
     } catch (e) {
       // En caso de error, usar localhost por defecto
-      _cachedBaseUrl = _getLocalhostUrl();
-      return _getLocalhostUrl();
+      final localhostUrl = _getLocalhostUrl();
+      _cachedBaseUrl = localhostUrl;
+      print('❌ Error en detección, usando localhost por defecto: $localhostUrl');
+      print('Error: $e');
+      return localhostUrl;
     }
   }
   
@@ -53,12 +67,14 @@ class IPDetection {
   /// Verifica si la nube está disponible
   static Future<bool> _isCloudAvailable() async {
     try {
+      // Usar el endpoint de login que sabemos que existe
       final response = await http.get(
-        Uri.parse('$CLOUD_URL/api/health/'),
+        Uri.parse('$CLOUD_URL/api/auth/login/'),
         headers: {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 5));
       
-      return response.statusCode == 200;
+      // Cualquier respuesta (incluso 405 Method Not Allowed) indica que el servidor está disponible
+      return response.statusCode >= 200 && response.statusCode < 500;
     } catch (e) {
       return false;
     }
@@ -69,11 +85,12 @@ class IPDetection {
     try {
       final localhostUrl = _getLocalhostUrl();
       final response = await http.get(
-        Uri.parse('$localhostUrl/api/health/'),
+        Uri.parse('$localhostUrl/api/auth/login/'),
         headers: {'Accept': 'application/json'},
       ).timeout(const Duration(seconds: 3));
       
-      return response.statusCode == 200;
+      // Cualquier respuesta (incluso 405 Method Not Allowed) indica que el servidor está disponible
+      return response.statusCode >= 200 && response.statusCode < 500;
     } catch (e) {
       return false;
     }
@@ -83,6 +100,14 @@ class IPDetection {
   static Future<String> forceDetection() async {
     _cachedBaseUrl = null;
     return await getBaseUrl();
+  }
+
+  /// Fuerza localhost (útil para desarrollo)
+  static Future<String> forceLocalhost() async {
+    final localhostUrl = _getLocalhostUrl();
+    _cachedBaseUrl = localhostUrl;
+    print('🏠 Forzando localhost: $localhostUrl');
+    return localhostUrl;
   }
   
   /// Obtiene información del entorno actual

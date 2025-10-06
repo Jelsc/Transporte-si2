@@ -129,6 +129,72 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          // Botón de debug (solo para desarrollo)
+          if (true) // Cambiar a false en producción
+            PopupMenuButton<String>(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.settings, color: Colors.grey, size: 20),
+              ),
+              tooltip: 'Debug',
+              onSelected: (value) async {
+                switch (value) {
+                  case 'info':
+                    await _authService.showEnvironmentInfo();
+                    break;
+                  case 'force':
+                    final newUrl = await _authService.forceIPDetection();
+                    _authService.showSuccessToast('Nueva detección: $newUrl');
+                    break;
+                  case 'localhost':
+                    await _authService.forceLocalhost();
+                    _authService.showSuccessToast('Forzando localhost');
+                    break;
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                const PopupMenuItem<String>(
+                  value: 'info',
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 20, color: Colors.blue),
+                      SizedBox(width: 12),
+                      Text('Info Entorno', style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'force',
+                  child: Row(
+                    children: [
+                      Icon(Icons.refresh, size: 20, color: Colors.orange),
+                      SizedBox(width: 12),
+                      Text('Forzar Detección', style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem<String>(
+                  value: 'localhost',
+                  child: Row(
+                    children: [
+                      Icon(Icons.home, size: 20, color: Colors.green),
+                      SizedBox(width: 12),
+                      Text('Forzar Localhost', style: TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -304,30 +370,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // Botón de debug (solo para desarrollo)
-                if (true) // Cambiar a false en producción
-                  SizedBox(
-                    width: double.infinity,
-                    height: 40,
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        await _authService.showEnvironmentInfo();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.grey, width: 1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'Debug: Info Entorno',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ),
-                  ),
-
-                const SizedBox(height: 10),
 
                 // Botón de registro
                 SizedBox(
