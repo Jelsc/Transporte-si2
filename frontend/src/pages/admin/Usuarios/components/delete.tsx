@@ -11,14 +11,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle, User, Shield, Car } from 'lucide-react';
-import type { Usuario } from '@/types';
+import { Loader2, AlertTriangle, User as UserIcon, Shield, Car } from 'lucide-react';
+import type { User } from '@/types';
 
 interface UsuarioDeleteProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => Promise<boolean>;
-  usuario: Usuario | null;
+  usuario: User | null;
   loading?: boolean;
 }
 
@@ -51,26 +51,37 @@ export function UsuarioDelete({
       case 'Administrador':
         return <Shield className="h-4 w-4 text-red-500" />;
       case 'Supervisor':
-        return <User className="h-4 w-4 text-blue-500" />;
+        return <UserIcon className="h-4 w-4 text-blue-500" />;
       case 'Conductor':
         return <Car className="h-4 w-4 text-orange-500" />;
       default:
-        return <User className="h-4 w-4 text-gray-500" />;
+        return <UserIcon className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getRolBadge = (rol: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      'Administrador': 'destructive',
-      'Supervisor': 'default',
-      'Operador': 'secondary',
-      'Conductor': 'outline',
-      'Cliente': 'outline',
+    const variants: Record<string, "error" | "information" | "warning" | "brand" | "neutral"> = {
+      'Administrador': 'error',
+      'Supervisor': 'information',
+      'Operador': 'warning',
+      'Conductor': 'brand',
+      'Cliente': 'neutral',
+    };
+
+    const badgeTypes: Record<string, "icon" | "no-icon" | "dot"> = {
+      'Administrador': 'icon',
+      'Supervisor': 'icon',
+      'Operador': 'icon',
+      'Conductor': 'icon',
+      'Cliente': 'no-icon',
     };
 
     return (
-      <Badge variant={variants[rol] || 'outline'} className="flex items-center gap-1">
-        {getRolIcon(rol)}
+      <Badge 
+        variant={variants[rol] || 'neutral'} 
+        badgeType={badgeTypes[rol] || 'no-icon'}
+        size="sm"
+      >
         {rol}
       </Badge>
     );
@@ -93,7 +104,7 @@ export function UsuarioDelete({
               
               <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                 <div className="font-medium text-gray-900 flex items-center gap-2">
-                  <User className="h-4 w-4" />
+                  <UserIcon className="h-4 w-4" />
                   Información del Usuario:
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -121,31 +132,35 @@ export function UsuarioDelete({
                   </div>
                   <div>
                     <span className="font-medium">Estado:</span>
-                    <Badge variant={usuario.is_active ? "default" : "secondary"}>
-                      {usuario.is_active ? "Activo" : "Inactivo"}
-                    </Badge>
+                    <div className="mt-1">
+                      <Badge 
+                        variant={usuario.is_active ? "success" : "error"} 
+                        badgeType="icon"
+                        size="sm"
+                      >
+                        {usuario.is_active ? "Activo" : "Inactivo"}
+                      </Badge>
+                    </div>
                   </div>
                   <div>
                     <span className="font-medium">Fecha de Creación:</span>
-                    <div>{formatDate(usuario.fecha_creacion)}</div>
+                    <div>{formatDate(usuario.date_joined)}</div>
                   </div>
                 </div>
 
                 {/* Vinculaciones */}
-                {(usuario.personal || usuario.conductor) && (
+                {(usuario.personal_id || usuario.conductor_id) && (
                   <div className="mt-3 pt-3 border-t">
                     <span className="font-medium">Vinculaciones:</span>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {usuario.personal && (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          Personal #{usuario.personal}
+                      {usuario.personal_id && (
+                        <Badge variant="information" badgeType="icon" size="sm">
+                          Personal #{usuario.personal_id}
                         </Badge>
                       )}
-                      {usuario.conductor && (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Car className="h-3 w-3" />
-                          Conductor #{usuario.conductor}
+                      {usuario.conductor_id && (
+                        <Badge variant="brand" badgeType="icon" size="sm">
+                          Conductor #{usuario.conductor_id}
                         </Badge>
                       )}
                     </div>

@@ -1,28 +1,47 @@
+"""
+SERIALIZERS.PY - SERIALIZADORES SIMPLIFICADOS
+
+RESPONSABILIDADES:
+- Serializadores para autenticación unificada
+- Serializadores para registro diferenciado
+- Serializadores para gestión de usuarios
+- Validaciones específicas por tipo de usuario
+
+DIFERENCIAS CON SISTEMA ANTERIOR:
+- Serializadores más simples y enfocados
+- Validaciones específicas por tipo de usuario
+- Menos campos opcionales
+- Mejor organización por funcionalidad
+"""
+
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from dj_rest_auth.registration.serializers import RegisterSerializer
 from .models import CustomUser, Rol
 
 
 class RolSerializer(serializers.ModelSerializer):
+    """Serializer para roles"""
     class Meta:
         model = Rol
         fields = ["id", "nombre", "descripcion", "es_administrativo", "permisos", "fecha_creacion", "fecha_actualizacion"]
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """Serializer base para usuarios"""
     rol = RolSerializer(read_only=True)
     rol_id = serializers.IntegerField(write_only=True, required=False)
     password = serializers.CharField(write_only=True, required=False)
     password_confirm = serializers.CharField(write_only=True, required=False)
     
-    # Campos de autocompletado
-    personal_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
-    conductor_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
-    
     # Campos calculados
     puede_acceder_admin = serializers.BooleanField(read_only=True)
+    es_administrativo = serializers.BooleanField(read_only=True)
+    es_cliente = serializers.BooleanField(read_only=True)
+    
+    # Campos para las relaciones (read/write)
+    personal_id = serializers.IntegerField(required=False, allow_null=True)
+    conductor_id = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = CustomUser
@@ -39,17 +58,18 @@ class UserSerializer(serializers.ModelSerializer):
             "rol",
             "rol_id",
             "is_staff",
-            "is_superuser",
             "is_active",
             "password",
             "password_confirm",
             "personal_id",
             "conductor_id",
             "puede_acceder_admin",
-            "fecha_creacion",
-            "fecha_ultimo_acceso",
+            "es_administrativo",
+            "es_cliente",
+            "date_joined",
+            "last_login",
         ]
-        read_only_fields = ["id", "fecha_creacion", "fecha_ultimo_acceso", "puede_acceder_admin"]
+        read_only_fields = ["id", "date_joined", "last_login", "puede_acceder_admin", "es_administrativo", "es_cliente"]
 
     def validate(self, attrs):
         """Validaciones generales"""
@@ -85,48 +105,20 @@ class UserSerializer(serializers.ModelSerializer):
             except Rol.DoesNotExist:
                 pass
         
-        # Autocompletar desde personal si se selecciona
         if personal_id:
             try:
                 from personal.models import Personal
                 personal = Personal.objects.get(id=personal_id)
                 user.personal = personal
-                # Autocompletar datos si están vacíos
-                if not user.first_name:
-                    user.first_name = personal.nombre
-                if not user.last_name:
-                    user.last_name = personal.apellido
-                if not user.telefono:
-                    user.telefono = personal.telefono
-                if not user.email:
-                    user.email = personal.email
-                if not user.ci:
-                    user.ci = personal.ci
-                if not user.fecha_nacimiento:
-                    user.fecha_nacimiento = personal.fecha_nacimiento
-            except Personal.DoesNotExist:
+            except:
                 pass
         
-        # Autocompletar desde conductor si se selecciona
         if conductor_id:
             try:
                 from conductores.models import Conductor
                 conductor = Conductor.objects.get(id=conductor_id)
                 user.conductor = conductor
-                # Autocompletar datos directos del conductor
-                if not user.first_name:
-                    user.first_name = conductor.nombre
-                if not user.last_name:
-                    user.last_name = conductor.apellido
-                if not user.telefono:
-                    user.telefono = conductor.telefono
-                if not user.email:
-                    user.email = conductor.email
-                if not user.ci:
-                    user.ci = conductor.ci
-                if not user.fecha_nacimiento:
-                    user.fecha_nacimiento = conductor.fecha_nacimiento
-            except Conductor.DoesNotExist:
+            except:
                 pass
         
         user.save()
@@ -156,65 +148,109 @@ class UserSerializer(serializers.ModelSerializer):
             except Rol.DoesNotExist:
                 pass
         
-        # Actualizar relaciones
-        if personal_id is not None:
-            if personal_id:
-                try:
-                    from personal.models import Personal
-                    personal = Personal.objects.get(id=personal_id)
-                    instance.personal = personal
-                except Personal.DoesNotExist:
-                    pass
-            else:
-                instance.personal = None
+        # Actualizar personal si se proporciona
+        if personal_id:
+            try:
+                from personal.models import Personal
+                personal = Personal.objects.get(id=personal_id)
+                instance.personal = personal
+            except:
+                pass
+        elif personal_id is None:  # Si se envía None, limpiar la relación
+            instance.personal = None
         
-        if conductor_id is not None:
-            if conductor_id:
-                try:
-                    from conductores.models import Conductor
-                    conductor = Conductor.objects.get(id=conductor_id)
-                    instance.conductor = conductor
-                except Conductor.DoesNotExist:
-                    pass
-            else:
-                instance.conductor = None
+        # Actualizar conductor si se proporciona
+        if conductor_id:
+            try:
+                from conductores.models import Conductor
+                conductor = Conductor.objects.get(id=conductor_id)
+                instance.conductor = conductor
+            except:
+                pass
+        elif conductor_id is None:  # Si se envía None, limpiar la relación
+            instance.conductor = None
         
         instance.save()
         return instance
 
 
-class AdminLoginSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
 
-    def validate(self, attrs):
-        username = attrs.get("username")
-        password = attrs.get("password")
-
-        if username and password:
-            user = authenticate(username=username, password=password)
-            if not user:
-                raise serializers.ValidationError("Credenciales inválidas")
-            if not user.is_active:
-                raise serializers.ValidationError("Usuario inactivo")
-            if not user.es_administrativo:
-                raise serializers.ValidationError(
-                    "Acceso denegado: se requiere rol administrativo"
-                )
-            if not user.is_staff:
-                raise serializers.ValidationError(
-                    "Acceso denegado: el usuario no tiene acceso al panel administrativo"
-                )
-            attrs["user"] = user
-        else:
-            raise serializers.ValidationError("Debe proporcionar username y password")
-        return attrs
-
-
-class AdminRegistrationSerializer(serializers.ModelSerializer):
+class ClienteRegisterSerializer(serializers.ModelSerializer):
+    """Serializer para registro de clientes con verificación"""
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
-    rol_id = serializers.IntegerField()
+    ci = serializers.CharField(max_length=20, required=True)
+    telefono = serializers.CharField(max_length=20, required=True)
+
+    class Meta:
+        model = CustomUser
+        fields = [
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "password",
+            "password_confirm",
+            "telefono",
+            "direccion",
+            "ci",
+            "fecha_nacimiento",
+        ]
+
+    def validate(self, attrs):
+        """Validaciones específicas para clientes"""
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError("Las contraseñas no coinciden")
+        
+        # Validar CI único
+        if CustomUser.objects.filter(ci=attrs["ci"]).exists():
+            raise serializers.ValidationError({"ci": "Ya existe un usuario con esta cédula de identidad"})
+        
+        # Validar email único
+        if CustomUser.objects.filter(email=attrs["email"]).exists():
+            raise serializers.ValidationError({"email": "Ya existe un usuario con este email"})
+        
+        # Validar username único
+        if CustomUser.objects.filter(username=attrs["username"]).exists():
+            raise serializers.ValidationError({"username": "Ya existe un usuario con este username"})
+        
+        return attrs
+
+    def create(self, validated_data):
+        """Crear usuario cliente"""
+        validated_data.pop("password_confirm")
+        password = validated_data.pop("password")
+        
+        # Crear usuario
+        user = CustomUser.objects.create_user(
+            password=password,
+            is_active=False,  # Inactivo hasta verificación
+            **validated_data
+        )
+        
+        # Asignar rol de Cliente
+        try:
+            cliente_rol = Rol.objects.get(nombre="Cliente")
+            user.rol = cliente_rol
+        except Rol.DoesNotExist:
+            # Crear rol Cliente si no existe
+            cliente_rol = Rol.objects.create(
+                nombre="Cliente",
+                descripcion="Cliente regular del sistema",
+                es_administrativo=False,
+                permisos=["ver_perfil", "editar_perfil", "solicitar_viaje", "ver_historial_viajes"]
+            )
+            user.rol = cliente_rol
+        
+        user.save()
+        return user
+
+
+class AdminCreateSerializer(serializers.ModelSerializer):
+    """Serializer para creación de administradores"""
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password_confirm = serializers.CharField(write_only=True)
+    rol_id = serializers.IntegerField(required=True)
 
     class Meta:
         model = CustomUser
@@ -231,31 +267,44 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        """Validaciones específicas para administradores"""
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError("Las contraseñas no coinciden")
-
+        
         # Verificar que el rol sea administrativo
         try:
             rol = Rol.objects.get(id=attrs["rol_id"])
             if not rol.es_administrativo:
-                raise serializers.ValidationError("El rol debe ser administrativo")
+                raise serializers.ValidationError({"rol_id": "El rol debe ser administrativo"})
         except Rol.DoesNotExist:
-            raise serializers.ValidationError("Rol no válido")
-
+            raise serializers.ValidationError({"rol_id": "Rol no válido"})
+        
         return attrs
 
     def create(self, validated_data):
+        """Crear usuario administrativo"""
         validated_data.pop("password_confirm")
         password = validated_data.pop("password")
         rol_id = validated_data.pop("rol_id")
-
+        
+        # Crear usuario
         user = CustomUser.objects.create_user(
-            password=password, rol_id=rol_id, **validated_data
+            password=password,
+            is_active=True,  # Activo inmediatamente
+            is_staff=True,   # Acceso al panel administrativo
+            **validated_data
         )
+        
+        # Asignar rol
+        rol = Rol.objects.get(id=rol_id)
+        user.rol = rol
+        user.save()
+        
         return user
 
 
 class ChangePasswordSerializer(serializers.Serializer):
+    """Serializer para cambio de contraseña"""
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True, validators=[validate_password])
     new_password_confirm = serializers.CharField(required=True)
@@ -272,68 +321,38 @@ class ChangePasswordSerializer(serializers.Serializer):
         return value
 
 
-class CustomRegisterSerializer(RegisterSerializer):
-    """Serializer personalizado para registro de clientes"""
-
-    first_name = serializers.CharField(max_length=30)
-    last_name = serializers.CharField(max_length=30)
-    telefono = serializers.CharField(max_length=20, required=False, allow_blank=True)
-    ci = serializers.CharField(max_length=20, required=False, allow_blank=True)
-    fecha_nacimiento = serializers.DateField(required=False, allow_null=True)
-
-    def validate_username(self, value):
-        """Validar que el username sea único"""
-        if CustomUser.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Este nombre de usuario ya está en uso.")
-        return value
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer para perfil de usuario"""
+    rol = RolSerializer(read_only=True)
+    
+    class Meta:
+        model = CustomUser
+        fields = [
+            "id",
+            "username",
+            "email",
+            "first_name",
+            "last_name",
+            "telefono",
+            "direccion",
+            "ci",
+            "fecha_nacimiento",
+            "rol",
+            "date_joined",
+            "last_login",
+        ]
+        read_only_fields = ["id", "username", "date_joined", "last_login"]
 
     def validate_email(self, value):
-        """Validar que el email sea único"""
-        if CustomUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Este email ya está registrado.")
+        """Validar email único al actualizar"""
+        if self.instance and self.instance.email != value:
+            if CustomUser.objects.filter(email=value).exists():
+                raise serializers.ValidationError("Ya existe un usuario con este email")
         return value
-    
+
     def validate_ci(self, value):
-        """Validar que la CI sea única si se proporciona"""
-        if value and CustomUser.objects.filter(ci=value).exists():
-            raise serializers.ValidationError("Ya existe un usuario con esta cédula de identidad.")
+        """Validar CI única al actualizar"""
+        if self.instance and self.instance.ci != value:
+            if CustomUser.objects.filter(ci=value).exists():
+                raise serializers.ValidationError("Ya existe un usuario con esta cédula de identidad")
         return value
-
-    def get_cleaned_data(self):
-        return {
-            "username": self.validated_data.get("username", ""),
-            "password1": self.validated_data.get("password1", ""),
-            "password2": self.validated_data.get("password2", ""),
-            "email": self.validated_data.get("email", ""),
-            "first_name": self.validated_data.get("first_name", ""),
-            "last_name": self.validated_data.get("last_name", ""),
-            "telefono": self.validated_data.get("telefono", ""),
-            "ci": self.validated_data.get("ci", ""),
-            "fecha_nacimiento": self.validated_data.get("fecha_nacimiento"),
-        }
-
-    def save(self, request):
-        # Obtener el rol de cliente por defecto
-        try:
-            cliente_rol = Rol.objects.get(nombre="Cliente")
-        except Rol.DoesNotExist:
-            # Si no existe el rol Cliente, crear uno por defecto
-            cliente_rol = Rol.objects.create(
-                nombre="Cliente",
-                descripcion="Rol para clientes del sistema",
-                es_administrativo=False,
-                permisos=[],
-            )
-
-        # Crear el usuario con el rol de cliente
-        user = super().save(request)
-        
-        # Agregar campos adicionales
-        user.rol = cliente_rol
-        user.telefono = self.validated_data.get('telefono', '')
-        user.ci = self.validated_data.get('ci', '')
-        user.fecha_nacimiento = self.validated_data.get('fecha_nacimiento')
-        user.is_staff = False  # Los clientes no tienen acceso administrativo
-        user.save()
-        
-        return user

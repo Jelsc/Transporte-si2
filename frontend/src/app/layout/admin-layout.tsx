@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import Sidebar from "@/components/admin-sidebar";
 import Header from "@/components/admin-header";
@@ -10,7 +10,23 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const sidebarWidth = collapsed ? 64 : 320;
+  const [isMobile, setIsMobile] = useState(false);
+  const sidebarWidth = collapsed ? 64 : 250;
+  
+  // Hook para detectar si estamos en un dispositivo móvil
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 1026); // 768px es el breakpoint md de Tailwind
+    };
+
+    checkIsMobile();
+    
+    // Añadir listener para cambios en el tamaño de la ventana
+    window.addEventListener('resize', checkIsMobile);
+    
+    // Limpiar el listener cuando el componente se desmonte
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   return (
     <div className="h-screen overflow-hidden">
@@ -27,11 +43,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         className="fixed top-16 bottom-0 right-0 transition-all duration-300 overflow-hidden"
         style={{ left: sidebarWidth }}
       >
-        <ScrollArea className="h-full">
-          <div className="px-[32px] py-[48px]">
-            {children}
+        {isMobile ? (
+          // Contenedor con scroll nativo para dispositivos móviles
+          <div className="h-full overflow-auto">
+            <div className="px-4 py-6">
+              {children}
+            </div>
           </div>
-        </ScrollArea>
+        ) : (
+          // ScrollArea para pantallas medianas o más grandes
+          <ScrollArea className="h-full">
+            <div className="px-[32px] py-[48px]">
+              {children}
+            </div>
+          </ScrollArea>
+        )}
       </main>
     </div>
   );

@@ -1,40 +1,51 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import HomePage from "../pages/inicio/home.page";
-import LoginPage from "../pages/auth/LoginPage";
-import RegisterPage from "../pages/auth/RegisterPage";
-import EmailVerificationPage from "../pages/auth/EmailVerificationPage";
-import CodeVerificationPage from "../pages/auth/CodeVerificationPage";
+import HomePage from "../pages/home/home.page";
+import LoginPage from "../pages/auth/login.page";
+import RegisterPage from "../pages/auth/register.page";
+import CodeVerificationPage from "../pages/auth/code-verification.page";
 import AdminPage from "../pages/admin/admin.page";
-import AdminLoginPage from "@/pages/auth/AdminLoginPage";
+import AdminLoginPage from "@/pages/auth/admin-login.page";
 import ProtectedRoute from "@/app/auth/ProtectedRoute";
-import PermisosCRUD from "../pages/admin/usuarios/roles-permisos/permiso";
-import RolForm from "../pages/admin/usuarios/roles-permisos/rol";
+import RolesPage from "../pages/admin/roles/roles.page";
+import PermisosPage from "../pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
-// Nuevas páginas refactorizadas
 import PersonalPage from "../pages/admin/personal/personal.page";
 import ConductoresPage from "../pages/admin/conductores/driver.page";
 import UsuariosPage from "../pages/admin/usuarios/users.page";
-import AccountSettingsPage from "../pages/profile/account-settings.page";
+import AccountSettingsPage from "../pages/auth/account-settings.page";
+import ClientLayout from "./layout/client-layout";
 
 export default function AppRouter() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        {/* Rutas del cliente con layout */}
+        <Route path="/" element={<ClientLayout />}>
+          <Route index element={<HomePage />} />
+        </Route>
+        
+        {/* Rutas de autenticación sin layout */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/code-verification" element={<CodeVerificationPage />} />
+        <Route path="/profile/edit" element={<AccountSettingsPage />} />
+        
+        {/* Rutas de administración */}
+        <Route path="/admin" element={<AdminLoginPage />} />
         {/* Rutas protegidas de administración */}
         <Route
-          path="/admin/roles-permisos/permisos"
+          path="/admin/roles"
           element={
             <ProtectedRoute requireAdmin={true}>
-              <PermisosCRUD />
+              <RolesPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/admin/roles-permisos/rol"
+          path="/admin/permisos"
           element={
             <ProtectedRoute requireAdmin={true}>
-              <RolForm />
+              <PermisosPage />
             </ProtectedRoute>
           }
         />
@@ -46,14 +57,6 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        {/* auth */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/email-verification" element={<EmailVerificationPage />} />
-        <Route path="/code-verification" element={<CodeVerificationPage />} />
-
-        {/* admin */}
-        <Route path="/admin" element={<AdminLoginPage />} />
         <Route
           path="/admin/home"
           element={

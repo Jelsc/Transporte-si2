@@ -1,18 +1,49 @@
-// Exportar servicios existentes
-export * from './api';
+// ========================================
+// SERVICIOS DE AUTENTICACIÓN
+// ========================================
+export * from './authService';
+
+// ========================================
+// SERVICIOS DE USUARIOS
+// ========================================
+export {
+  userService,
+  usersService,
+  type UserFilters,
+  type UserStats,
+  type UserPermissions,
+} from './userService';
+
+// ========================================
+// SERVICIOS DE ROLES Y PERMISOS
+// ========================================
+export {
+  roleService,
+  permissionService,
+  rolesService,
+  permissionsService,
+  type Role,
+  type RoleFilters,
+  type Permission,
+  type RoleStats,
+} from './roleService';
+
+// ========================================
+// SERVICIOS DE CONDUCTORES
+// ========================================
+export * from './conductoresService';
+
+// ========================================
+// SERVICIOS DE PERSONAL
+// ========================================
+export * from './personalService';
+
+// ========================================
+// SERVICIOS DE BITÁCORA
+// ========================================
 export * from './bitacoraService';
 
-// Exportar servicios de autenticación
-export { clientAuthService, adminAuthService } from './api';
-
-// Exportar servicios de ML/IA
-export { mlService } from './api';
-
-// Exportar servicios de roles y permisos
-export { rolesService, permissionsService } from './api';
-
-// Exportar servicios de usuarios
-export { usersService } from './api';
-
-// Exportar utilidades de tokens
-export { tokenUtils } from './api';
+// ========================================
+// SERVICIOS DE USUARIOS (LEGACY)
+// ========================================
+export * from './usuariosService';

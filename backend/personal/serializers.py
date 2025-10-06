@@ -8,11 +8,6 @@ User = get_user_model()
 class PersonalSerializer(serializers.ModelSerializer):
     """Serializer para el modelo Personal - Refactorizado"""
     
-    # Campos del usuario relacionado (opcionales)
-    username = serializers.CharField(
-        source="usuario.username", read_only=True, allow_null=True
-    )
-
     # Campos calculados
     nombre_completo = serializers.CharField(read_only=True)
     anos_antiguedad = serializers.IntegerField(read_only=True)
@@ -22,8 +17,6 @@ class PersonalSerializer(serializers.ModelSerializer):
         model = Personal
         fields = [
             'id',
-            'usuario',
-            'username',
             'nombre',
             'apellido',
             'fecha_nacimiento',
@@ -95,8 +88,7 @@ class PersonalCreateSerializer(serializers.ModelSerializer):
             'fecha_ingreso',
             'estado',
             'telefono_emergencia',
-            'contacto_emergencia',
-            'usuario'
+            'contacto_emergencia'
         ]
 
     def validate_codigo_empleado(self, value):
@@ -132,8 +124,7 @@ class PersonalUpdateSerializer(serializers.ModelSerializer):
             'fecha_ingreso',
             'estado',
             'telefono_emergencia',
-            'contacto_emergencia',
-            'usuario'
+            'contacto_emergencia'
         ]
 
     def validate_codigo_empleado(self, value):

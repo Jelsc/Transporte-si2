@@ -58,9 +58,7 @@ class CustomUser(AbstractUser):
     # Rol y permisos
     rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True, blank=True)
     
-    # Estado y control
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_ultimo_acceso = models.DateTimeField(null=True, blank=True)
+    # Nota: Django ya proporciona date_joined y last_login automáticamente
     
     # Relaciones opcionales con personal y conductores
     personal = models.OneToOneField('personal.Personal', on_delete=models.SET_NULL, null=True, blank=True, related_name='usuario_personal')

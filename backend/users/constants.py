@@ -1,120 +1,270 @@
 """
-Constantes para la aplicación de usuarios.
-Define permisos y otras constantes utilizadas en el sistema.
+CONSTANTS.PY - CONSTANTES SIMPLIFICADAS
+
+RESPONSABILIDADES:
+- Permisos esenciales del sistema (reducidos de 67 a 20)
+- Grupos de permisos predefinidos
+- Constantes del sistema
+- Configuraciones por defecto
+
+DIFERENCIAS CON SISTEMA ANTERIOR:
+- Permisos reducidos y más enfocados
+- Mejor organización por funcionalidad
+- Menos complejidad
+- Mejor rendimiento
 """
 
-# Lista de permisos disponibles en el sistema
-# Formato: (clave_permiso, descripción_legible)
-PERMISOS_SISTEMA = [
-    # Permisos administrativos
-    ("gestionar_usuarios", "Gestionar usuarios del sistema"),
-    ("gestionar_roles", "Gestionar roles y permisos"),
-    ("ver_dashboard_admin", "Ver dashboard administrativo"),
-    ("gestionar_configuracion", "Gestionar configuración del sistema"),
-    # Permisos para conductores
-    ("gestionar_conductores", "Gestionar conductores del sistema"),
-    ("crear_conductor", "Crear nuevos conductores"),
-    ("editar_conductor", "Editar información de conductores"),
-    ("eliminar_conductor", "Eliminar conductores"),
-    ("ver_conductores", "Ver lista de conductores"),
-    ("asignar_vehiculo_conductor", "Asignar vehículos a conductores"),
-    # Permisos para personal de empresa
-    ("gestionar_personal", "Gestionar personal de empresa"),
-    ("crear_personal", "Crear nuevo personal de empresa"),
-    ("editar_personal", "Editar información del personal"),
-    ("eliminar_personal", "Eliminar personal de empresa"),
-    ("ver_personal", "Ver lista de personal de empresa"),
-    ("gestionar_departamentos", "Gestionar departamentos"),
-    # Permisos para vehículos
-    ("crear_vehiculo", "Crear nuevos vehículos"),
-    ("editar_vehiculo", "Editar información de vehículos"),
-    ("eliminar_vehiculo", "Eliminar vehículos"),
-    ("asignar_vehiculo", "Asignar vehículos a conductores"),
-    ("ver_vehiculos", "Ver lista de vehículos"),
-    ("gestionar_mantenimiento", "Gestionar mantenimiento de vehículos"),
-    # Permisos para rutas
-    ("crear_ruta", "Crear nuevas rutas"),
-    ("editar_ruta", "Editar rutas existentes"),
-    ("eliminar_ruta", "Eliminar rutas"),
-    ("ver_rutas", "Ver lista de rutas"),
-    ("asignar_rutas", "Asignar rutas a vehículos"),
-    # Permisos para viajes
-    ("solicitar_viaje", "Solicitar nuevo viaje"),
-    ("cancelar_viaje", "Cancelar viaje"),
-    ("ver_historial_viajes", "Ver historial de viajes"),
-    ("asignar_viajes", "Asignar viajes a conductores"),
-    ("gestionar_viajes", "Gestionar viajes del sistema"),
-    # Permisos para conductores
-    ("actualizar_estado", "Actualizar estado (disponible/ocupado)"),
-    ("ver_viajes_asignados", "Ver viajes asignados"),
-    ("iniciar_viaje", "Iniciar un viaje"),
-    ("finalizar_viaje", "Finalizar un viaje"),
-    ("reportar_incidente", "Reportar incidentes durante viaje"),
-    # Permisos para clientes
-    ("ver_perfil", "Ver perfil propio"),
-    ("editar_perfil", "Editar perfil propio"),
-    ("ver_historial", "Ver historial de actividad"),
-    # Permisos para reportes
-    ("ver_reportes_basicos", "Ver reportes básicos"),
-    ("ver_reportes_avanzados", "Ver reportes avanzados"),
-    ("exportar_reportes", "Exportar reportes"),
-    ("generar_reportes_personalizados", "Generar reportes personalizados"),
-    # Permisos para monitoreo
-    ("monitorear_vehiculos", "Monitorear ubicación de vehículos"),
-    ("monitorear_conductores", "Monitorear estado de conductores"),
-    ("monitorear_rutas", "Monitorear rutas activas"),
-    ("ver_estadisticas_tiempo_real", "Ver estadísticas en tiempo real"),
+# ========================================
+# PERMISOS ESENCIALES (20 permisos)
+# ========================================
+
+# PERMISOS DE AUTENTICACIÓN
+AUTH_PERMISSIONS = [
+    "ver_perfil",
+    "editar_perfil",
+    "cambiar_contraseña",
 ]
 
-# Agrupar permisos por categoría para facilitar la asignación
-GRUPOS_PERMISOS = {
-    "administrador": [
-        "gestionar_usuarios",
-        "gestionar_roles",
-        "ver_dashboard_admin",
-        "gestionar_configuracion",
-        "gestionar_conductores",
-        "gestionar_personal",
-        "gestionar_departamentos",
-        "ver_reportes_avanzados",
-        "exportar_reportes",
-        "generar_reportes_personalizados",
-    ],
-    "supervisor": [
-        "ver_conductores",
-        "ver_personal",
-        "ver_vehiculos",
-        "ver_rutas",
-        "gestionar_viajes",
-        "monitorear_vehiculos",
-        "monitorear_conductores",
-        "monitorear_rutas",
-        "ver_estadisticas_tiempo_real",
-        "ver_reportes_basicos",
-        "gestionar_mantenimiento",
-    ],
-    "conductor": [
-        "ver_viajes_asignados",
-        "actualizar_estado",
-        "iniciar_viaje",
-        "finalizar_viaje",
-        "reportar_incidente",
-        "ver_perfil",
-    ],
-    "cliente": [
-        "solicitar_viaje",
-        "cancelar_viaje",
-        "ver_historial_viajes",
-        "ver_perfil",
-        "editar_perfil",
-    ],
-    "operador": [
-        "ver_conductores",
-        "asignar_viajes",
-        "monitorear_vehiculos",
-        "monitorear_conductores",
-        "ver_rutas",
-        "ver_vehiculos",
-        "ver_reportes_basicos",
-    ],
+# PERMISOS DE GESTIÓN DE USUARIOS
+USER_MANAGEMENT_PERMISSIONS = [
+    "gestionar_usuarios",
+    "ver_usuarios",
+    "crear_usuarios",
+    "editar_usuarios",
+    "eliminar_usuarios",
+    "activar_desactivar_usuarios",
+]
+
+# PERMISOS DE GESTIÓN DE ROLES
+ROLE_MANAGEMENT_PERMISSIONS = [
+    "gestionar_roles",
+    "ver_roles",
+    "crear_roles",
+    "editar_roles",
+    "eliminar_roles",
+]
+
+# PERMISOS DE GESTIÓN DE CONDUCTORES
+DRIVER_MANAGEMENT_PERMISSIONS = [
+    "gestionar_conductores",
+    "ver_conductores",
+    "crear_conductores",
+    "editar_conductores",
+    "eliminar_conductores",
+]
+
+# PERMISOS DE GESTIÓN DE PERSONAL
+STAFF_MANAGEMENT_PERMISSIONS = [
+    "gestionar_personal",
+    "ver_personal",
+    "crear_personal",
+    "editar_personal",
+    "eliminar_personal",
+]
+
+# PERMISOS DE REPORTES
+REPORT_PERMISSIONS = [
+    "ver_reportes_basicos",
+    "ver_reportes_avanzados",
+    "exportar_reportes",
+]
+
+# PERMISOS DE DASHBOARD
+DASHBOARD_PERMISSIONS = [
+    "ver_dashboard_admin",
+    "ver_estadisticas",
+]
+
+# PERMISOS DE CLIENTE
+CLIENT_PERMISSIONS = [
+    "solicitar_viaje",
+    "ver_historial_viajes",
+    "cancelar_viaje",
+    "calificar_viaje",
+]
+
+# PERMISOS DE BITÁCORA
+AUDIT_PERMISSIONS = [
+    "ver_bitacora",
+    "exportar_bitacora",
+]
+
+# TODOS LOS PERMISOS
+ALL_PERMISSIONS = (
+    AUTH_PERMISSIONS +
+    USER_MANAGEMENT_PERMISSIONS +
+    ROLE_MANAGEMENT_PERMISSIONS +
+    DRIVER_MANAGEMENT_PERMISSIONS +
+    STAFF_MANAGEMENT_PERMISSIONS +
+    REPORT_PERMISSIONS +
+    DASHBOARD_PERMISSIONS +
+    CLIENT_PERMISSIONS +
+    AUDIT_PERMISSIONS
+)
+
+# ========================================
+# GRUPOS DE PERMISOS PREDEFINIDOS
+# ========================================
+
+PERMISSION_GROUPS = {
+    "AUTENTICACION": AUTH_PERMISSIONS,
+    "GESTION_USUARIOS": USER_MANAGEMENT_PERMISSIONS,
+    "GESTION_ROLES": ROLE_MANAGEMENT_PERMISSIONS,
+    "GESTION_CONDUCTORES": DRIVER_MANAGEMENT_PERMISSIONS,
+    "GESTION_PERSONAL": STAFF_MANAGEMENT_PERMISSIONS,
+    "REPORTES": REPORT_PERMISSIONS,
+    "DASHBOARD": DASHBOARD_PERMISSIONS,
+    "CLIENTE": CLIENT_PERMISSIONS,
+    "AUDITORIA": AUDIT_PERMISSIONS,
+}
+
+# ========================================
+# ROLES PREDEFINIDOS
+# ========================================
+
+ROLES_CONFIG = {
+    "Administrador": {
+        "descripcion": "Acceso completo al sistema",
+        "es_administrativo": True,
+        "permisos": ALL_PERMISSIONS,
+        "is_staff": True,
+        "is_superuser": False,
+    },
+    "Supervisor": {
+        "descripcion": "Supervisión y gestión operativa",
+        "es_administrativo": True,
+        "permisos": (
+            AUTH_PERMISSIONS +
+            USER_MANAGEMENT_PERMISSIONS +
+            DRIVER_MANAGEMENT_PERMISSIONS +
+            STAFF_MANAGEMENT_PERMISSIONS +
+            REPORT_PERMISSIONS +
+            DASHBOARD_PERMISSIONS +
+            AUDIT_PERMISSIONS
+        ),
+        "is_staff": True,
+        "is_superuser": False,
+    },
+    "Conductor": {
+        "descripcion": "Gestión de viajes y vehículos",
+        "es_administrativo": True,
+        "permisos": (
+            AUTH_PERMISSIONS +
+            ["ver_conductores", "editar_conductores"] +
+            ["ver_reportes_basicos", "ver_dashboard_admin"]
+        ),
+        "is_staff": True,
+        "is_superuser": False,
+    },
+    "Cliente": {
+        "descripcion": "Cliente regular del sistema",
+        "es_administrativo": False,
+        "permisos": (
+            AUTH_PERMISSIONS +
+            CLIENT_PERMISSIONS
+        ),
+        "is_staff": False,
+        "is_superuser": False,
+    },
+    "Operador": {
+        "descripcion": "Asignación y gestión de viajes",
+        "es_administrativo": True,
+        "permisos": (
+            AUTH_PERMISSIONS +
+            ["ver_conductores", "ver_personal"] +
+            ["ver_reportes_basicos", "ver_dashboard_admin"]
+        ),
+        "is_staff": True,
+        "is_superuser": False,
+    },
+}
+
+# ========================================
+# CONFIGURACIONES DEL SISTEMA
+# ========================================
+
+# CONFIGURACIÓN DE VERIFICACIÓN
+VERIFICATION_CONFIG = {
+    "CODIGO_LENGTH": 6,
+    "CODIGO_EXPIRY_MINUTES": 10,
+    "MAX_ATTEMPTS": 3,
+    "RESEND_COOLDOWN_MINUTES": 1,
+}
+
+# CONFIGURACIÓN DE GOOGLE OAUTH
+GOOGLE_OAUTH_CONFIG = {
+    "CLIENT_ID": "your-google-client-id",
+    "CLIENT_SECRET": "your-google-client-secret",
+    "REDIRECT_URI": "http://localhost:3000/auth/google/callback",
+}
+
+# CONFIGURACIÓN DE JWT
+JWT_CONFIG = {
+    "ACCESS_TOKEN_LIFETIME_MINUTES": 60,
+    "REFRESH_TOKEN_LIFETIME_DAYS": 7,
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+}
+
+# CONFIGURACIÓN DE PAGINACIÓN
+PAGINATION_CONFIG = {
+    "PAGE_SIZE": 20,
+    "MAX_PAGE_SIZE": 100,
+}
+
+# CONFIGURACIÓN DE BÚSQUEDA
+SEARCH_CONFIG = {
+    "MIN_QUERY_LENGTH": 2,
+    "MAX_RESULTS": 50,
+    "SEARCH_FIELDS": ["username", "first_name", "last_name", "email"],
+}
+
+# ========================================
+# MENSAJES DEL SISTEMA
+# ========================================
+
+MESSAGES = {
+    "USER_CREATED": "Usuario creado exitosamente",
+    "USER_UPDATED": "Usuario actualizado exitosamente",
+    "USER_DELETED": "Usuario eliminado exitosamente",
+    "USER_ACTIVATED": "Usuario activado exitosamente",
+    "USER_DEACTIVATED": "Usuario desactivado exitosamente",
+    "PASSWORD_CHANGED": "Contraseña cambiada exitosamente",
+    "PROFILE_UPDATED": "Perfil actualizado exitosamente",
+    "ROLE_CREATED": "Rol creado exitosamente",
+    "ROLE_UPDATED": "Rol actualizado exitosamente",
+    "ROLE_DELETED": "Rol eliminado exitosamente",
+    "VERIFICATION_SENT": "Código de verificación enviado",
+    "VERIFICATION_SUCCESS": "Código verificado exitosamente",
+    "LOGIN_SUCCESS": "Inicio de sesión exitoso",
+    "LOGOUT_SUCCESS": "Cierre de sesión exitoso",
+    "PERMISSION_DENIED": "No tienes permisos para esta acción",
+    "USER_NOT_FOUND": "Usuario no encontrado",
+    "ROLE_NOT_FOUND": "Rol no encontrado",
+    "INVALID_CREDENTIALS": "Credenciales inválidas",
+    "USER_INACTIVE": "Usuario inactivo",
+    "TOKEN_INVALID": "Token inválido",
+    "TOKEN_EXPIRED": "Token expirado",
+}
+
+# ========================================
+# CÓDIGOS DE ERROR
+# ========================================
+
+ERROR_CODES = {
+    "USER_NOT_FOUND": "USER_001",
+    "ROLE_NOT_FOUND": "ROLE_001",
+    "PERMISSION_DENIED": "PERM_001",
+    "INVALID_CREDENTIALS": "AUTH_001",
+    "USER_INACTIVE": "AUTH_002",
+    "TOKEN_INVALID": "AUTH_003",
+    "TOKEN_EXPIRED": "AUTH_004",
+    "VALIDATION_ERROR": "VAL_001",
+    "DUPLICATE_EMAIL": "VAL_002",
+    "DUPLICATE_USERNAME": "VAL_003",
+    "DUPLICATE_CI": "VAL_004",
+    "INVALID_ROLE": "VAL_005",
+    "VERIFICATION_FAILED": "VER_001",
+    "VERIFICATION_EXPIRED": "VER_002",
+    "MAX_ATTEMPTS_EXCEEDED": "VER_003",
 }

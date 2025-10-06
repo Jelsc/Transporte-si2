@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Filter, X, Users, Shield, User } from 'lucide-react';
-import type { UsuarioFilters } from '@/types';
+import type { UserFilters } from '@/types';
 
 interface UsuarioFiltersProps {
   search: string;

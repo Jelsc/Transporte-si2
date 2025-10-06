@@ -6,12 +6,13 @@ import React, {
   type ReactNode,
 } from "react";
 import {
-  type User,
-  clientAuthService,
-  adminAuthService,
-  tokenUtils,
+  authService,
+  registrationService,
+  profileService,
   ApiError,
-} from "@/services/api";
+} from "@/services/authService";
+import { tokenUtils } from "@/lib/tokenUtils";
+import { type User } from "@/types";
 
 // Tipos para el contexto
 interface AuthState {
@@ -23,12 +24,13 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  // Funciones para clientes
+  // Funciones de autenticación unificada
   login: (
     email: string,
     password: string,
     rememberMe?: boolean
   ) => Promise<void>;
+  adminLogin: (username: string, password: string) => Promise<void>;
   loginWithGoogle: (googleData: {
     username: string;
     password: string;
@@ -40,17 +42,11 @@ interface AuthContextType extends AuthState {
     first_name: string;
     last_name: string;
     email: string;
-    password1: string;
-    password2: string;
+    password: string;
+    password_confirm: string;
     telefono?: string;
   }) => Promise<void>;
   logout: () => void;
-
-  // Funciones para administradores
-  adminLogin: (username: string, password: string) => Promise<void>;
-  adminLogout: () => void;
-
-  // Funciones generales
   clearError: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -124,27 +120,14 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   }
 }
 
-// Crear contexto
+
+// Contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Hook para usar el contexto
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth debe ser usado dentro de un AuthProvider");
-  }
-  return context;
-}
-
-// Provider del contexto
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+// Provider
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Verificar autenticación al cargar la app
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -180,7 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       type: "AUTH_SUCCESS",
       payload: {
         user,
-        isAdmin: user.rol?.es_administrativo || false,
+        isAdmin: user.es_administrativo || false,
       },
     });
   };
@@ -190,7 +173,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!refreshToken) throw new Error("No refresh token available");
 
     try {
-      const response = await adminAuthService.refreshToken(refreshToken);
+      const response = await authService.refreshToken(refreshToken);
       if (response.success && response.data) {
         const newTokens = {
           access: response.data.access,
@@ -203,12 +186,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Login para clientes
+  // Login universal para clientes
   const login = async (email: string, password: string, rememberMe = false) => {
     dispatch({ type: "AUTH_START" });
 
     try {
-      const response = await clientAuthService.login({
+      const response = await authService.login({
         email,
         password,
         rememberMe,
@@ -216,125 +199,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.success && response.data) {
         // Guardar tokens
-        tokenUtils.saveTokens(response.data);
+        if (response.data) {
+          tokenUtils.saveTokens(response.data);
+        }
 
-        // Obtener perfil del usuario
-        const profileResponse = await clientAuthService.getProfile();
+        // Obtener información del usuario
+        const userResponse = await authService.getUserInfo();
 
-        if (profileResponse.success && profileResponse.data) {
-          const user = profileResponse.data;
-          tokenUtils.saveTokens({ ...response.data, user });
+        if (userResponse.success && userResponse.data) {
+          const user = userResponse.data;
+          if (response.data) {
+            tokenUtils.saveTokens({ ...response.data, user });
+          }
 
           dispatch({
             type: "AUTH_SUCCESS",
             payload: {
               user,
-              isAdmin: false,
+              isAdmin: user.es_administrativo || false,
             },
           });
         } else {
-          throw new Error("Error al obtener perfil del usuario");
+          throw new Error("Error al obtener información del usuario");
         }
       } else {
         throw new Error(response.error || "Error en el login");
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof ApiError ? error.message : "Error de conexión";
-      dispatch({ type: "AUTH_FAILURE", payload: errorMessage });
-      throw error;
-    }
-  };
-
-  // Login con Google para clientes
-  const loginWithGoogle = async (googleData: {
-    username: string;
-    password: string;
-    isGoogleAuth: boolean;
-    googleToken: string;
-  }) => {
-    dispatch({ type: "AUTH_START" });
-
-    try {
-      // Enviar el token de Google al backend
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/admin/google/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            access_token: googleData.googleToken,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Error en la autenticación con Google");
-      }
-
-      const data = await response.json();
-
-      if (data.access && data.refresh) {
-        // Guardar tokens
-        tokenUtils.saveTokens({
-          access: data.access,
-          refresh: data.refresh,
-        });
-
-        // Obtener perfil del usuario
-        const profileResponse = await clientAuthService.getProfile();
-
-        if (profileResponse.success && profileResponse.data) {
-          const user = profileResponse.data;
-          tokenUtils.saveTokens({
-            access: data.access,
-            refresh: data.refresh,
-            user,
-          });
-
-          dispatch({
-            type: "AUTH_SUCCESS",
-            payload: {
-              user,
-              isAdmin: false,
-            },
-          });
-        } else {
-          throw new Error("Error al obtener perfil del usuario");
-        }
-      } else {
-        throw new Error("Error en la respuesta de Google OAuth");
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Error de conexión con Google";
-      dispatch({ type: "AUTH_FAILURE", payload: errorMessage });
-      throw error;
-    }
-  };
-
-  // Registro para clientes
-  const register = async (userData: {
-    username: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    password1: string;
-    password2: string;
-    telefono?: string;
-  }) => {
-    dispatch({ type: "AUTH_START" });
-
-    try {
-      const response = await clientAuthService.register(userData);
-
-      if (response.success) {
-        // No hacer login automático, el usuario debe verificar su email
-        dispatch({ type: "AUTH_LOGOUT" });
-      } else {
-        throw new Error(response.error || "Error en el registro");
       }
     } catch (error) {
       const errorMessage =
@@ -349,21 +238,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: "AUTH_START" });
 
     try {
-      const response = await adminAuthService.login({ username, password });
+      const response = await authService.login({
+        username,
+        password,
+      });
 
       if (response.success && response.data) {
-        // Guardar tokens y usuario
-        tokenUtils.saveTokens(response.data);
+        // Guardar tokens
+        if (response.data) {
+          tokenUtils.saveTokens(response.data);
+        }
 
-        dispatch({
-          type: "AUTH_SUCCESS",
-          payload: {
-            user: response.data.user,
-            isAdmin: true,
-          },
-        });
+        // Obtener información del usuario
+        const userResponse = await authService.getUserInfo();
+
+        if (userResponse.success && userResponse.data) {
+          const user = userResponse.data;
+          if (response.data) {
+            tokenUtils.saveTokens({ ...response.data, user });
+          }
+
+          dispatch({
+            type: "AUTH_SUCCESS",
+            payload: {
+              user,
+              isAdmin: user.es_administrativo || false,
+            },
+          });
+        } else {
+          throw new Error("Error al obtener información del usuario");
+        }
       } else {
-        throw new Error(response.error || "Error en el login de administrador");
+        throw new Error(response.error || "Error en el login");
       }
     } catch (error) {
       const errorMessage =
@@ -373,29 +279,90 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Logout para clientes
-  const logout = async () => {
+  // Login con Google
+  const loginWithGoogle = async (googleData: {
+    username: string;
+    password: string;
+    isGoogleAuth: boolean;
+    googleToken: string;
+  }) => {
+    dispatch({ type: "AUTH_START" });
+
     try {
-      await clientAuthService.logout();
+      const response = await registrationService.googleAuth(googleData.googleToken);
+
+      if (response.success && response.data) {
+        // Guardar tokens
+        if (response.data) {
+          tokenUtils.saveTokens(response.data);
+        }
+
+        // Obtener información del usuario
+        const userResponse = await authService.getUserInfo();
+
+        if (userResponse.success && userResponse.data) {
+          const user = userResponse.data;
+          if (response.data) {
+            tokenUtils.saveTokens({ ...response.data, user });
+          }
+
+          dispatch({
+            type: "AUTH_SUCCESS",
+            payload: {
+              user,
+              isAdmin: user.es_administrativo || false,
+            },
+          });
+        } else {
+          throw new Error("Error al obtener información del usuario");
+        }
+      } else {
+        throw new Error(response.error || "Error en el login con Google");
+      }
     } catch (error) {
-      console.error("Error en logout:", error);
-    } finally {
-      tokenUtils.clearTokens();
-      dispatch({ type: "AUTH_LOGOUT" });
+      const errorMessage =
+        error instanceof ApiError ? error.message : "Error de conexión";
+      dispatch({ type: "AUTH_FAILURE", payload: errorMessage });
+      throw error;
     }
   };
 
-  // Logout para administradores
-  const adminLogout = async () => {
-    const refreshToken = tokenUtils.getRefreshToken();
+  // Registro de clientes
+  const register = async (userData: {
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    password_confirm: string;
+    telefono?: string;
+  }) => {
+    dispatch({ type: "AUTH_START" });
 
     try {
-      if (refreshToken) {
-        await adminAuthService.logout(refreshToken);
+      const response = await registrationService.registerClient(userData);
+
+      if (response.success && response.data) {
+        // El registro exitoso no significa login automático
+        // El usuario debe verificar su email
+        dispatch({ type: "SET_LOADING", payload: false });
+      } else {
+        throw new Error(response.error || "Error en el registro");
       }
     } catch (error) {
-      console.error("Error en logout de admin:", error);
-      // Continuar con el logout local aunque falle el servidor
+      const errorMessage =
+        error instanceof ApiError ? error.message : "Error de conexión";
+      dispatch({ type: "AUTH_FAILURE", payload: errorMessage });
+      throw error;
+    }
+  };
+
+  // Logout universal
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error("Error en logout:", error);
     } finally {
       tokenUtils.clearTokens();
       dispatch({ type: "AUTH_LOGOUT" });
@@ -407,28 +374,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: "CLEAR_ERROR" });
   };
 
-  // Refrescar datos del usuario
+  // Refrescar información del usuario
   const refreshUser = async () => {
-    if (!state.isAuthenticated) return;
-
     try {
-      const response = state.isAdmin
-        ? await adminAuthService.getProfile()
-        : await clientAuthService.getProfile();
-
+      const response = await authService.getUserInfo();
       if (response.success && response.data) {
         const user = response.data;
-        tokenUtils.saveTokens({
-          access: tokenUtils.getAccessToken()!,
-          refresh: tokenUtils.getRefreshToken()!,
-          user,
-        });
+        const accessToken = tokenUtils.getAccessToken();
+        const refreshToken = tokenUtils.getRefreshToken();
+        if (accessToken && refreshToken) {
+          tokenUtils.saveTokens({ 
+            access: accessToken,
+            refresh: refreshToken,
+            user 
+          });
+        }
 
         dispatch({
           type: "AUTH_SUCCESS",
           payload: {
             user,
-            isAdmin: state.isAdmin,
+            isAdmin: user.es_administrativo || false,
           },
         });
       }
@@ -440,14 +406,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     ...state,
     login,
+    adminLogin,
     loginWithGoogle,
     register,
     logout,
-    adminLogin,
-    adminLogout,
     clearError,
     refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+// Hook para usar el contexto
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }

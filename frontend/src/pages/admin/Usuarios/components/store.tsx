@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { PasswordInput } from '@/components/password-input';
 import { 
   Select, 
   SelectContent, 
@@ -29,9 +29,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Loader2, User, Car } from 'lucide-react';
+import { Loader2, User as UserIcon, Car } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Usuario, UsuarioFormData, Role } from '@/types';
+import type { User, UserFormData, Role } from '@/types';
 
 // Esquema base (común a crear/editar)
 const baseUsuarioSchema = z.object({
@@ -44,13 +44,12 @@ const baseUsuarioSchema = z.object({
   ci: z.string().optional(),
   fecha_nacimiento: z.date().nullable().optional(),
   rol_id: z.number().optional(),
-  is_superuser: z.boolean(),
   is_active: z.boolean(), // Unificado con es_activo
-  personal: z.number().optional(),
-  conductor: z.number().optional(),
+  personal_id: z.number().optional(),
+  conductor_id: z.number().optional(),
   password: z.string().optional(),
   password_confirm: z.string().optional(),
-}) satisfies z.ZodType<UsuarioFormData>;
+}) satisfies z.ZodType<UserFormData>;
 
 // Crear: password requerido y debe coincidir
 const createUsuarioSchema = baseUsuarioSchema.extend({
@@ -75,8 +74,8 @@ const editUsuarioSchema = baseUsuarioSchema.refine((data) => {
 interface UsuarioStoreProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: UsuarioFormData) => Promise<boolean>;
-  initialData?: Usuario | null;
+  onSubmit: (data: UserFormData) => Promise<boolean>;
+  initialData?: User | null;
   loading?: boolean;
   roles: Role[];
   personalDisponible: Array<{
@@ -115,7 +114,7 @@ export function UsuarioStore({
     : 'Agrega un nuevo usuario al sistema';
 
 
-  const form = useForm<UsuarioFormData>({
+  const form = useForm<UserFormData>({
     resolver: zodResolver(isEdit ? editUsuarioSchema : createUsuarioSchema),
     defaultValues: {
       username: '',
@@ -127,10 +126,9 @@ export function UsuarioStore({
       ci: '',
       fecha_nacimiento: null,
       rol_id: undefined,
-      is_superuser: false,
       is_active: true, // Unificado con es_activo
-      personal: undefined,
-      conductor: undefined,
+      personal_id: undefined,
+      conductor_id: undefined,
       password: '',
       password_confirm: '',
     },
@@ -149,10 +147,9 @@ export function UsuarioStore({
         ci: initialData.ci,
         fecha_nacimiento: initialData.fecha_nacimiento ? new Date(initialData.fecha_nacimiento) : null,
         rol_id: initialData.rol?.id || undefined,
-        is_superuser: initialData.is_superuser,
         is_active: initialData.is_active, // Unificado con es_activo
-        personal: initialData.personal || undefined,
-        conductor: initialData.conductor || undefined,
+        personal_id: initialData.personal_id || undefined,
+        conductor_id: initialData.conductor_id || undefined,
         password: '',
         password_confirm: '',
       });
@@ -168,17 +165,32 @@ export function UsuarioStore({
         ci: '',
         fecha_nacimiento: null,
         rol_id: undefined,
-        is_superuser: false,
         is_active: true, // Unificado con es_activo
-        personal: undefined,
-        conductor: undefined,
+        personal_id: undefined,
+        conductor_id: undefined,
         password: '',
         password_confirm: '',
       });
     }
   }, [isOpen, initialData, form]);
 
-  const handleSubmit = async (data: UsuarioFormData) => {
+  // Manejar cambios en personal y conductor
+  const personalValue = form.watch('personal_id');
+  const conductorValue = form.watch('conductor_id');
+
+  useEffect(() => {
+    if (personalValue) {
+      handlePersonalSelect(personalValue);
+    }
+  }, [personalValue]);
+
+  useEffect(() => {
+    if (conductorValue) {
+      handleConductorSelect(conductorValue);
+    }
+  }, [conductorValue]);
+
+  const handleSubmit = async (data: UserFormData) => {
     const success = await onSubmit(data);
     if (success) {
       form.reset();
@@ -194,9 +206,9 @@ export function UsuarioStore({
   const handlePersonalSelect = (personalId: number) => {
     const personal = personalDisponible.find(p => p.id === personalId);
     if (personal) {
-      form.setValue('personal', personalId);
+      form.setValue('personal_id', personalId);
       // Si selecciona personal, desvincular conductor para evitar conflictos
-      form.setValue('conductor', undefined, { shouldDirty: true, shouldValidate: true });
+      form.setValue('conductor_id', undefined, { shouldDirty: true, shouldValidate: true });
       form.setValue('first_name', personal.nombre);
       form.setValue('last_name', personal.apellido);
       form.setValue('email', personal.email);
@@ -208,9 +220,9 @@ export function UsuarioStore({
   const handleConductorSelect = (conductorId: number) => {
     const conductor = conductoresDisponibles.find(c => c.id === conductorId);
     if (conductor) {
-      form.setValue('conductor', conductorId, { shouldDirty: true, shouldValidate: true });
+      form.setValue('conductor_id', conductorId, { shouldDirty: true, shouldValidate: true });
       // Si selecciona conductor, desvincular personal para evitar conflictos
-      form.setValue('personal', undefined, { shouldDirty: true, shouldValidate: true });
+      form.setValue('personal_id', undefined, { shouldDirty: true, shouldValidate: true });
       form.setValue('first_name', conductor.nombre); // Cambiado de personal__nombre
       form.setValue('last_name', conductor.apellido); // Cambiado de personal__apellido
       form.setValue('email', conductor.email); // Cambiado de personal__email
@@ -219,8 +231,8 @@ export function UsuarioStore({
     }
   };
 
-  const selectedPersonal = personalDisponible.find(p => p.id === form.watch('personal'));
-  const selectedConductor = conductoresDisponibles.find(c => c.id === form.watch('conductor'));
+  const selectedPersonal = personalDisponible.find(p => p.id === form.watch('personal_id'));
+  const selectedConductor = conductoresDisponibles.find(c => c.id === form.watch('conductor_id'));
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -341,16 +353,13 @@ export function UsuarioStore({
               {/* Personal (Select simple) */}
               <FormField
                 control={form.control}
-                name="personal"
+                name="personal_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Personal (Opcional)</FormLabel>
                     <Select
-                      onValueChange={(value) => {
-                        const personalId = value ? parseInt(value) : undefined;
-                        handlePersonalSelect(personalId!);
-                      }}
-                      value={field.value ? String(field.value) : ""}
+                      onValueChange={(val) => field.onChange(val ? parseInt(val) : undefined)}
+                      value={field.value !== undefined ? String(field.value) : ''}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -361,7 +370,7 @@ export function UsuarioStore({
                         {personalDisponible.map((personal) => (
                           <SelectItem key={personal.id} value={String(personal.id)}>
                             <div className="flex items-center gap-2">
-                              <User className="h-4 w-4" />
+                              <UserIcon className="h-4 w-4" />
                               <div>
                                 <div className="font-medium">
                                   {personal.nombre} {personal.apellido}
@@ -383,16 +392,13 @@ export function UsuarioStore({
               {/* Conductor (Select simple) */}
               <FormField
                 control={form.control}
-                name="conductor"
+                name="conductor_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Conductor (Opcional)</FormLabel>
                     <Select
-                      onValueChange={(value) => {
-                        const conductorId = value ? parseInt(value) : undefined;
-                        handleConductorSelect(conductorId!);
-                      }}
-                      value={field.value ? String(field.value) : ""}
+                      onValueChange={(val) => field.onChange(val ? parseInt(val) : undefined)}
+                      value={field.value !== undefined ? String(field.value) : ''}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -423,38 +429,46 @@ export function UsuarioStore({
               />
             </div>
 
-            {/* Contraseñas (solo para creación) */}
-            {!isEdit && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contraseña *</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="Contraseña" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            {/* Contraseñas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {isEdit ? 'Nueva Contraseña' : 'Contraseña *'}
+                    </FormLabel>
+                    <FormControl>
+                      <PasswordInput 
+                        placeholder={isEdit ? "Dejar vacío para mantener la actual" : "Contraseña"} 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="password_confirm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Confirmar Contraseña *</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="Confirmar contraseña" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            )}
+              <FormField
+                control={form.control}
+                name="password_confirm"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {isEdit ? 'Confirmar Nueva Contraseña' : 'Confirmar Contraseña *'}
+                    </FormLabel>
+                    <FormControl>
+                      <PasswordInput 
+                        placeholder={isEdit ? "Confirmar nueva contraseña" : "Confirmar contraseña"} 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             {/* Dirección */}
             <FormField
@@ -482,28 +496,6 @@ export function UsuarioStore({
                     <Input placeholder="CI" {...field} />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Superusuario */}
-            <FormField
-              control={form.control}
-              name="is_superuser"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Superusuario</FormLabel>
-                    <div className="text-sm text-muted-foreground">
-                      El usuario tendrá todos los permisos del sistema
-                    </div>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value || false}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
                 </FormItem>
               )}
             />

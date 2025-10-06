@@ -23,17 +23,9 @@ class ConductorViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['estado', 'tipo_licencia']
-    search_fields = [
-        'nombre',
-        'apellido',
-        'email',
-        'ci',
-        'nro_licencia'
-    ]
-    filterset_fields = ["estado", "es_activo", "tipo_licencia"]
-    search_fields = ["nombre", "apellido", "email", "ci", "nro_licencia"]
-    ordering_fields = ["nombre", "fecha_creacion", "fecha_venc_licencia"]
-    ordering = ["-fecha_creacion"]
+    search_fields = ['nombre', 'apellido', 'email', 'ci', 'nro_licencia']
+    ordering_fields = ['nombre', 'fecha_creacion', 'fecha_venc_licencia']
+    ordering = ['-fecha_creacion']
 
     def get_serializer_class(self):
         """Retorna el serializer apropiado según la acción"""
@@ -67,7 +59,7 @@ class ConductorViewSet(viewsets.ModelViewSet):
             elif licencia_vencida.lower() == "false":
                 queryset = queryset.filter(fecha_venc_licencia__gte=hoy)
 
-        return queryset.select_related("usuario")
+        return queryset
 
     def perform_create(self, serializer):
         """Crear un nuevo conductor"""
@@ -190,9 +182,9 @@ class ConductorViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Conductores que no tienen usuario vinculado
+        # Conductores disponibles
         conductores_disponibles = Conductor.objects.filter(
-            usuario__isnull=True
+            estado='disponible'
         ).values(
             'id',
             'nombre',

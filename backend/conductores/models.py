@@ -61,15 +61,7 @@ class Conductor(models.Model):
         default=""
     )
     
-    # Relación con el usuario (opcional)
-    usuario = models.OneToOneField(
-        User, 
-        on_delete=models.SET_NULL,
-        related_name='conductor_profile',
-        verbose_name="Usuario",
-        null=True,
-        blank=True
-    )
+    # Relación con el usuario eliminada - se maneja desde users.models.CustomUser
     
     # Información específica del conductor
     nro_licencia = models.CharField(
@@ -178,10 +170,9 @@ class Conductor(models.Model):
     
     @property
     def estado_usuario(self):
-        """Estado del usuario (activo/inactivo)"""
-        if self.usuario:
-            return 'activo' if self.usuario.is_active else 'inactivo'
-        return 'sin_usuario'
+        """Estado del usuario (activo/inactivo) - ahora se accede desde users.models.CustomUser"""
+        # Esta propiedad ahora se maneja desde el modelo CustomUser
+        return 'sin_usuario'  # Por defecto, ya que la relación se maneja desde users
     
     @property
     def licencia_vencida(self):
@@ -223,9 +214,8 @@ class Conductor(models.Model):
     
     def puede_conducir(self):
         """Verifica si el conductor puede conducir (activo, licencia válida, etc.)"""
+        # Ahora se verifica desde el modelo CustomUser que tiene la relación
         return (
-            self.usuario and 
-            self.usuario.is_active and 
             not self.licencia_vencida and 
             self.estado in ['disponible', 'ocupado']
         )

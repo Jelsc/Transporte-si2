@@ -22,18 +22,10 @@ class PersonalViewSet(viewsets.ModelViewSet):
     serializer_class = PersonalSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['estado', 'usuario']
-    search_fields = [
-        'nombre',
-        'apellido',
-        'email',
-        'ci',
-        'codigo_empleado'
-    ]
-    filterset_fields = ["estado", "es_activo", "departamento"]
-    search_fields = ["nombre", "apellido", "email", "ci", "codigo_empleado"]
-    ordering_fields = ["nombre", "apellido", "fecha_creacion", "fecha_ingreso"]
-    ordering = ["-fecha_creacion"]
+    filterset_fields = ['estado']
+    search_fields = ['nombre', 'apellido', 'email', 'ci', 'codigo_empleado']
+    ordering_fields = ['nombre', 'apellido', 'fecha_creacion', 'fecha_ingreso']
+    ordering = ['-fecha_creacion']
 
     def get_serializer_class(self):
         """Retorna el serializer apropiado según la acción"""
@@ -60,7 +52,7 @@ class PersonalViewSet(viewsets.ModelViewSet):
             except:
                 return queryset.none()
         
-        return queryset.select_related('usuario')
+        return queryset
     
     def perform_create(self, serializer):
         """Crear un nuevo empleado"""
@@ -156,8 +148,6 @@ class PersonalViewSet(viewsets.ModelViewSet):
             'total': queryset.count(),
             'activos': queryset.filter(estado=True).count(),
             'inactivos': queryset.filter(estado=False).count(),
-            'con_usuario': queryset.filter(usuario__isnull=False).count(),
-            'sin_usuario': queryset.filter(usuario__isnull=True).count(),
             'nuevos_este_mes': queryset.filter(
                 fecha_creacion__gte=timezone.now().replace(day=1)
             ).count(),
@@ -174,9 +164,8 @@ class PersonalViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         
-        # Personal que no tiene usuario vinculado y está activo
+        # Personal activo disponible
         personal_disponible = Personal.objects.filter(
-            usuario__isnull=True,
             estado=True
         ).values('id', 'nombre', 'apellido', 'email', 'ci', 'telefono')
         

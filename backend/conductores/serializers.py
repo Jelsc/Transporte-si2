@@ -9,9 +9,6 @@ User = get_user_model()
 class ConductorSerializer(serializers.ModelSerializer):
     """Serializer para el modelo Conductor"""
     
-    # Campos del usuario relacionado
-    username = serializers.CharField(source='usuario.username', read_only=True, allow_null=True)
-    
     # Campos calculados
     nombre_completo = serializers.CharField(read_only=True)
     licencia_vencida = serializers.BooleanField(read_only=True)
@@ -23,8 +20,6 @@ class ConductorSerializer(serializers.ModelSerializer):
         model = Conductor
         fields = [
             'id',
-            'usuario',
-            'username',
             'nombre',
             'apellido',
             'fecha_nacimiento',

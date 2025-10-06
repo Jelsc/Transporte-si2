@@ -34,6 +34,8 @@ services:
     environment:
       POSTGRES_HOST: db
       REDIS_URL: "redis://redis:6379/0"
+      # IP automática habilitada
+      AUTO_DETECT_IP: "true"
     depends_on:
       db:
         condition: service_healthy
@@ -41,7 +43,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: bash -lc "python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
+    command: bash -lc "python detect_ip.py && python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
 
@@ -55,6 +57,8 @@ services:
       - ./frontend/.env
     environment:
       HOST: "0.0.0.0"  # Vite necesita HOST para exponer en 0.0.0.0
+      # Dejamos VITE_API_URL vacío para habilitar detección automática
+      VITE_API_URL: ""
     volumes:
       - ./frontend:/app
     command: sh -lc "npm install && npm run dev -- --host"

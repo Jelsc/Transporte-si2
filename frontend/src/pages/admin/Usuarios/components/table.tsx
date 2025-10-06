@@ -25,15 +25,15 @@ import {
   PaginationEllipsis,
 } from '@/components/ui/pagination';
 import { MoreHorizontal, Edit, Trash2, Eye, UserCheck, UserX } from 'lucide-react';
-import type { Usuario } from '@/types';
+import type { User } from '@/types';
 
 interface UsuarioTableProps {
-  data: Usuario[];
+  data: User[];
   loading: boolean;
-  onEdit: (item: Usuario) => void;
-  onDelete: (item: Usuario) => void;
-  onToggleStatus?: (item: Usuario) => void;
-  onView?: (item: Usuario) => void;
+  onEdit: (item: User) => void;
+  onDelete: (item: User) => void;
+  onToggleStatus?: (item: User) => void;
+  onView?: (item: User) => void;
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -60,23 +60,39 @@ export function UsuarioTable({
 
   const getStatusBadge = (esActivo: boolean) => {
     return (
-      <Badge variant={esActivo ? "default" : "secondary"}>
+      <Badge 
+        variant={esActivo ? "success" : "error"} 
+        badgeType="icon"
+        size="sm"
+      >
         {esActivo ? "Activo" : "Inactivo"}
       </Badge>
     );
   };
 
   const getRolBadge = (rol: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      'Administrador': 'destructive',
-      'Supervisor': 'default',
-      'Operador': 'secondary',
-      'Conductor': 'outline',
-      'Cliente': 'outline',
+    const variants: Record<string, "error" | "information" | "warning" | "brand" | "neutral"> = {
+      'Administrador': 'error',
+      'Supervisor': 'information',
+      'Operador': 'warning',
+      'Conductor': 'brand',
+      'Cliente': 'neutral',
+    };
+
+    const badgeTypes: Record<string, "icon" | "no-icon" | "dot"> = {
+      'Administrador': 'icon',
+      'Supervisor': 'icon',
+      'Operador': 'icon',
+      'Conductor': 'icon',
+      'Cliente': 'no-icon',
     };
 
     return (
-      <Badge variant={variants[rol] || 'outline'}>
+      <Badge 
+        variant={variants[rol] || 'neutral'} 
+        badgeType={badgeTypes[rol] || 'no-icon'}
+        size="sm"
+      >
         {rol}
       </Badge>
     );

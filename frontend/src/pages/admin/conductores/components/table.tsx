@@ -58,7 +58,11 @@ export function ConductorTable({
 
   const getStatusBadge = (esActivo: boolean) => {
     return (
-      <Badge variant={esActivo ? "default" : "secondary"}>
+      <Badge 
+        variant={esActivo ? "success" : "error"} 
+        badgeType="icon"
+        size="sm"
+      >
         {esActivo ? "Activo" : "Inactivo"}
       </Badge>
     );
@@ -71,20 +75,19 @@ export function ConductorTable({
     
     if (diasRestantes < 0) {
       return (
-        <Badge variant="outline" className="text-red-600 border-red-600">
-          <AlertTriangle className="h-3 w-3" />
+        <Badge variant="error" badgeType="icon" size="sm">
           Vencida
         </Badge>
       );
     } else if (diasRestantes <= 30) {
       return (
-        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+        <Badge variant="warning" badgeType="icon" size="sm">
           Por vencer ({diasRestantes} días)
         </Badge>
       );
     } else {
       return (
-        <Badge variant="outline" className="text-green-600 border-green-600">
+        <Badge variant="success" badgeType="dot" size="sm">
           Vigente
         </Badge>
       );
@@ -93,18 +96,18 @@ export function ConductorTable({
 
   const getLicenseNumberBadge = (nroLicencia: string) => {
     return (
-      <Badge variant="outline" className="font-mono">
+      <Badge variant="neutral" badgeType="no-icon" size="sm" className="font-mono">
         {nroLicencia}
       </Badge>
     );
   };
 
   const getOperationalStatusBadge = (estado: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      'disponible': 'default',
-      'ocupado': 'secondary',
-      'descanso': 'outline',
-      'inactivo': 'destructive',
+    const variants: Record<string, "success" | "warning" | "information" | "error" | "neutral"> = {
+      'disponible': 'success',
+      'ocupado': 'warning',
+      'descanso': 'information',
+      'inactivo': 'error',
     };
 
     const labels: Record<string, string> = {
@@ -114,8 +117,19 @@ export function ConductorTable({
       'inactivo': 'Inactivo',
     };
 
+    const badgeTypes: Record<string, "icon" | "dot" | "no-icon"> = {
+      'disponible': 'dot',
+      'ocupado': 'icon',
+      'descanso': 'icon',
+      'inactivo': 'icon',
+    };
+
     return (
-      <Badge variant={variants[estado] || 'outline'}>
+      <Badge 
+        variant={variants[estado] || 'neutral'} 
+        badgeType={badgeTypes[estado] || 'no-icon'}
+        size="sm"
+      >
         {labels[estado] || estado}
       </Badge>
     );
@@ -172,7 +186,7 @@ export function ConductorTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline">
+                  <Badge variant="brand" badgeType="no-icon" size="sm">
                     {conductor.experiencia_anios} años
                   </Badge>
                 </TableCell>

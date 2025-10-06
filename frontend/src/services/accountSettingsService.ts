@@ -1,4 +1,4 @@
-import { apiRequest } from './api';
+import { apiRequest } from './authService';
 
 // Tipos para las respuestas de la API
 export interface ChangePasswordRequest {
@@ -46,18 +46,18 @@ export interface SetPrimaryEmailResponse {
 export const accountSettingsService = {
   // Cambio de contraseña usando la API personalizada
   async changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
-    const response = await apiRequest('/api/admin/change-password/', {
-      method: 'PUT',
+    const response = await apiRequest('/api/change-password/', {
+      method: 'POST',
       body: JSON.stringify(data)
     });
     return response.data as ChangePasswordResponse;
   },
 
-  // Obtener lista de emails del usuario (usando dj-rest-auth)
+  // Obtener lista de emails del usuario
   async getEmailAddresses(): Promise<EmailListResponse> {
-    const response = await apiRequest('/api/auth/user/');
+    const response = await apiRequest('/api/auth/user-info/');
     const userData = response.data as any;
-    // La respuesta de dj-rest-auth incluye la información del usuario con emails
+    // La respuesta incluye la información del usuario con emails
     return {
       results: [{
         id: 1,
@@ -95,10 +95,7 @@ export const accountSettingsService = {
 
   // Solicitar restablecimiento de contraseña
   async requestPasswordReset(email: string): Promise<{ message: string }> {
-    const response = await apiRequest('/api/auth/password/reset/', {
-      method: 'POST',
-      body: JSON.stringify({ email })
-    });
-    return response.data as { message: string };
+    // Esta funcionalidad requiere implementación en el backend
+    throw new Error('Funcionalidad de reset de contraseña no implementada aún');
   }
 };

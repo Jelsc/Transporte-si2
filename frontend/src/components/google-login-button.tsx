@@ -29,10 +29,6 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   useEffect(() => {
     // Verificar si las variables de entorno están cargadas
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    console.log("VITE_GOOGLE_CLIENT_ID:", clientId);
-
-    // Mostrar el origen actual para depuración
-    console.log("Origen actual:", window.location.origin);
 
     // Valor de respaldo en caso de que no se cargue la variable de entorno
     if (!clientId) {
@@ -78,7 +74,6 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
     const clientId =
       import.meta.env.VITE_GOOGLE_CLIENT_ID ||
       "980248899609-m5ougf9tmq2helkd30t9ofsa0shflett.apps.googleusercontent.com";
-    console.log("Intentando iniciar sesión con Google. Client ID:", clientId);
 
     if (!clientId) {
       toast.error(
@@ -99,7 +94,6 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
             onError?.(response);
             return;
           }
-          console.log("Respuesta exitosa de Google:", response);
           onSuccess?.(response);
         },
         error_callback: (error: any) => {
@@ -201,7 +195,6 @@ export const GoogleLoginButton: React.FC<GoogleLoginButtonProps> = ({
   const clientId =
     import.meta.env.VITE_GOOGLE_CLIENT_ID ||
     "980248899609-m5ougf9tmq2helkd30t9ofsa0shflett.apps.googleusercontent.com";
-  console.log("Renderizando botón de Google. Client ID:", clientId);
 
   if (!clientId) {
     return (

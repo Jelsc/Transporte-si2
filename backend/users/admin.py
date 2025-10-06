@@ -2,14 +2,14 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django import forms
 from .models import CustomUser, Rol
-from .constants import PERMISOS_SISTEMA, GRUPOS_PERMISOS
+from .constants import ALL_PERMISSIONS, PERMISSION_GROUPS
 
 
 class RolAdminForm(forms.ModelForm):
     """Formulario personalizado para la administración de roles"""
     
     permisos_seleccionados = forms.MultipleChoiceField(
-        choices=PERMISOS_SISTEMA,
+        choices=[(perm, perm) for perm in ALL_PERMISSIONS],
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label="Permisos"
@@ -17,7 +17,7 @@ class RolAdminForm(forms.ModelForm):
     
     grupo_permisos = forms.ChoiceField(
         choices=[('', '-- Seleccionar grupo de permisos --')] + 
-                [(k, k.capitalize()) for k in GRUPOS_PERMISOS.keys()],
+                [(k, k.capitalize()) for k in PERMISSION_GROUPS.keys()],
         required=False,
         label="Cargar grupo de permisos predefinido",
         help_text="Seleccionar un grupo cargará sus permisos predefinidos"
@@ -66,9 +66,9 @@ class RolAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         # Si se seleccionó un grupo de permisos, cargar esos permisos
         grupo = form.cleaned_data.get('grupo_permisos')
-        if grupo and grupo in GRUPOS_PERMISOS:
+        if grupo and grupo in PERMISSION_GROUPS:
             # Combinamos los permisos seleccionados manualmente con los del grupo
-            permisos_grupo = GRUPOS_PERMISOS[grupo]
+            permisos_grupo = PERMISSION_GROUPS[grupo]
             permisos_seleccionados = form.cleaned_data.get('permisos_seleccionados', [])
             # Unión de ambos conjuntos de permisos (sin duplicados)
             obj.permisos = list(set(permisos_grupo + permisos_seleccionados))
@@ -84,11 +84,11 @@ class CustomUserAdmin(BaseUserAdmin):
         "first_name",
         "last_name",
         "rol",
-        "fecha_creacion",
+        "date_joined",
     ]
-    list_filter = ["rol", "is_active", "is_staff", "is_superuser", "fecha_creacion"]
-    search_fields = ["username", "email", "first_name", "last_name", "codigo_empleado"]
-    ordering = ["-fecha_creacion"]
+    list_filter = ["rol", "is_active", "is_staff", "is_superuser", "date_joined"]
+    search_fields = ["username", "email", "first_name", "last_name"]
+    ordering = ["-date_joined"]
 
     fieldsets = BaseUserAdmin.fieldsets + (
         (
@@ -97,18 +97,11 @@ class CustomUserAdmin(BaseUserAdmin):
         ),
         (
             "Información Laboral",
-            {"fields": ("rol", "codigo_empleado", "departamento")},
-        ),
-        (
-            "Fechas",
-            {
-                "fields": ("fecha_creacion", "fecha_ultimo_acceso"),
-                "classes": ("collapse",),
-            },
+            {"fields": ("rol",)},
         ),
     )
 
-    readonly_fields = ["fecha_creacion", "fecha_ultimo_acceso"]
+    readonly_fields = ["date_joined", "last_login"]
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)

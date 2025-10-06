@@ -3,6 +3,8 @@
 Monorepo para **PostgreSQL + Django REST (backend)**, **React + Vite (frontend)** y **Flutter (mobile)**.
 En DEV usamos Docker para **db + backend + frontend**. Flutter se corre fuera de Docker (emulador/dispositivo).
 
+> 🔍 **¡NUEVO!** Sistema de [Detección Automática de IP](./AUTODETECT-IP.md) para despliegues en AWS EC2 y otros entornos cloud. Consulta [AUTODETECT-IP.md](./AUTODETECT-IP.md) para más información.
+
 ## 📁 Estructura
 
 ```

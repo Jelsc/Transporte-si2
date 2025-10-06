@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { UserInfo } from "@/components/user-info";
 import { useMobileNavigation } from "@/hooks/use-mobile-navigation";
-import { type User } from "@/services/api";
+import { type User } from "@/services/authService";
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -18,17 +18,13 @@ interface UserMenuContentProps {
 export function UserMenuContent({ user }: UserMenuContentProps) {
   const cleanup = useMobileNavigation();
   const navigate = useNavigate();
-  const { logout, adminLogout, isAdmin } = useAuth();
+  const { logout, isAdmin } = useAuth();
 
   const handleLogout = async () => {
     try {
       cleanup();
-      // Usar el logout apropiado según el tipo de usuario
-      if (isAdmin) {
-        await adminLogout();
-      } else {
-        await logout();
-      }
+      // Usar el logout unificado
+      await logout();
       // Redirigir al login después del logout exitoso
       navigate("/login");
     } catch (error) {
