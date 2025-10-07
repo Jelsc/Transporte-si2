@@ -1,72 +1,161 @@
+version: '3.8'
+
 services:
+  # ============================================
+  # BASE DE DATOS POSTGRESQL
+  # ============================================
   db:
     image: postgres:16
     container_name: transporte_db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-transporte}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: transporte
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
       TZ: "America/La_Paz"
       PGTZ: "America/La_Paz"
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - transporte_network
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-transporte}",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d transporte"]
       interval: 5s
       timeout: 5s
       retries: 20
 
+  # ============================================
+  # PGADMIN - Administrador de PostgreSQL
+  # ============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: transporte_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@transporte.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - transporte_network
+    depends_on:
+      - db
+
+  # ============================================
+  # BACKEND DJANGO
+  # ============================================
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: transporte_backend
+    restart: unless-stopped
     environment:
+      # Django
+      DJANGO_SECRET_KEY: "dev-secret-key-change-in-production"
       DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+      
+      # Base de datos
+      POSTGRES_DB: transporte
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
       POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      
+      # Frontend URLs
       FRONTEND_URL: "http://localhost:5173"
       FRONTEND_URL_ALT: "http://127.0.0.1:5173"
-      GOOGLE_OAUTH2_CLIENT_ID: ${GOOGLE_OAUTH2_CLIENT_ID:-}
-      GOOGLE_OAUTH2_CLIENT_SECRET: ${GOOGLE_OAUTH2_CLIENT_SECRET:-}
+      
+      # Superusuario inicial
+      DJANGO_SUPERUSER_USERNAME: admin
+      DJANGO_SUPERUSER_EMAIL: admin@transporte.com
+      DJANGO_SUPERUSER_PASSWORD: admin123
+      
+      # Email (MailHog)
+      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
+      EMAIL_HOST: mailhog
+      EMAIL_PORT: 1025
+      
+      # Google OAuth (dejar vacío si no usas)
+      GOOGLE_OAUTH2_CLIENT_ID: ""
+      GOOGLE_OAUTH2_CLIENT_SECRET: ""
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: bash -lc "python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
+    networks:
+      - transporte_network
+    command: >
+      bash -c "
+        echo '🔄 Aplicando migraciones...' &&
+        python manage.py migrate --noinput &&
+        echo '📦 Cargando datos iniciales...' &&
+        python manage.py seed user rol --force &&
+        echo '📁 Recolectando archivos estáticos...' &&
+        python manage.py collectstatic --noinput &&
+        echo '✅ Iniciando servidor Django en puerto 8000...' &&
+        python manage.py runserver 0.0.0.0:8000
+      "
     ports:
       - "8000:8000"
 
+  # ============================================
+  # FRONTEND REACT/VITE
+  # ============================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: transporte_frontend
+    restart: unless-stopped
     working_dir: /app
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
-      VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
-      # Vite necesita HOST para exponer en 0.0.0.0
+      # URL del backend
+      VITE_API_URL: "http://localhost:8000"
+      
+      # Google OAuth - NO configurado (comentar botón de Google en el frontend)
+      # Si quieres usar Google OAuth, obtén credenciales en:
+      # https://console.cloud.google.com/apis/credentials
+      # VITE_GOOGLE_CLIENT_ID: "tu-client-id.apps.googleusercontent.com"
     volumes:
       - ./frontend:/app
-    command: sh -lc "npm install && npm run dev -- --host"
+      - /app/node_modules
+    networks:
+      - transporte_network
+    command: sh -c "npm install && npm run dev -- --host"
     ports:
       - "5173:5173"
     depends_on:
       - backend
 
+  # ============================================
+  # MAILHOG (Ver emails de prueba)
+  # ============================================
   mailhog:
     image: mailhog/mailhog
     container_name: transporte_mailhog
+    restart: unless-stopped
     ports:
-      - "1025:1025" # Puerto SMTP para que Django envíe correos
-      - "8025:8025" # Interfaz web para ver los correos
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - transporte_network
 
 volumes:
   pgdata:
+    name: transporte_postgres_data
+  pgadmin_data:
+    name: transporte_pgadmin_data
+
+networks:
+  transporte_network:
+    name: transporte_network
+    driver: bridge

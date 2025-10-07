@@ -12,6 +12,7 @@ import UsuariosCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/Usu
 import ChoferesCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/ChoferesCRUD";
 import PersonalCRUD from "../pages/admin/Usuarios/registro-usuarios-choferes/PersonalCRUD";
 import BitacoraPage from "@/pages/admin/bitacora.page";
+import { VentasReserva } from "./layout/VentasReserva";
 
 
 export default function AppRouter() {
@@ -124,7 +125,7 @@ export default function AppRouter() {
           path="/admin/ventas" 
           element={
             <ProtectedRoute requireAdmin={true}>
-              <div>Ventas (por implementar)</div>
+                <VentasReserva/>
             </ProtectedRoute>
           } 
         />
