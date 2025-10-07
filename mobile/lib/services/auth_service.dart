@@ -862,14 +862,9 @@ class AuthService {
     return await IPDetection.getEnvironmentInfo();
   }
 
-  // Forzar nueva detección de IP (útil para cambios de red)
-  Future<String> forceIPDetection() async {
-    return await IPDetection.forceDetection();
-  }
-
-  // Forzar localhost (útil para desarrollo)
-  Future<String> forceLocalhost() async {
-    return await IPDetection.forceLocalhost();
+  // Limpiar caché de URL (útil para forzar recarga)
+  void clearUrlCache() {
+    IPDetection.clearCache();
   }
 
   // Verificar conectividad con el backend

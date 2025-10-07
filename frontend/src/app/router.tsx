@@ -16,7 +16,7 @@ import AccountSettingsPage from "@/pages/auth/account-settings.page";
 import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
-import ConsultaViajesPage from "@/pages/viajes/viajes.page";
+import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
 
 
 export default function AppRouter() {

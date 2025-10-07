@@ -131,15 +131,15 @@ export default function ViajesPage() {
   const hasActiveFilters = search || origenFilter !== 'all' || destinoFilter !== 'all' || fechaFilter;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+      <div className="bg-gradient-to-br from-blue-200 via-blue-100 to-blue-50 py-20 px-6">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
               Encuentra tu viaje perfecto
             </h1>
-            <p className="text-xl text-blue-100 mb-8">
+            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
               Descubre las mejores opciones de transporte entre ciudades de Bolivia
             </p>
           </div>
@@ -170,7 +170,11 @@ export default function ViajesPage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Búsqueda */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 space-y-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <Search className="h-4 w-4" />
+                  Búsqueda General
+                </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
@@ -183,10 +187,14 @@ export default function ViajesPage() {
               </div>
 
               {/* Origen */}
-              <div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  Ciudad Origen
+                </label>
                 <Select value={origenFilter} onValueChange={setOrigenFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Desde" />
+                    <SelectValue placeholder="Selecciona origen" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las ciudades</SelectItem>
@@ -198,10 +206,14 @@ export default function ViajesPage() {
               </div>
 
               {/* Destino */}
-              <div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  Ciudad Destino
+                </label>
                 <Select value={destinoFilter} onValueChange={setDestinoFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Hacia" />
+                    <SelectValue placeholder="Selecciona destino" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas las ciudades</SelectItem>
@@ -213,12 +225,16 @@ export default function ViajesPage() {
               </div>
 
               {/* Fecha */}
-              <div className="md:col-span-2 lg:col-span-1">
+              <div className="md:col-span-2 lg:col-span-1 space-y-2">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  Fecha de Viaje
+                </label>
                 <Input
                   type="date"
                   value={fechaFilter}
                   onChange={(e) => setFechaFilter(e.target.value)}
-                  placeholder="Fecha de viaje"
+                  placeholder="Selecciona fecha"
                 />
               </div>
             </div>
