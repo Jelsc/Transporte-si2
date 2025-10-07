@@ -16,6 +16,7 @@ import AccountSettingsPage from "@/pages/auth/account-settings.page";
 import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
+import ConsultaViajesPage from "@/pages/viajes/viajes.page";
 
 
 export default function AppRouter() {
@@ -25,6 +26,7 @@ export default function AppRouter() {
         {/* Rutas del cliente con layout */}
         <Route path="/" element={<ClientLayout />}>
           <Route index element={<HomePage />} />
+          <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
         </Route>
         
         {/* Rutas de autenticación sin layout */}

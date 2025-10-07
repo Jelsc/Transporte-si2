@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import TransporteIcon from "./app-logo";
@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { NavUserHeader } from "./nav-user-header";
 
 const navbarOptions = [
+  {id: "home", name: "Home", href: "/"},
+  { id: "viajes", name: "Viajes", href: "/consulta-viajes" },
   { id: "servicios", name: "Servicios", href: "#servicios" },
   { id: "rutas", name: "Rutas", href: "#rutas" },
   { id: "choferes", name: "Choferes", href: "#choferes" },
@@ -17,6 +19,28 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const { isAuthenticated, isLoading } = useAuth();
+
+  // Deshabilitar scroll cuando el menú está abierto
+  useEffect(() => {
+    if (menuOpen) {
+      // Guardar la posición actual del scroll
+      const scrollY = window.scrollY;
+      
+      // Deshabilitar scroll
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      
+      return () => {
+        // Restaurar scroll al cerrar el menú
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [menuOpen]);
+
   return (
     <header className="flex justify-between items-center px-4 md:px-10 py-2 md:py-3 shadow-md bg-white sticky top-0 z-50">
       <h1 className="text-sm font-bold text-blue-700 flex items-center gap-1 md:gap-2">
@@ -26,13 +50,23 @@ const Navbar = () => {
       {/* Desktop nav */}
       <nav className="space-x-0 hidden md:flex flex-row md:space-x-6 gap-2 md:gap-0">
         {navbarOptions.map((opt) => (
-          <a
-            key={opt.id}
-            href={opt.href}
-            className="hover:text-blue-600 px-2 py-1 md:px-0 md:py-0"
-          >
-            {opt.name}
-          </a>
+          opt.href.startsWith('/') ? (
+            <Link
+              key={opt.id}
+              to={opt.href}
+              className="hover:text-blue-600 px-2 py-1 md:px-0 md:py-0"
+            >
+              {opt.name}
+            </Link>
+          ) : (
+            <a
+              key={opt.id}
+              href={opt.href}
+              className="hover:text-blue-600 px-2 py-1 md:px-0 md:py-0"
+            >
+              {opt.name}
+            </a>
+          )
         ))}
       </nav>
       {/* Desktop buttons */}
@@ -90,20 +124,13 @@ const Navbar = () => {
       </div>
       
       {/* Mobile menu overlay */}
-      <div
-        className={`fixed inset-0 z-50 transition-all duration-300 ease-in-out ${
-          menuOpen 
-            ? 'bg-black/50 backdrop-blur-sm opacity-100' 
-            : 'bg-transparent backdrop-blur-0 opacity-0 pointer-events-none'
-        }`}
-        onClick={() => setMenuOpen(false)}
-      >
+      {menuOpen && (
         <div
-          className={`absolute top-0 right-0 w-80 h-full bg-white shadow-2xl flex flex-col transition-all duration-300 ease-in-out ${
-            menuOpen 
-              ? 'translate-x-0' 
-              : 'translate-x-full'
-          }`}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setMenuOpen(false)}
+        >
+        <div
+          className="absolute top-0 right-0 w-80 h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 ease-out"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -116,10 +143,10 @@ const Navbar = () => {
               variant="ghost"
               size="icon"
               onClick={() => setMenuOpen(false)}
-              className="w-8 h-8 rounded-lg hover:bg-gray-100 transition-colors"
+              className="w-8 h-8 rounded-lg hover:bg-gray-100 transition-all duration-200 hover:scale-105"
               aria-label="Cerrar menú"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 transition-transform duration-200" />
             </Button>
           </div>
 
@@ -129,28 +156,53 @@ const Navbar = () => {
               Navegación
             </h3>
             {navbarOptions.map((opt, index) => (
-              <button
-                key={opt.id}
-                onClick={() => {
-                  setActiveModule(opt.id);
-                  setMenuOpen(false);
-                  window.location.href = opt.href;
-                }}
-                className={`group flex items-center px-4 py-3 text-base rounded-xl text-left transition-all duration-200 ${
-                  activeModule === opt.id
-                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                }`}
-                style={{ 
-                  animationDelay: `${index * 50}ms`,
-                  animation: menuOpen ? 'slideInRight 0.3s ease-out forwards' : 'none'
-                }}
-              >
-                <span className="font-medium">{opt.name}</span>
-                <div className={`ml-auto w-2 h-2 rounded-full transition-colors ${
-                  activeModule === opt.id ? 'bg-blue-600' : 'bg-transparent'
-                }`} />
-              </button>
+              opt.href.startsWith('/') ? (
+                <Link
+                  key={opt.id}
+                  to={opt.href}
+                  onClick={() => {
+                    setActiveModule(opt.id);
+                    setMenuOpen(false);
+                  }}
+                  className={`group flex items-center px-4 py-3 text-base rounded-xl text-left transition-all duration-200 ${
+                    activeModule === opt.id
+                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
+                  style={{ 
+                    animationDelay: `${index * 80}ms`,
+                    animation: menuOpen ? 'slideInRight 0.4s ease-out forwards' : 'none'
+                  }}
+                >
+                  <span className="font-medium">{opt.name}</span>
+                  <div className={`ml-auto w-2 h-2 rounded-full transition-colors ${
+                    activeModule === opt.id ? 'bg-blue-600' : 'bg-transparent'
+                  }`} />
+                </Link>
+              ) : (
+                <button
+                  key={opt.id}
+                  onClick={() => {
+                    setActiveModule(opt.id);
+                    setMenuOpen(false);
+                    window.location.href = opt.href;
+                  }}
+                  className={`group flex items-center px-4 py-3 text-base rounded-xl text-left transition-all duration-200 ${
+                    activeModule === opt.id
+                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
+                  style={{ 
+                    animationDelay: `${index * 80}ms`,
+                    animation: menuOpen ? 'slideInRight 0.4s ease-out forwards' : 'none'
+                  }}
+                >
+                  <span className="font-medium">{opt.name}</span>
+                  <div className={`ml-auto w-2 h-2 rounded-full transition-colors ${
+                    activeModule === opt.id ? 'bg-blue-600' : 'bg-transparent'
+                  }`} />
+                </button>
+              )
             ))}
           </nav>
 
@@ -167,7 +219,7 @@ const Navbar = () => {
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full py-3 text-gray-700 border border-gray-300 rounded-xl hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 font-medium"
+                  className="w-full py-3 text-gray-700 border border-gray-300 rounded-xl hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50 transition-all duration-300 font-medium hover:scale-[1.02] hover:shadow-md"
                 >
                   <Link to="/login" onClick={() => setMenuOpen(false)}>
                     Iniciar sesión
@@ -176,7 +228,7 @@ const Navbar = () => {
                 <Button
                   asChild
                   variant="default"
-                  className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
+                  className="w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-300 font-medium shadow-lg hover:shadow-xl hover:scale-[1.02]"
                 >
                   <Link to="/register" onClick={() => setMenuOpen(false)}>
                     Crear Cuenta
@@ -186,7 +238,8 @@ const Navbar = () => {
             )}
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </header>
   );
 };
