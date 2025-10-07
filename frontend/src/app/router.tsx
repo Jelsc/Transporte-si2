@@ -14,8 +14,8 @@ import ConductoresPage from "@/pages/admin/conductores/driver.page";
 import UsuariosPage from "@/pages/admin/users/users.page";
 import AccountSettingsPage from "@/pages/auth/account-settings.page";
 import ClientLayout from "@/app/layout/client-layout";
-import ViajesPage from "@/pages/admin/viajes.page";
-import VehiculosPage from "@/pages/admin/vehiculos.page";
+import ViajesPage from "@/pages/admin/viajes/viajes.page";
+import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 
 
 export default function AppRouter() {
@@ -70,14 +70,6 @@ export default function AppRouter() {
         />
 
         {/* Otras rutas de admin protegidas */}
-        <Route
-          path="/admin/flotas"
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <div>Flotas (por implementar)</div>
-            </ProtectedRoute>
-          }
-        />
         <Route
           path="/admin/conductores"
           element={

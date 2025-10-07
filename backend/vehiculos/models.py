@@ -15,7 +15,7 @@ class Vehiculo(models.Model):
     marca = models.CharField(max_length=50, blank=True, null=True)
     modelo = models.CharField(max_length=50, blank=True, null=True)
     año_fabricacion = models.IntegerField(blank=True, null=True)
-    conductor = models.ForeignKey(Conductor, on_delete=models.CASCADE, related_name="conductores")
+    conductor = models.ForeignKey(Conductor, on_delete=models.SET_NULL, null=True, blank=True, related_name="conductores")
 
     # Capacidades
     capacidad_pasajeros = models.IntegerField(default=0)

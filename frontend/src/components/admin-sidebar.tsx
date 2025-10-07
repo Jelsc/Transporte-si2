@@ -136,22 +136,10 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       icon: Route,
       submodules: [
         {
-          id: "rutas",
-          name: "Rutas",
-          icon: MapPin,
-          route: "/admin/rutas",
-        },
-        {
           id: "vehiculos",
           name: "Vehículos",
           icon: Car,
           route: "/admin/vehiculos",
-        },
-        {
-          id: "asignaciones",
-          name: "Asignaciones",
-          icon: UserCheck,
-          route: "/admin/asignaciones",
         },
         {
           id: "viajes",

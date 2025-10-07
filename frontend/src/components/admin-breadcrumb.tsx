@@ -11,7 +11,8 @@ import {
   Route,
   Car,
   UserCheck,
-  Truck
+  Truck,
+  Bus
 } from 'lucide-react';
 
 // Define la estructura del sidebar para mantener consistencia
@@ -45,6 +46,7 @@ const sidebarStructure = [
       { id: 'rutas', name: 'Rutas', icon: Route, route: '/admin/rutas' },
       { id: 'vehiculos', name: 'Vehículos', icon: Car, route: '/admin/vehiculos' },
       { id: 'asignaciones', name: 'Asignaciones', icon: UserCheck, route: '/admin/asignaciones' },
+      { id: 'viajes', name: 'Viajes', icon: Bus, route: '/admin/viajes' },
     ]
   },
   { id: 'notificaciones', name: 'Notificaciones', icon: Bell, route: "/admin/notificaciones" },
