@@ -142,6 +142,8 @@ INSTALLED_APPS = [
     # "dj_rest_auth.jwt_auth",
     "rest_framework_simplejwt.token_blacklist",
     "bitacora",
+    'vehiculos',
+    "viajes",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
