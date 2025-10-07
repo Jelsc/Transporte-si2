@@ -36,6 +36,8 @@ urlpatterns = [
     
     path("api/bitacora/", include("bitacora.urls")),
 
+    path("api/vehiculos/", include("vehiculos.urls")),
+    path("api/viajes/", include("viajes.urls")),
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
     

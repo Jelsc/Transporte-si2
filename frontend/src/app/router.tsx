@@ -14,6 +14,9 @@ import ConductoresPage from "@/pages/admin/conductores/driver.page";
 import UsuariosPage from "@/pages/admin/users/users.page";
 import AccountSettingsPage from "@/pages/auth/account-settings.page";
 import ClientLayout from "@/app/layout/client-layout";
+import ViajesPage from "@/pages/admin/viajes.page";
+import VehiculosPage from "@/pages/admin/vehiculos.page";
+
 
 export default function AppRouter() {
   return (
@@ -123,6 +126,22 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+            <Route
+              path="/admin/viajes"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                <ViajesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/vehiculos"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <VehiculosPage />
+                </ProtectedRoute>
+              }
+            />
 
         {/* rutas protegidas de usuario */}
         <Route
@@ -149,6 +168,7 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+        
 
         {/* catch-all */}
         <Route path="*" element={<HomePage />} />

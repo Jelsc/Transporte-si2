@@ -21,6 +21,7 @@ import {
   Route,
   Car,
   UserCheck,
+  Bus,
 } from "lucide-react";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -151,6 +152,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           name: "Asignaciones",
           icon: UserCheck,
           route: "/admin/asignaciones",
+        },
+        {
+          id: "viajes",
+          name: "Viajes",
+          icon: Bus,
+          route: "/admin/viajes",
         },
       ],
     },
