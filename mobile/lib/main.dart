@@ -1,12 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'services/auth_service.dart';
+import 'services/notification_service.dart';
 import 'navigation/app_router.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/client/client_home_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar Firebase
+  await Firebase.initializeApp();
+
+  // Inicializar NotificationService
+  try {
+    await NotificationService.initialize();
+  } catch (e) {
+    print('Error inicializando notificaciones: $e');
+  }
+
   runApp(const MyApp());
 }
 
@@ -102,7 +116,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       // Verificar si el usuario ha visto el onboarding
       final prefs = await SharedPreferences.getInstance();
       _hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
-      
+
       // Verificar autenticación solo si ya vio el onboarding
       if (_hasSeenOnboarding) {
         final isAuth = await _authService.isAuthenticated();
@@ -172,7 +186,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
               ),
             ),
             const SizedBox(height: 40),
-            
+
             // Título de la app
             const Text(
               'MoviFleet',
@@ -193,7 +207,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
               ),
             ),
             const SizedBox(height: 60),
-            
+
             // Indicador de carga personalizado
             Container(
               padding: const EdgeInsets.all(20),

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "123456789",
+    "project_id": "tu-proyecto-firebase",
+    "storage_bucket": "tu-proyecto.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123456789:android:abcdef123456789",
+        "android_client_info": {
+          "package_name": "com.tuapp.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "TU_API_KEY_AQUI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

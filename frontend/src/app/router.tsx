@@ -17,7 +17,7 @@ import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
-
+import NotificationHistoryPage from "@/pages/client/notification-history.page";
 
 export default function AppRouter() {
   return (
@@ -28,13 +28,25 @@ export default function AppRouter() {
           <Route index element={<HomePage />} />
           <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
         </Route>
-        
+
+        {/* Rutas protegidas del cliente */}
+        <Route path="/client" element={<ClientLayout />}>
+          <Route
+            path="notificaciones"
+            element={
+              <ProtectedRoute>
+                <NotificationHistoryPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
         {/* Rutas de autenticación sin layout */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/code-verification" element={<CodeVerificationPage />} />
         <Route path="/profile/edit" element={<AccountSettingsPage />} />
-        
+
         {/* Rutas de administración */}
         <Route path="/admin" element={<AdminLoginPage />} />
         {/* Rutas protegidas de administración */}
@@ -120,22 +132,22 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-            <Route
-              path="/admin/viajes"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                <ViajesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/vehiculos"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                  <VehiculosPage />
-                </ProtectedRoute>
-              }
-            />
+        <Route
+          path="/admin/viajes"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ViajesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/vehiculos"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <VehiculosPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* rutas protegidas de usuario */}
         <Route
@@ -162,7 +174,6 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        
 
         {/* catch-all */}
         <Route path="*" element={<HomePage />} />
