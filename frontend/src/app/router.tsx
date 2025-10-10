@@ -17,7 +17,8 @@ import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
-
+import ReservasPage from "@/pages/admin/reservas/reservas.page";
+import MisReservasPage from '@/pages/client/MisReservas/mis-reservas.page';
 
 export default function AppRouter() {
   return (
@@ -37,6 +38,7 @@ export default function AppRouter() {
         
         {/* Rutas de administración */}
         <Route path="/admin" element={<AdminLoginPage />} />
+        
         {/* Rutas protegidas de administración */}
         <Route
           path="/admin/roles"
@@ -70,8 +72,6 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-
-        {/* Otras rutas de admin protegidas */}
         <Route
           path="/admin/conductores"
           element={
@@ -120,24 +120,32 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-            <Route
-              path="/admin/viajes"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                <ViajesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/vehiculos"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                  <VehiculosPage />
-                </ProtectedRoute>
-              }
-            />
+        <Route
+          path="/admin/viajes"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ViajesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/vehiculos"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <VehiculosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reservas"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ReservasPage />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* rutas protegidas de usuario */}
+        {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
         <Route
           path="/perfil"
           element={
@@ -163,6 +171,15 @@ export default function AppRouter() {
           }
         />
         
+        {/* 👇 RUTA MIS-RESERVAS PROTEGIDA */}
+        <Route
+          path="/mis-reservas"
+          element={
+            <ProtectedRoute>
+              <MisReservasPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* catch-all */}
         <Route path="*" element={<HomePage />} />
