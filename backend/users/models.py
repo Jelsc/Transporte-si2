@@ -49,19 +49,20 @@ class Rol(models.Model):
 
 
 class CustomUser(AbstractUser):
+    # Campos básicos
     telefono = models.CharField(max_length=20, blank=True, null=True)
     direccion = models.CharField(max_length=255, blank=True, null=True)
+    ci = models.CharField(max_length=20, unique=True, null=True, blank=True, verbose_name="Cédula de Identidad")
+    fecha_nacimiento = models.DateField(null=True, blank=True, verbose_name="Fecha de Nacimiento")
+    
+    # Rol y permisos
     rol = models.ForeignKey(Rol, on_delete=models.SET_NULL, null=True, blank=True)
-    es_activo = models.BooleanField(default=True)
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_ultimo_acceso = models.DateTimeField(null=True, blank=True)
-
-    # Campos específicos para clientes
-    fecha_nacimiento = models.DateField(null=True, blank=True)
-
-    # Campos específicos para administrativos
-    codigo_empleado = models.CharField(max_length=20, blank=True, null=True)
-    departamento = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Nota: Django ya proporciona date_joined y last_login automáticamente
+    
+    # Relaciones opcionales con personal y conductores
+    personal = models.OneToOneField('personal.Personal', on_delete=models.SET_NULL, null=True, blank=True, related_name='usuario_personal')
+    conductor = models.OneToOneField('conductores.Conductor', on_delete=models.SET_NULL, null=True, blank=True, related_name='usuario_conductor')
 
     def __str__(self):
         return f"{self.username} ({self.rol.nombre if self.rol else 'Sin rol'})"
@@ -73,6 +74,11 @@ class CustomUser(AbstractUser):
     @property
     def es_cliente(self):
         return self.rol and not self.rol.es_administrativo
+    
+    @property
+    def puede_acceder_admin(self):
+        """Verifica si el usuario puede acceder al panel administrativo"""
+        return self.is_staff and self.es_administrativo
         
     def tiene_permiso(self, permiso):
         """Verifica si el usuario tiene un permiso específico"""
@@ -106,5 +112,4 @@ class CustomUser(AbstractUser):
             return ["*"]  # Asterisco indica todos los permisos
         if not self.rol:
             return []
-        return self.r
-        ol.permisos
+        return self.rol.permisos

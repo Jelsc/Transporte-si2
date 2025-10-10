@@ -7,7 +7,8 @@ services:
   db:
     image: postgres:16
     container_name: transporte_db
-    restart: unless-stopped
+    env_file:
+      - ./backend/.env
     environment:
       POSTGRES_DB: transporte
       POSTGRES_USER: postgres
@@ -55,55 +56,21 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: transporte_backend
-    restart: unless-stopped
+    env_file:
+      - ./backend/.env
     environment:
-      # Django
-      DJANGO_SECRET_KEY: "dev-secret-key-change-in-production"
-      DJANGO_DEBUG: "1"
-      DJANGO_ALLOWED_HOSTS: "*"
-      
-      # Base de datos
-      POSTGRES_DB: transporte
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
       POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      
-      # Frontend URLs
-      FRONTEND_URL: "http://localhost:5173"
-      FRONTEND_URL_ALT: "http://127.0.0.1:5173"
-      
-      # Superusuario inicial
-      DJANGO_SUPERUSER_USERNAME: admin
-      DJANGO_SUPERUSER_EMAIL: admin@transporte.com
-      DJANGO_SUPERUSER_PASSWORD: admin123
-      
-      # Email (MailHog)
-      EMAIL_BACKEND: django.core.mail.backends.smtp.EmailBackend
-      EMAIL_HOST: mailhog
-      EMAIL_PORT: 1025
-      
-      # Google OAuth (dejar vacío si no usas)
-      GOOGLE_OAUTH2_CLIENT_ID: ""
-      GOOGLE_OAUTH2_CLIENT_SECRET: ""
+      REDIS_URL: "redis://redis:6379/0"
+      # IP automática habilitada
+      AUTO_DETECT_IP: "true"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./backend:/app
-    networks:
-      - transporte_network
-    command: >
-      bash -c "
-        echo '🔄 Aplicando migraciones...' &&
-        python manage.py migrate --noinput &&
-        echo '📦 Cargando datos iniciales...' &&
-        python manage.py seed user rol --force &&
-        echo '📁 Recolectando archivos estáticos...' &&
-        python manage.py collectstatic --noinput &&
-        echo '✅ Iniciando servidor Django en puerto 8000...' &&
-        python manage.py runserver 0.0.0.0:8000
-      "
+    command: bash -lc "python detect_ip.py && python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
 
@@ -117,14 +84,12 @@ services:
     container_name: transporte_frontend
     restart: unless-stopped
     working_dir: /app
+    env_file:
+      - ./frontend/.env
     environment:
-      # URL del backend
-      VITE_API_URL: "http://localhost:8000"
-      
-      # Google OAuth - NO configurado (comentar botón de Google en el frontend)
-      # Si quieres usar Google OAuth, obtén credenciales en:
-      # https://console.cloud.google.com/apis/credentials
-      # VITE_GOOGLE_CLIENT_ID: "tu-client-id.apps.googleusercontent.com"
+      HOST: "0.0.0.0"  # Vite necesita HOST para exponer en 0.0.0.0
+      # Dejamos VITE_API_URL vacío para habilitar detección automática
+      VITE_API_URL: ""
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -136,9 +101,19 @@ services:
     depends_on:
       - backend
 
-  # ============================================
-  # MAILHOG (Ver emails de prueba)
-  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: transporte_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   mailhog:
     image: mailhog/mailhog
     container_name: transporte_mailhog
@@ -151,11 +126,4 @@ services:
 
 volumes:
   pgdata:
-    name: transporte_postgres_data
-  pgadmin_data:
-    name: transporte_pgadmin_data
-
-networks:
-  transporte_network:
-    name: transporte_network
-    driver: bridge
+  redis_data:

@@ -55,8 +55,7 @@ class UserSeeder(BaseSeeder):
                     first_name="Administrador",
                     last_name="Sistema",
                     rol=admin_rol,
-                    codigo_empleado="ADM001",
-                    departamento="Administración",
+                    is_active=True,  # Usar is_active en lugar de es_activo
                 )
                 print(f"✓ Superusuario '{username}' creado con rol de Administrador")
                 
@@ -110,8 +109,6 @@ class UserSeeder(BaseSeeder):
                 'rol_nombre': 'Conductor',
                 'first_name': 'Conductor',
                 'last_name': 'Prueba',
-                'codigo_empleado': 'CON001',
-                'departamento': 'Operaciones'
             },
             {
                 'username': 'supervisor1', 
@@ -120,8 +117,6 @@ class UserSeeder(BaseSeeder):
                 'rol_nombre': 'Supervisor',
                 'first_name': 'Supervisor',
                 'last_name': 'Prueba',
-                'codigo_empleado': 'SUP001',
-                'departamento': 'Supervisión'
             },
         ]
         
@@ -154,10 +149,7 @@ class UserSeeder(BaseSeeder):
             for user_data in test_users:
                 if not User.objects.filter(username=user_data['username']).exists():
                     # Eliminar campos que podrían no existir en el modelo User
-                    user_data.pop('rol_nombre', None)
-                    user_data.pop('codigo_empleado', None)
-                    user_data.pop('departamento', None)
-                    
+                    user_data.pop('rol_nombre', None)                    
                     User.objects.create_user(
                         username=user_data['username'],
                         email=user_data['email'],

@@ -9,30 +9,27 @@ from .models import Conductor
 class ConductorAdmin(admin.ModelAdmin):
     list_display = [
         'nombre_completo',
-        'numero_licencia',
+        'nro_licencia',
         'tipo_licencia',
         'estado',
-        'es_activo',
         'licencia_status',
-        'experiencia_anos',
+        'experiencia_anios',
         'fecha_creacion'
     ]
     
     list_filter = [
         'estado',
         'tipo_licencia',
-        'es_activo',
         'fecha_creacion',
-        'fecha_vencimiento_licencia'
+        'fecha_venc_licencia'
     ]
     
     search_fields = [
-        'usuario__username',
-        'usuario__first_name',
-        'usuario__last_name',
-        'usuario__email',
-        'numero_licencia',
-        'usuario__telefono'
+        'nombre',
+        'apellido',
+        'email',
+        'telefono',
+        'nro_licencia'
     ]
     
     readonly_fields = [
@@ -44,23 +41,21 @@ class ConductorAdmin(admin.ModelAdmin):
     ]
     
     fieldsets = [
-        ('Información del Usuario', {
+        ('Información del Personal', {
             'fields': ['usuario']
         }),
         ('Información de Licencia', {
             'fields': [
-                'numero_licencia',
+                'nro_licencia',
                 'tipo_licencia',
-                'fecha_vencimiento_licencia',
+                'fecha_venc_licencia',
                 'licencia_status',
                 'dias_para_vencer_licencia'
             ]
         }),
         ('Estado y Experiencia', {
             'fields': [
-                'estado',
-                'experiencia_anos',
-                'es_activo'
+                'experiencia_anios',
             ]
         }),
         ('Contacto de Emergencia', {
@@ -91,7 +86,7 @@ class ConductorAdmin(admin.ModelAdmin):
         """Muestra el nombre completo del conductor"""
         return obj.nombre_completo
     nombre_completo.short_description = "Nombre Completo"
-    nombre_completo.admin_order_field = 'usuario__first_name'
+    nombre_completo.admin_order_field = 'nombre'
     
     def licencia_status(self, obj):
         """Muestra el estado de la licencia con colores"""
@@ -117,23 +112,13 @@ class ConductorAdmin(admin.ModelAdmin):
     
     def save_model(self, request, obj, form, change):
         """Personaliza el guardado del modelo"""
-        # Si es un nuevo conductor, asegurar que el usuario tenga el rol de conductor
-        if not change and obj.usuario:
-            from users.models import Rol
-            try:
-                rol_conductor = Rol.objects.get(nombre='conductor')
-                obj.usuario.rol = rol_conductor
-                obj.usuario.save(update_fields=['rol'])
-            except Rol.DoesNotExist:
-                pass  # El rol se creará con los seeders
-        
         super().save_model(request, obj, form, change)
     
     actions = ['activar_conductores', 'desactivar_conductores', 'marcar_disponibles']
     
     def activar_conductores(self, request, queryset):
         """Acción para activar conductores seleccionados"""
-        updated = queryset.update(es_activo=True)
+        updated = queryset.update(usuario__is_active=True)
         self.message_user(
             request,
             f'{updated} conductor(es) activado(s) exitosamente.'
@@ -142,7 +127,7 @@ class ConductorAdmin(admin.ModelAdmin):
     
     def desactivar_conductores(self, request, queryset):
         """Acción para desactivar conductores seleccionados"""
-        updated = queryset.update(es_activo=False, estado='inactivo')
+        updated = queryset.update(usuario__is_active=False)
         self.message_user(
             request,
             f'{updated} conductor(es) desactivado(s) exitosamente.'
@@ -151,9 +136,9 @@ class ConductorAdmin(admin.ModelAdmin):
     
     def marcar_disponibles(self, request, queryset):
         """Acción para marcar conductores como disponibles"""
-        updated = queryset.filter(es_activo=True).update(estado='disponible')
+        # Esta acción ya no es necesaria ya que el estado se maneja a través del usuario
         self.message_user(
             request,
-            f'{updated} conductor(es) marcado(s) como disponible(s).'
+            'El estado de los conductores se maneja a través del usuario vinculado.'
         )
     marcar_disponibles.short_description = "Marcar como disponibles"
