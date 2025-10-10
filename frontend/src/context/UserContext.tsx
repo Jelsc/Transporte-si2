@@ -24,7 +24,7 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Provider que encapsula la lógica del usuario
+// Provider que encapsula la lógica del usuario 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const { user: authUser, isAuthenticated } = useAuth();
   const [user, setUser] = useState<User | null>(null);

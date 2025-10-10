@@ -9,6 +9,8 @@ import ProtectedRoute from "@/app/auth/ProtectedRoute";
 import RolesPage from "@/pages/admin/roles/roles.page";
 import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
+import { VentasReserva } from "./layout/VentasReserva";
+
 import PersonalPage from "@/pages/admin/personal/personal.page";
 import ConductoresPage from "@/pages/admin/conductores/driver.page";
 import UsuariosPage from "@/pages/admin/users/users.page";
@@ -140,6 +142,7 @@ export default function AppRouter() {
           path="/admin/reservas"
           element={
             <ProtectedRoute requireAdmin={true}>
+                <VentasReserva/>
               <ReservasPage />
             </ProtectedRoute>
           }
