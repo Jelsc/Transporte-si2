@@ -27,7 +27,15 @@ class Pago(models.Model):
         related_name='pagos',
         verbose_name='Usuario'
     )
-    
+    reserva = models.ForeignKey(
+        'viajes.Reserva',  # App 'viaje', Modelo 'Reserva'
+        on_delete=models.CASCADE,
+        related_name='pagos',
+        verbose_name='Reserva',
+        null=True,
+        blank=True
+    )
+
     # Información del pago
     monto = models.DecimalField(
         max_digits=10,

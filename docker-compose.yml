@@ -1,56 +1,29 @@
-version: '3.8'
-
 services:
-  # ============================================
-  # BASE DE DATOS POSTGRESQL
-  # ============================================
   db:
     image: postgres:16
     container_name: transporte_db
     env_file:
       - ./backend/.env
     environment:
-      POSTGRES_DB: transporte
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: ${POSTGRES_DB:-transporte}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       TZ: "America/La_Paz"
       PGTZ: "America/La_Paz"
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    networks:
-      - transporte_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d transporte"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-transporte}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 20
 
-  # ============================================
-  # PGADMIN - Administrador de PostgreSQL
-  # ============================================
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: transporte_pgadmin
-    restart: unless-stopped
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@transporte.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - transporte_network
-    depends_on:
-      - db
-
-  # ============================================
-  # BACKEND DJANGO
-  # ============================================
   backend:
     build:
       context: ./backend
@@ -74,15 +47,11 @@ services:
     ports:
       - "8000:8000"
 
-  # ============================================
-  # FRONTEND REACT/VITE
-  # ============================================
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: transporte_frontend
-    restart: unless-stopped
     working_dir: /app
     env_file:
       - ./frontend/.env
@@ -92,10 +61,7 @@ services:
       VITE_API_URL: ""
     volumes:
       - ./frontend:/app
-      - /app/node_modules
-    networks:
-      - transporte_network
-    command: sh -c "npm install && npm run dev -- --host"
+    command: sh -lc "npm install && npm run dev -- --host"
     ports:
       - "5173:5173"
     depends_on:
@@ -117,12 +83,9 @@ services:
   mailhog:
     image: mailhog/mailhog
     container_name: transporte_mailhog
-    restart: unless-stopped
     ports:
-      - "1025:1025"
-      - "8025:8025"
-    networks:
-      - transporte_network
+      - "1025:1025" # Puerto SMTP para que Django envíe correos
+      - "8025:8025" # Interfaz web para ver los correos
 
 volumes:
   pgdata:

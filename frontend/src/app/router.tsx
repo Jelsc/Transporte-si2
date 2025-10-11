@@ -142,8 +142,17 @@ export default function AppRouter() {
           path="/admin/reservas"
           element={
             <ProtectedRoute requireAdmin={true}>
-                <VentasReserva/>
+                
               <ReservasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/pagos"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+            
+              <VentasReserva />
             </ProtectedRoute>
           }
         />

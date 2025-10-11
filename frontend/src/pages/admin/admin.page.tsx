@@ -112,6 +112,12 @@ const sidebarModules: SidebarModule[] = [
         route: "/admin/reservas",
         icon: CalendarCheck,
       },
+      {
+        id: "pagos",
+        label: "Pagos",
+        route: "/admin/pagos",
+        icon: CalendarCheck,
+      },
     ],
   },
   {

@@ -1,4 +1,6 @@
-// src/types/reservas.ts - VERSIÓN ACTUALIZADA
+// types/reservas.ts - VERSIÓN ACTUALIZADA CON SISTEMA TEMPORAL
+import type { Asiento } from './asiento';
+
 export interface Cliente {
   id: number;
   nombre: string;
@@ -22,37 +24,42 @@ export interface ViajeOption {
   };
 }
 
-export interface Asiento {
-  id: number;
-  numero: string;
-  estado: string;
-  viaje: ViajeOption | number;
-}
-
-// ✅ NUEVA INTERFACE PARA ITEM_RESERVA
+// ✅ NUEVA INTERFACE PARA ITEM_RESERVA ACTUALIZADA
 export interface ItemReserva {
   id: number;
-  asiento: Asiento;
+  asiento: Asiento; // ✅ Usa la interfaz de asiento.ts
   precio: number;
 }
 
-// ✅ INTERFACE DE RESERVA ACTUALIZADA
+// ✅ INTERFACE DE RESERVA ACTUALIZADA CON SISTEMA TEMPORAL
 export interface Reserva {
   id: number;
   codigo_reserva: string;
   cliente: Cliente | number;
+  viaje?: number | ViajeOption; // ✅ NUEVO: Relación con viaje
   fecha_reserva: string;
-  estado: 'pendiente' | 'confirmada' | 'cancelada' | 'pagada';
+  fecha_expiracion?: string; // ✅ NUEVO: Para reservas temporales
+  estado: 'pendiente_pago' | 'confirmada' | 'cancelada' | 'expirada' | 'pagada'; // ✅ ACTUALIZADO
   total: number;
   pagado: boolean;
-  items: ItemReserva[];  // ✅ Múltiples asientos
+  items: ItemReserva[];
+  tiempo_restante?: number; // ✅ NUEVO: Para el timer frontend
+  esta_expirada?: boolean; // ✅ NUEVO: Computado frontend
 }
 
-// ✅ NUEVA INTERFACE PARA CREAR RESERVA
+// ✅ NUEVA INTERFACE PARA CREAR RESERVA TEMPORAL
+export interface ReservaTemporalPayload {
+  viaje_id: number;
+  asientos_ids: number[];
+  monto_total: number;
+}
+
+// ✅ INTERFACE PARA CREAR RESERVA (mantener compatibilidad)
 export interface ReservaFormData {
   cliente: number | null;
-  asientos_ids: number[];  // ✅ Ahora es un array de IDs de asientos
+  asientos_ids: number[];
   pagado: boolean;
+  viaje_id?: number; // ✅ NUEVO: Opcional para compatibilidad
 }
 
 // ✅ INTERFACE PARA ACTUALIZAR RESERVA
@@ -61,7 +68,17 @@ export interface ReservaUpdateData {
   pagado?: boolean;
 }
 
-// ✅ NUEVA INTERFACE PARA FILTROS ACTUALIZADA
+// ✅ NUEVA INTERFACE PARA RESPUESTA DE RESERVA TEMPORAL
+export interface ReservaTemporalResponse {
+  success: boolean;
+  data?: Reserva;
+  expiracion?: string;
+  tiempo_restante?: number;
+  error?: string;
+  message?: string;
+}
+
+// ✅ INTERFACE PARA FILTROS ACTUALIZADA
 export interface ReservaFilters {
   search?: string;
   cliente?: string;
@@ -69,8 +86,8 @@ export interface ReservaFilters {
   viaje?: string;
   fecha_desde?: string;
   fecha_hasta?: string;
-  estado?: string;  // ✅ Nuevo filtro por estado
-  codigo_reserva?: string;  // ✅ Nuevo filtro por código
+  estado?: string;
+  codigo_reserva?: string;
 }
 
 // ✅ INTERFACE PARA RESPUESTA PAGINADA
@@ -90,4 +107,5 @@ export interface ReservaStats {
   reservas_pendientes: number;
   reservas_confirmadas: number;
   reservas_canceladas: number;
+  reservas_expiradas?: number; // ✅ NUEVO
 }
