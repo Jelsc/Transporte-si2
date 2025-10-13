@@ -21,18 +21,9 @@ router.register(
 )
 
 from .views import enviar_notificacion_simple, enviar_notificacion_con_token
-from .testing import (
-    test_payment_notification,
-    test_trip_notification,
-    test_custom_notification,
-)
 
 urlpatterns = [
     path("", include(router.urls)),
-    # Endpoints de testing simplificados
-    path("test/payment/", test_payment_notification, name="test-payment"),
-    path("test/trip/", test_trip_notification, name="test-trip"),
-    path("test/custom/", test_custom_notification, name="test-custom"),
     # Endpoints legacy (mantener para compatibilidad)
     path("enviar/", enviar_notificacion_simple, name="enviar-notificacion-simple"),
     path(

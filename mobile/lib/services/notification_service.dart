@@ -46,6 +46,12 @@ class NotificationService {
     }
   }
 
+  /// Registrar dispositivo después del login exitoso
+  static Future<void> registerDeviceAfterLogin() async {
+    print('📤 Registrando dispositivo después del login...');
+    await _registerDeviceWithBackend();
+  }
+
   /// Configurar notificaciones locales
   static Future<void> _setupLocalNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -53,9 +59,9 @@ class NotificationService {
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
-          requestSoundPermission: true,
-          requestBadgePermission: true,
           requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
         );
 
     const InitializationSettings initializationSettings =
@@ -124,9 +130,8 @@ class NotificationService {
       print(_fcmToken);
       print('========================================================');
 
-      // Registrar dispositivo en el backend
-      print('📤 Registrando dispositivo en el backend...');
-      await _registerDeviceWithBackend();
+      // NO registrar dispositivo aquí - se hará después del login
+      print('⏳ Token FCM listo, esperando login para registrar dispositivo...');
     } else {
       print('❌ No se pudo obtener el token FCM');
     }
@@ -162,40 +167,43 @@ class NotificationService {
 
   /// Manejar mensaje en primer plano
   static Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    print('🔥🔥🔥 _handleForegroundMessage EJECUTADO 🔥🔥🔥');
     print(
       '📨 Mensaje recibido en primer plano: ${message.notification?.title}',
     );
+    print('📨 Cuerpo del mensaje: ${message.notification?.body}');
+    print('📨 Datos del mensaje: ${message.data}');
 
     // Mostrar notificación local
-    await _showLocalNotification(message);
+    await _showLocalNotification(
+      title: message.notification?.title ?? 'Nueva notificación',
+      body: message.notification?.body ?? 'Tienes una nueva notificación',
+      payload: jsonEncode(message.data),
+    );
 
-    // Marcar como entregada en el backend
-    await _markNotificationAsDelivered(message);
-  }
-
-  /// Manejar mensaje cuando se toca la notificación
-  static void _handleMessageOpenedApp(RemoteMessage message) {
-    print('👆 Notificación tocada: ${message.notification?.title}');
-
-    // Marcar como leída en el backend
-    _markNotificationAsRead(message);
-
-    // Navegar según el tipo de notificación
-    _handleNotificationNavigation(message);
+    print('🔔 Notificación local mostrada');
   }
 
   /// Mostrar notificación local
-  static Future<void> _showLocalNotification(RemoteMessage message) async {
-    const AndroidNotificationDetails
-    androidDetails = AndroidNotificationDetails(
-      'transport_notifications',
-      'Notificaciones de Transporte',
-      channelDescription:
-          'Notificaciones sobre viajes, reservas y actualizaciones del sistema',
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-    );
+  static Future<void> _showLocalNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    print('🔔 _showLocalNotification EJECUTADO');
+    print('🔔 Título: $title');
+    print('🔔 Cuerpo: $body');
+
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'transport_notifications',
+          'Notificaciones de Transporte',
+          channelDescription: 'Notificaciones sobre viajes y reservas',
+          importance: Importance.high,
+          priority: Priority.high,
+          showWhen: true,
+          icon: '@mipmap/ic_launcher',
+        );
 
     const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -203,22 +211,40 @@ class NotificationService {
       presentSound: true,
     );
 
-    const NotificationDetails details = NotificationDetails(
+    const NotificationDetails platformDetails = NotificationDetails(
       android: androidDetails,
       iOS: iosDetails,
     );
 
+    int id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    print('🔔 ID de notificación: $id');
+
     await _localNotifications.show(
-      message.hashCode,
-      message.notification?.title ?? 'Nueva notificación',
-      message.notification?.body ?? 'Tienes una nueva notificación',
-      details,
-      payload: jsonEncode(message.data),
+      id,
+      title,
+      body,
+      platformDetails,
+      payload: payload,
     );
+
+    print('🔔 Notificación local mostrada exitosamente');
   }
 
-  /// Manejar toque de notificación local
-  static void _onNotificationTapped(NotificationResponse response) {
+  /// Manejar mensaje cuando la app se abre desde notificación
+  static Future<void> _handleMessageOpenedApp(RemoteMessage message) async {
+    print('📱 App abierta desde notificación: ${message.notification?.title}');
+
+    // Marcar notificación como entregada
+    await _markNotificationAsDelivered(message);
+
+    // Navegar según el tipo de notificación
+    _handleNotificationNavigation(message);
+  }
+
+  /// Manejar toque en notificación local
+  static Future<void> _onNotificationTapped(
+    NotificationResponse response,
+  ) async {
     if (response.payload != null) {
       try {
         final data = jsonDecode(response.payload!);
@@ -236,7 +262,10 @@ class NotificationService {
 
   /// Registrar dispositivo en el backend
   static Future<void> _registerDeviceWithBackend() async {
-    if (_fcmToken == null) return;
+    if (_fcmToken == null) {
+      print('⚠️ No hay token FCM disponible');
+      return;
+    }
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -267,6 +296,7 @@ class NotificationService {
         print('✅ Dispositivo registrado en el backend');
       } else {
         print('❌ Error al registrar dispositivo: ${response.statusCode}');
+        print('📄 Response body: ${response.body}');
       }
     } catch (e) {
       print('❌ Error al registrar dispositivo: $e');
@@ -287,56 +317,28 @@ class NotificationService {
       if (token == null) return;
 
       final baseUrl = await IPDetection.getBaseUrl();
-      await http.post(
+      await http.patch(
         Uri.parse(
-          '$baseUrl/api/notificaciones/notificaciones/marcar_multiples/',
+          '$baseUrl/api/notificaciones/notificaciones/$notificationId/',
         ),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'notificacion_ids': [int.parse(notificationId)],
-          'accion': 'marcar_entregada',
-        }),
+        body: jsonEncode({'fue_entregada': true}),
       );
     } catch (e) {
       print('❌ Error al marcar notificación como entregada: $e');
     }
   }
 
-  /// Marcar notificación como leída
-  static Future<void> _markNotificationAsRead(RemoteMessage message) async {
-    final notificationId = message.data['notificacion_id'];
-    if (notificationId == null) return;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      if (token == null) return;
-
-      final baseUrl = await IPDetection.getBaseUrl();
-      await http.post(
-        Uri.parse(
-          '$baseUrl/api/notificaciones/notificaciones/$notificationId/marcar_leida/',
-        ),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-    } catch (e) {
-      print('❌ Error al marcar notificación como leída: $e');
-    }
-  }
-
-  /// Manejar navegación según tipo de notificación
+  /// Manejar navegación por notificación
   static void _handleNotificationNavigation(RemoteMessage message) {
-    final tipo = message.data['tipo'];
+    final tipo = message.data['tipo'] ?? message.data['modulo'] ?? 'general';
     final viajeId = message.data['viaje_id'];
+    final notificacionId = message.data['notificacion_id'];
 
-    // Aquí deberías implementar tu lógica de navegación
+    // Aquí puedes implementar la lógica de navegación específica
     // usando tu router existente
     print('🧭 Navegando por notificación tipo: $tipo');
 

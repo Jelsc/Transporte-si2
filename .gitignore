@@ -91,6 +91,7 @@ backend/firebase-credentials.json
 mobile/android/app/google-services.json
 frontend/public/firebase-messaging-sw.js
 FIREBASE-CREDENTIALS.md
+SUPERPROMPT-CREDENCIALES.md
 
 # Archivos de configuración con credenciales
 **/firebase-credentials.json

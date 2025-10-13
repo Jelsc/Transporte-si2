@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import '../client/client_home_screen.dart';
 import 'login_screen.dart';
 
@@ -99,6 +100,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       if (response.success && response.data != null) {
         _authService.showSuccessToast('¡Email verificado exitosamente!');
 
+        // Registrar dispositivo FCM después de la verificación exitosa
+        try {
+          await NotificationService.registerDeviceAfterLogin();
+        } catch (e) {
+          print('⚠️ Error al registrar dispositivo FCM: $e');
+        }
+
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,
@@ -177,7 +185,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     color: Colors.blue.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.email_outlined, size: 60, color: Colors.blue),
+                  child: const Icon(
+                    Icons.email_outlined,
+                    size: 60,
+                    color: Colors.blue,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -251,9 +263,15 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.blue, width: 2),
+                      borderSide: const BorderSide(
+                        color: Colors.blue,
+                        width: 2,
+                      ),
                     ),
-                    prefixIcon: Icon(Icons.security, color: Colors.grey.shade600),
+                    prefixIcon: Icon(
+                      Icons.security,
+                      color: Colors.grey.shade600,
+                    ),
                     helperText:
                         'Ingresa el código de 6 dígitos que recibiste por email',
                     filled: true,
@@ -318,7 +336,10 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
                             'Verificar Código',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                   ),
                 ),
@@ -349,7 +370,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                           )
                         : const Text(
                             'Reenviar Código',
-                            style: TextStyle(fontSize: 16, color: Colors.blue, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                   ),
                 ),
@@ -410,7 +435,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                     },
                     child: const Text(
                       'Volver al inicio de sesión',
-                      style: TextStyle(fontSize: 16, color: Colors.blue, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
