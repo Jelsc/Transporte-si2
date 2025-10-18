@@ -1,20 +1,22 @@
 from rest_framework import serializers
 from django.db import transaction
 from django.utils import timezone
-from datetime import timedelta
 from .models import Viaje, Asiento, Reserva, ItemReserva
 from vehiculos.models import Vehiculo
 from users.models import CustomUser
+
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
+
 class VehiculoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehiculo
         fields = ["id", "nombre", "placa", "tipo_vehiculo"]
+
 
 class ViajeSerializer(serializers.ModelSerializer):
     vehiculo = VehiculoSerializer(read_only=True)   
@@ -38,6 +40,7 @@ class ViajeSerializer(serializers.ModelSerializer):
             validated_data['asientos_disponibles'] = vehiculo.capacidad_pasajeros
         return super().create(validated_data)
 
+
 class AsientoSerializer(serializers.ModelSerializer):
     viaje = ViajeSerializer(read_only=True)
     esta_disponible = serializers.SerializerMethodField()
@@ -48,6 +51,7 @@ class AsientoSerializer(serializers.ModelSerializer):
     
     def get_esta_disponible(self, obj):
         return obj.esta_disponible
+
 
 class ItemReservaSerializer(serializers.ModelSerializer):
     asiento = AsientoSerializer(read_only=True)
@@ -63,6 +67,7 @@ class ItemReservaSerializer(serializers.ModelSerializer):
         fields = ['id', 'asiento', 'asiento_id', 'precio']
         read_only_fields = ['precio']
 
+
 class ReservaSerializer(serializers.ModelSerializer):
     cliente = CustomUserSerializer(read_only=True)
     items = ItemReservaSerializer(many=True, read_only=True, source='items.all')
@@ -73,8 +78,7 @@ class ReservaSerializer(serializers.ModelSerializer):
     asientos_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
-        required=True,
-        help_text="Lista de IDs de asientos a reservar"
+        required=True
     )
 
     class Meta:
@@ -115,15 +119,11 @@ class ReservaSerializer(serializers.ModelSerializer):
         asientos_ocupados = asientos.filter(estado__in=['ocupado', 'reservado'])
         if asientos_ocupados.exists():
             numeros_ocupados = list(asientos_ocupados.values_list('numero', flat=True))
-            raise serializers.ValidationError(
-                f"Los asientos {numeros_ocupados} no están disponibles"
-            )
+            raise serializers.ValidationError(f"Los asientos {numeros_ocupados} no están disponibles")
         
         viajes_ids = asientos.values_list('viaje_id', flat=True).distinct()
         if len(viajes_ids) > 1:
-            raise serializers.ValidationError(
-                "Todos los asientos deben ser del mismo viaje"
-            )
+            raise serializers.ValidationError("Todos los asientos deben ser del mismo viaje")
         
         return value
 
@@ -138,9 +138,7 @@ class ReservaSerializer(serializers.ModelSerializer):
             asientos_ocupados = asientos.filter(estado__in=['ocupado', 'reservado'])
             
             if asientos_ocupados.exists():
-                raise serializers.ValidationError(
-                    "Algunos asientos ya fueron ocupados durante el proceso de reserva"
-                )
+                raise serializers.ValidationError("Algunos asientos ya fueron ocupados durante el proceso de reserva")
             
             viaje = asientos.first().viaje
             precio_viaje = viaje.precio
@@ -153,6 +151,7 @@ class ReservaSerializer(serializers.ModelSerializer):
                 )
             
         return reserva
+
 
 class ReservaSimpleSerializer(serializers.ModelSerializer):
     cliente = CustomUserSerializer(read_only=True)
@@ -192,7 +191,7 @@ class ReservaSimpleSerializer(serializers.ModelSerializer):
             
         return reserva
 
-# ✅ CORREGIDO: SERIALIZER PARA RESERVA TEMPORAL CON VALIDACIONES MEJORADAS
+
 class CrearReservaTemporalSerializer(serializers.Serializer):
     viaje_id = serializers.IntegerField(required=True)
     asientos_ids = serializers.ListField(
@@ -208,11 +207,9 @@ class CrearReservaTemporalSerializer(serializers.Serializer):
     def validate_viaje_id(self, value):
         try:
             viaje = Viaje.objects.get(id=value)
-            # ✅ VALIDACIÓN NUEVA: Verificar que el viaje esté programado
             if viaje.estado != 'programado':
                 raise serializers.ValidationError("El viaje no está disponible para reservas")
             
-            # ✅ VALIDACIÓN NUEVA: Verificar que haya asientos disponibles
             if viaje.asientos_disponibles <= 0:
                 raise serializers.ValidationError("No hay asientos disponibles en este viaje")
                 
@@ -226,7 +223,6 @@ class CrearReservaTemporalSerializer(serializers.Serializer):
         if len(value) > 10:
             raise serializers.ValidationError("No se pueden reservar más de 10 asientos a la vez")
         
-        # ✅ VALIDACIÓN NUEVA: Verificar que no haya duplicados
         if len(value) != len(set(value)):
             raise serializers.ValidationError("Hay asientos duplicados en la selección")
             
@@ -240,16 +236,11 @@ class CrearReservaTemporalSerializer(serializers.Serializer):
         if not request or not request.user.is_authenticated:
             raise serializers.ValidationError("Usuario no autenticado")
         
-        # ✅ CORREGIDO: Verificar que el usuario no tenga ya una reserva temporal para este viaje
-        # Usamos fecha_expiracion en lugar de la propiedad esta_expirada
         reserva_existente = Reserva.objects.filter(
             cliente=request.user,
             viaje_id=viaje_id,
             estado='pendiente_pago'
-        ).exclude(
-            # ✅ CORRECCIÓN CRÍTICA: Usar fecha_expiracion en lugar de esta_expirada
-            fecha_expiracion__lt=timezone.now()
-        ).first()
+        ).exclude(fecha_expiracion__lt=timezone.now()).first()
         
         if reserva_existente:
             tiempo_restante = reserva_existente.tiempo_restante
@@ -258,11 +249,9 @@ class CrearReservaTemporalSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f"Ya tienes una reserva temporal activa para este viaje. "
                 f"Código: {reserva_existente.codigo_reserva}. "
-                f"Tiempo restante: {minutos_restantes} minutos. "
-                f"Completa el pago o cancela la reserva antes de crear una nueva."
+                f"Tiempo restante: {minutos_restantes} minutos."
             )
         
-        # Validar que los asientos pertenezcan al viaje
         asientos_viaje = Asiento.objects.filter(
             id__in=asientos_ids, 
             viaje_id=viaje_id
@@ -279,7 +268,6 @@ class CrearReservaTemporalSerializer(serializers.Serializer):
                 f"Algunos asientos no pertenecen al viaje seleccionado: {list(asientos_no_encontrados)}"
             )
         
-        # ✅ VALIDACIÓN MEJORADA: Verificar disponibilidad de asientos
         asientos_ocupados = Asiento.objects.filter(
             id__in=asientos_ids,
             estado__in=['ocupado', 'reservado']
@@ -291,18 +279,15 @@ class CrearReservaTemporalSerializer(serializers.Serializer):
                 f"Los siguientes asientos ya no están disponibles: {', '.join(numeros_ocupados)}"
             )
         
-        # Validar que el monto total sea razonable
         viaje = Viaje.objects.get(id=viaje_id)
         precio_esperado = viaje.precio * len(asientos_ids)
         monto_total = data['monto_total']
         
-        # Permitir pequeñas diferencias por decimales
-        if abs(float(monto_total) - float(precio_esperado)) > 0.01:  # ✅ Más preciso
+        if abs(float(monto_total) - float(precio_esperado)) > 0.01:
             raise serializers.ValidationError(
                 f"El monto total no coincide. Esperado: {precio_esperado:.2f}, Recibido: {float(monto_total):.2f}"
             )
         
-        # ✅ VALIDACIÓN NUEVA: Verificar que no se exceda la capacidad del vehículo
         if len(asientos_ids) > viaje.asientos_disponibles:
             raise serializers.ValidationError(
                 f"No hay suficientes asientos disponibles. "
@@ -311,7 +296,7 @@ class CrearReservaTemporalSerializer(serializers.Serializer):
         
         return data
 
-# ✅ SERIALIZER PARA ESTADO DE RESERVA TEMPORAL
+
 class EstadoReservaTemporalSerializer(serializers.ModelSerializer):
     tiempo_restante = serializers.SerializerMethodField()
     esta_expirada = serializers.SerializerMethodField()

@@ -49,7 +49,6 @@ import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 6;
 
-// Función para verificar autenticación
 const verificarAutenticacion = (): boolean => {
   try {
     const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
@@ -73,11 +72,9 @@ export default function ViajesPage() {
   const [selectedViaje, setSelectedViaje] = useState<Viaje | null>(null);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 
-  // Estado para reservas pendientes
   const [reservasPendientes, setReservasPendientes] = useState<Reserva[]>([]);
   const [verificandoReservas, setVerificandoReservas] = useState(false);
 
-  // ✅ NUEVO: useRef para prevenir ejecuciones duplicadas
   const verificacionEjecutada = useRef(false);
 
   const ciudades = [
@@ -85,7 +82,6 @@ export default function ViajesPage() {
     'Potosi', 'Tarija', 'Beni', 'Pando'
   ];
 
-  // Debounce para búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchDebounced(search);
@@ -94,115 +90,69 @@ export default function ViajesPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // ✅ CORREGIDO: Verificar reservas pendientes al cargar la página
   useEffect(() => {
-    // ✅ PREVENIR EJECUCIÓN DUPLICADA
-    if (verificacionEjecutada.current) {
-      console.log('⏩ Verificación de reservas ya ejecutada, omitiendo...');
-      return;
-    }
-
+    if (verificacionEjecutada.current) return;
+    
     verificacionEjecutada.current = true;
     verificarReservasPendientes();
 
-    // ✅ Cleanup function para resetear el flag
     return () => {
-      console.log('🧹 Cleanup: resetear flag de verificación');
       verificacionEjecutada.current = false;
     };
   }, []);
 
-  // ✅ CORREGIDO: Verificar reservas pendientes
   const verificarReservasPendientes = async () => {
     const autenticado = verificarAutenticacion();
-    if (!autenticado) {
-      console.log('🔐 Usuario no autenticado, saltando verificación de reservas');
-      return;
-    }
+    if (!autenticado) return;
 
     setVerificandoReservas(true);
     try {
-      console.log('🔍 Verificando reservas pendientes...');
       const response = await reservasApi.getMisReservas();
       
-      console.log('📥 Respuesta completa:', response);
-      
-      if (!response.success) {
-        console.warn('⚠️ Respuesta no exitosa:', response.error);
-        return;
-      }
+      if (!response.success || !response.data) return;
 
-      if (!response.data) {
-        console.warn('⚠️ No hay data en la respuesta');
-        return;
-      }
-
-      // ✅ CORREGIDO: Extraer array de forma segura sin función problemática
       let reservasData: Reserva[] = [];
       const data = response.data;
 
-      // Verificar diferentes estructuras posibles
       if (Array.isArray(data)) {
         reservasData = data;
       } else if (data && typeof data === 'object') {
-        // Verificar si tiene propiedad 'results'
         if ('results' in data && Array.isArray((data as any).results)) {
           reservasData = (data as any).results;
-        } 
-        // Verificar si tiene propiedad 'data'  
-        else if ('data' in data && Array.isArray((data as any).data)) {
+        } else if ('data' in data && Array.isArray((data as any).data)) {
           reservasData = (data as any).data;
-        }
-        // Verificar si tiene propiedad 'reservas'
-        else if ('reservas' in data && Array.isArray((data as any).reservas)) {
+        } else if ('reservas' in data && Array.isArray((data as any).reservas)) {
           reservasData = (data as any).reservas;
-        }
-        // Si es un objeto pero no tiene las propiedades esperadas, tratar como array vacío
-        else {
-          console.warn('❌ Estructura de respuesta no reconocida:', data);
-          reservasData = [];
         }
       }
 
-      console.log('📋 Reservas extraídas:', reservasData);
-
       const pendientes = reservasData.filter((reserva: Reserva) => {
-        if (!reserva) return false;
-        if (!reserva.estado) return false;
-        
-        return reserva.estado === 'pendiente_pago' && 
-               !reserva.esta_expirada;
+        if (!reserva || !reserva.estado) return false;
+        return reserva.estado === 'pendiente_pago' && !reserva.esta_expirada;
       });
       
-      console.log('🔄 Reservas pendientes filtradas:', pendientes);
       setReservasPendientes(pendientes);
       
       if (pendientes.length > 0) {
-        console.log(`✅ ${pendientes.length} reserva(s) pendiente(s) encontrada(s)`);
         toast.info(
           `Tienes ${pendientes.length} reserva(s) pendiente(s) de pago`, 
           {
             duration: 6000,
             action: {
               label: 'Ver reservas',
-              onClick: () => {
-                mostrarReservasPendientes();
-              }
+              onClick: mostrarReservasPendientes
             }
           }
         );
-      } else {
-        console.log('✅ No hay reservas pendientes');
       }
     } catch (error) {
-      console.error('❌ Error verificando reservas pendientes:', error);
+      console.error('Error verificando reservas pendientes:', error);
       toast.error('Error al verificar reservas pendientes');
     } finally {
       setVerificandoReservas(false);
     }
   };
 
-  // Función para mostrar reservas pendientes
   const mostrarReservasPendientes = () => {
     if (reservasPendientes.length === 0) {
       toast.info('No tienes reservas pendientes de pago');
@@ -211,7 +161,6 @@ export default function ViajesPage() {
     
     const primeraReserva = reservasPendientes[0];
     if (!primeraReserva) {
-      console.error('❌ Error: primeraReserva es undefined');
       toast.error('Error al cargar la reserva pendiente');
       return;
     }
@@ -225,34 +174,24 @@ export default function ViajesPage() {
     }
     
     if (!viajeId) {
-      console.error('❌ Error: No se pudo obtener el ID del viaje');
       toast.error('No se pudo encontrar la información del viaje');
       return;
     }
     
-    console.log('🔍 Buscando viaje con ID:', viajeId);
-    
     const viajeCorrespondiente = viajes.find(v => v.id === viajeId);
     
     if (viajeCorrespondiente) {
-      console.log('✅ Viaje encontrado, abriendo modal...');
       setSelectedViaje(viajeCorrespondiente);
       setModalOpen(true);
     } else {
-      console.log('❌ Viaje no encontrado en la lista actual');
-      toast.info(
-        'El viaje de tu reserva pendiente no está en la lista actual. ' +
-        'Intenta buscar el viaje manualmente usando los filtros.'
-      );
+      toast.info('El viaje de tu reserva pendiente no está en la lista actual');
     }
   };
 
-  // Cargar viajes cuando cambian filtros o página
   useEffect(() => {
     fetchViajes();
   }, [searchDebounced, origenFilter, destinoFilter, fechaFilter, page]);
 
-  // ✅ CORREGIDO: Función fetchViajes
   const fetchViajes = async () => {
     setLoading(true);
     try {
@@ -266,27 +205,21 @@ export default function ViajesPage() {
 
       const response = await viajesApi.list(filters);
       if (response.success && response.data) {
-        // ✅ CORREGIDO: Manejo seguro de la estructura de respuesta
         let viajesData: Viaje[] = [];
         const data = response.data;
 
         if (Array.isArray(data)) {
           viajesData = data;
         } else if (data && typeof data === 'object') {
-          // Verificar diferentes estructuras posibles
           if ('results' in data && Array.isArray((data as any).results)) {
             viajesData = (data as any).results;
           } else if ('data' in data && Array.isArray((data as any).data)) {
             viajesData = (data as any).data;
           } else if ('viajes' in data && Array.isArray((data as any).viajes)) {
             viajesData = (data as any).viajes;
-          } else {
-            console.warn('❌ Estructura de respuesta no reconocida:', data);
-            viajesData = [];
           }
         }
         
-        // Marcar viajes que tienen reservas pendientes
         if (reservasPendientes.length > 0) {
           viajesData = viajesData.map((viaje: Viaje) => ({
             ...viaje,
@@ -301,8 +234,6 @@ export default function ViajesPage() {
         }
         
         setViajes(viajesData);
-      } else {
-        console.error('❌ Error en respuesta de viajes:', response.error);
       }
     } catch (error) {
       console.error('Error al cargar viajes:', error);
@@ -381,7 +312,6 @@ export default function ViajesPage() {
     window.location.href = '/register';
   };
 
-  // Manejar reserva exitosa
   const handleReservaExitosa = () => {
     fetchViajes();
     verificarReservasPendientes();
@@ -391,7 +321,6 @@ export default function ViajesPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero */}
       <div className="bg-gradient-to-br from-blue-200 via-blue-100 to-blue-50 py-20 px-6">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
@@ -402,7 +331,6 @@ export default function ViajesPage() {
               Descubre las mejores opciones de transporte entre ciudades de Bolivia
             </p>
             
-            {/* Notificación de reservas pendientes */}
             {reservasPendientes.length > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 mx-auto max-w-2xl">
                 <div className="flex items-center gap-3">
@@ -431,7 +359,6 @@ export default function ViajesPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Filtros */}
         <Card className="mb-8">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -460,7 +387,6 @@ export default function ViajesPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Búsqueda */}
               <div className="lg:col-span-2 space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <Search className="h-4 w-4" />
@@ -477,7 +403,6 @@ export default function ViajesPage() {
                 </div>
               </div>
 
-              {/* Origen */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
@@ -496,7 +421,6 @@ export default function ViajesPage() {
                 </Select>
               </div>
 
-              {/* Destino */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
@@ -515,7 +439,6 @@ export default function ViajesPage() {
                 </Select>
               </div>
 
-              {/* Fecha */}
               <div className="md:col-span-2 lg:col-span-1 space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
@@ -532,7 +455,6 @@ export default function ViajesPage() {
           </CardContent>
         </Card>
 
-        {/* Resultados */}
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Viajes Disponibles
@@ -547,7 +469,6 @@ export default function ViajesPage() {
           </p>
         </div>
 
-        {/* Lista de viajes */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, index) => (
@@ -606,7 +527,6 @@ export default function ViajesPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Fecha y hora */}
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
@@ -618,7 +538,6 @@ export default function ViajesPage() {
                     </div>
                   </div>
 
-                  {/* Vehículo */}
                   <div className="flex items-center gap-2">
                     <Bus className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">
@@ -628,7 +547,6 @@ export default function ViajesPage() {
                     </span>
                   </div>
 
-                  {/* Comodidades */}
                   {typeof viaje.vehiculo === 'object' && viaje.vehiculo && (
                     <div className="flex items-center gap-2">
                       {getComodidades(viaje.vehiculo.tipo_vehiculo).map((comodidad, index) => (
@@ -640,7 +558,6 @@ export default function ViajesPage() {
                     </div>
                   )}
 
-                  {/* Asientos disponibles */}
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">
@@ -648,7 +565,6 @@ export default function ViajesPage() {
                     </span>
                   </div>
 
-                  {/* Precio y botón */}
                   <div className="flex items-center justify-between pt-4 border-t">
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-5 w-5 text-green-600" />
@@ -684,7 +600,6 @@ export default function ViajesPage() {
         )}
       </div>
 
-      {/* Modal de asientos */}
       {selectedViaje && (
         <AsientosModal
           viajeId={selectedViaje.id}
@@ -696,7 +611,6 @@ export default function ViajesPage() {
         />
       )}
 
-      {/* Diálogo de autenticación */}
       <AlertDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
@@ -709,7 +623,6 @@ export default function ViajesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          {/* Beneficios de tener cuenta */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
               <div className="bg-blue-100 p-2 rounded-full flex-shrink-0">

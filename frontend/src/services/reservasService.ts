@@ -1,4 +1,4 @@
-// services/reservasService.ts - VERSIÓN COMPLETA Y CORREGIDA
+
 import type { 
   Reserva, 
   ReservaTemporalPayload, 
@@ -7,7 +7,6 @@ import type {
 import type { ApiResponse } from '@/types';
 import { apiRequest } from './authService';
 
-// Interface para estado de reserva temporal (específica del servicio)
 interface EstadoReservaTemporal {
   id: number;
   codigo_reserva: string;
@@ -25,13 +24,8 @@ interface EstadoReservaTemporal {
 }
 
 export const reservasApi = {
-  /**
-   * ✅ NUEVO: Crear reserva temporal con expiración
-   */
   async crearReservaTemporal(payload: ReservaTemporalPayload): Promise<ReservaTemporalResponse> {
     try {
-      console.log('🔄 Creando reserva temporal:', payload);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
         return { success: false, error: 'No autenticado' };
@@ -47,7 +41,6 @@ export const reservasApi = {
       });
 
       const responseText = await response.text();
-      console.log('📥 Respuesta reserva temporal:', responseText);
 
       if (!response.ok) {
         try {
@@ -66,7 +59,6 @@ export const reservasApi = {
 
       try {
         const data = JSON.parse(responseText);
-        console.log('✅ RESERVA TEMPORAL EXITOSA:', data);
         return {
           success: true,
           data: data.data,
@@ -75,23 +67,17 @@ export const reservasApi = {
           message: data.message
         };
       } catch (e) {
-        console.error('❌ Error parseando respuesta exitosa:', e);
         return { success: false, error: 'Error procesando respuesta del servidor' };
       }
       
     } catch (error) {
-      console.error('❌ Error de red:', error);
+      console.error('Error de red:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * ✅ NUEVO: Confirmar pago de reserva temporal
-   */
   async confirmarPago(reservaId: number): Promise<ApiResponse<Reserva>> {
     try {
-      console.log(`💰 Confirmando pago para reserva: ${reservaId}`);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
         return { success: false, error: 'No autenticado' };
@@ -106,7 +92,6 @@ export const reservasApi = {
       });
 
       const responseText = await response.text();
-      console.log('📥 Respuesta confirmación pago:', responseText);
 
       if (!response.ok) {
         try {
@@ -125,25 +110,19 @@ export const reservasApi = {
 
       try {
         const data = JSON.parse(responseText);
-        console.log('✅ PAGO CONFIRMADO EXITOSAMENTE:', data);
         return { success: true, data: data.data };
       } catch (e) {
         return { success: false, error: 'Error procesando respuesta del servidor' };
       }
       
     } catch (error) {
-      console.error('❌ Error de red:', error);
+      console.error('Error de red:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * ✅ NUEVO: Cancelar reserva temporal
-   */
   async cancelarReservaTemporal(reservaId: number): Promise<ApiResponse<null>> {
     try {
-      console.log(`❌ Cancelando reserva temporal: ${reservaId}`);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
         return { success: false, error: 'No autenticado' };
@@ -158,7 +137,6 @@ export const reservasApi = {
       });
 
       const responseText = await response.text();
-      console.log('📥 Respuesta cancelación:', responseText);
 
       if (!response.ok) {
         try {
@@ -177,25 +155,19 @@ export const reservasApi = {
 
       try {
         const data = JSON.parse(responseText);
-        console.log('✅ RESERVA TEMPORAL CANCELADA:', data);
         return { success: true, data: null };
       } catch (e) {
         return { success: false, error: 'Error procesando respuesta del servidor' };
       }
       
     } catch (error) {
-      console.error('❌ Error de red:', error);
+      console.error('Error de red:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * ✅ NUEVO: Obtener estado de reserva temporal
-   */
   async obtenerEstadoReservaTemporal(reservaId: number): Promise<ApiResponse<EstadoReservaTemporal>> {
     try {
-      console.log(`📊 Obteniendo estado de reserva temporal: ${reservaId}`);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
         return { success: false, error: 'No autenticado' };
@@ -210,7 +182,6 @@ export const reservasApi = {
       });
 
       const responseText = await response.text();
-      console.log('📥 Respuesta estado reserva:', responseText);
 
       if (!response.ok) {
         try {
@@ -229,21 +200,17 @@ export const reservasApi = {
 
       try {
         const data = JSON.parse(responseText);
-        console.log('✅ ESTADO DE RESERVA OBTENIDO:', data);
         return { success: true, data: data.data };
       } catch (e) {
         return { success: false, error: 'Error procesando respuesta del servidor' };
       }
       
     } catch (error) {
-      console.error('❌ Error de red:', error);
+      console.error('Error de red:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * ✅ NUEVO: Verificar si una reserva sigue activa (para polling)
-   */
   async verificarReservaActiva(reservaId: number): Promise<boolean> {
     try {
       const estado = await this.obtenerEstadoReservaTemporal(reservaId);
@@ -254,14 +221,11 @@ export const reservasApi = {
       
       return false;
     } catch (error) {
-      console.error('❌ Error verificando reserva activa:', error);
+      console.error('Error verificando reserva activa:', error);
       return false;
     }
   },
 
-  /**
-   * Obtener todas las reservas del usuario (compatibilidad)
-   */
   async getMisReservas(): Promise<ApiResponse<Reserva[]>> {
     try {
       const response = await apiRequest(`/api/reservas/`);
@@ -280,7 +244,7 @@ export const reservasApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al obtener reservas:', error);
+      console.error('Error al obtener reservas:', error);
       return {
         success: false,
         error: 'Error al cargar las reservas',
@@ -289,9 +253,6 @@ export const reservasApi = {
     }
   },
 
-  /**
-   * Obtener detalle de reserva (compatibilidad)
-   */
   async getDetalleReserva(reservaId: number): Promise<ApiResponse<Reserva>> {
     try {
       const response = await apiRequest(`/api/reservas/${reservaId}/detalle-completo/`);
@@ -309,7 +270,7 @@ export const reservasApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al obtener detalle de reserva:', error);
+      console.error('Error al obtener detalle de reserva:', error);
       return {
         success: false,
         error: 'Error al cargar el detalle de la reserva'
@@ -317,9 +278,6 @@ export const reservasApi = {
     }
   },
 
-  /**
-   * ✅ NUEVO: Agregar asientos a una reserva existente
-   */
   async agregarAsientosReserva(reservaId: number, asientosIds: number[]): Promise<ApiResponse<Reserva>> {
     try {
       const token = localStorage.getItem('access_token');
@@ -361,7 +319,7 @@ export const reservasApi = {
       return { success: true, data: data.reserva };
 
     } catch (error) {
-      console.error('❌ Error al agregar asientos:', error);
+      console.error('Error al agregar asientos:', error);
       return { success: false, error: 'Error de conexión' };
     }
   }

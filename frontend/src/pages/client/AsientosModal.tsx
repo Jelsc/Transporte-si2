@@ -1,4 +1,4 @@
-// components/AsientosModal.tsx - VERSIÓN CORREGIDA PARA COORDINACIÓN CON CHECKOUT
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Dialog, 
@@ -52,7 +52,6 @@ interface AsientoConEstado extends Asiento {
   seleccionado: boolean;
 }
 
-// Función para verificar autenticación
 const verificarAutenticacion = (): boolean => {
   try {
     const token = localStorage.getItem('authToken') || localStorage.getItem('token') || localStorage.getItem('access_token');
@@ -106,11 +105,9 @@ export default function AsientosModal({
     }
   }, [open, viajeId, onLoginRequired, onClose, usuarioAutenticadoProp]);
 
-  // ✅ CORREGIDO: Verificar reserva temporal existente
   const verificarReservaTemporalExistente = async () => {
     setVerificandoReserva(true);
     try {
-      console.log('🔍 Verificando reserva temporal existente...');
       const response = await reservasApi.getMisReservas();
       
       if (response.success && response.data) {
@@ -125,8 +122,6 @@ export default function AsientosModal({
             reservasArray = (response.data as any).data;
           }
         }
-        
-        console.log(`📊 Encontradas ${reservasArray.length} reservas para analizar`);
         
         const reservaActiva = reservasArray.find((reserva: Reserva) => {
           let viajeIdReserva: number | undefined;
@@ -145,27 +140,23 @@ export default function AsientosModal({
         });
         
         if (reservaActiva) {
-          console.log('🔄 Reserva temporal existente encontrada:', reservaActiva);
           await cargarAsientosConReserva(reservaActiva);
           setMostrandoReservaExistente(true);
         } else {
-          console.log('✅ No hay reserva temporal existente');
           setMostrandoReservaExistente(false);
           fetchAsientos();
         }
       } else {
-        console.log('ℹ️ No se pudieron obtener las reservas, cargando asientos normales');
         fetchAsientos();
       }
     } catch (error) {
-      console.error('❌ Error verificando reserva temporal:', error);
+      console.error('Error verificando reserva temporal:', error);
       fetchAsientos();
     } finally {
       setVerificandoReserva(false);
     }
   };
 
-  // ✅ Cargar asientos con una reserva existente
   const cargarAsientosConReserva = async (reserva: Reserva) => {
     setLoading(true);
     try {
@@ -182,7 +173,6 @@ export default function AsientosModal({
         setAsientos(asientosConEstado);
         setReservaCreada(reserva);
         
-        // Configurar timer de expiración
         if (reserva.fecha_expiracion) {
           const expiracion = new Date(reserva.fecha_expiracion).getTime();
           const ahora = new Date().getTime();
@@ -240,7 +230,6 @@ export default function AsientosModal({
     }
   };
 
-  // ✅ ACTUALIZADO: Toggle de asientos que permite manejar reservas propias
   const toggleAsiento = useCallback((asiento: AsientoConEstado) => {
     if (asiento.estado === 'ocupado') return;
 
@@ -265,7 +254,6 @@ export default function AsientosModal({
     setAsientosSeleccionados(seleccionados);
   }, [asientos]);
 
-  // ✅ CORREGIDO: Manejar reserva con mejor manejo de errores
   const handleReservar = async () => {
     if (asientosSeleccionados.length === 0) {
       toast.error('Selecciona al menos un asiento');
@@ -282,22 +270,17 @@ export default function AsientosModal({
       return;
     }
 
-    // ✅ SI YA HAY RESERVA CREADA: Ir directo al checkout
     if (reservaCreada) {
-      console.log('🔄 Continuando con reserva existente:', reservaCreada.id);
       setCheckoutOpen(true);
       return;
     }
 
-    // ✅ CREAR NUEVA RESERVA TEMPORAL
     setReservando(true);
     setError(null);
     
     try {
       const asientosIds = asientosSeleccionados.map(asiento => asiento.id);
       const montoTotal = viajeInfo ? viajeInfo.precio * asientosSeleccionados.length : 0;
-      
-      console.log('🔄 Creando NUEVA reserva TEMPORAL para asientos:', asientosIds);
       
       const result = await reservasApi.crearReservaTemporal({
         viaje_id: viajeId,
@@ -306,9 +289,6 @@ export default function AsientosModal({
       });
 
       if (result.success && result.data) {
-        console.log('✅ NUEVA Reserva TEMPORAL creada:', result.data);
-        
-        // Configurar timer de expiración
         if (result.expiracion) {
           const expiracion = new Date(result.expiracion).getTime();
           const ahora = new Date().getTime();
@@ -330,11 +310,8 @@ export default function AsientosModal({
       const errorMessage = err instanceof Error ? err.message : 'Error inesperado';
       setError(errorMessage);
       
-      // ✅ CORRECCIÓN MEJORADA: Manejo específico de errores
       if (errorMessage.includes('Ya tienes una reserva temporal activa')) {
-        // ✅ NUEVO: Manejar error de reserva existente
         toast.error('Ya tienes una reserva pendiente para este viaje');
-        // Forzar verificación de reserva existente
         await verificarReservaTemporalExistente();
         return;
       }
@@ -345,16 +322,13 @@ export default function AsientosModal({
         
         toast.error('Algunos asientos ya no están disponibles. Actualizando lista...');
         
-        // Recargar asientos para mostrar estado actual
         await fetchAsientos();
         
-        // ✅ CORRECCIÓN: Desseleccionar asientos que ya no están disponibles
         setAsientos(prev => prev.map(a => ({
           ...a,
           seleccionado: a.seleccionado && a.estado === 'libre'
         })));
         
-        // Mostrar mensaje informativo
         setTimeout(() => {
           const nuevosSeleccionados = asientos.filter(a => a.seleccionado);
           if (nuevosSeleccionados.length === 0) {
@@ -379,13 +353,12 @@ export default function AsientosModal({
         toast.error(`Error al crear reserva: ${errorMessage}`);
       }
       
-      console.error('❌ Error en reserva:', err);
+      console.error('Error en reserva:', err);
     } finally {
       setReservando(false);
     }
   };
 
-  // ✅ Cancelar reserva temporal existente
   const handleCancelarReserva = async () => {
     if (!reservaCreada) return;
     
@@ -410,7 +383,6 @@ export default function AsientosModal({
     }
   };
 
-  // ✅ Timer de expiración
   useEffect(() => {
     let interval: number | undefined;
     
@@ -432,9 +404,7 @@ export default function AsientosModal({
     };
   }, [timerActivo, tiempoRestante]);
 
-  // ✅ Manejar expiración de reserva
   const handleExpiracionReserva = async () => {
-    console.log('⏰ Reserva expirada');
     setTimerActivo(false);
     
     if (reservaCreada) {
@@ -452,27 +422,16 @@ export default function AsientosModal({
     setMostrandoReservaExistente(false);
   };
 
-  // ✅ CORREGIDO: Manejo de pago exitoso - NO cerrar automáticamente
   const handlePagoExitoso = useCallback(() => {
-    console.log('✅ Pago exitoso - CheckoutModal manejará el cierre');
     setPagoExitoso(true);
-    
-    // ✅ SOLO actualizar el estado, NO cerrar modales aquí
     setTimerActivo(false);
     setMostrandoReservaExistente(false);
     
-    // ✅ Mostrar mensaje de éxito pero NO cerrar
     toast.success('¡Pago completado! Tu reserva ha sido confirmada.');
-    
-    // ❌ ELIMINAR el cierre automático que estaba aquí
-    // El CheckoutModal ahora se encargará del cierre cuando el usuario haga clic en "Continuar"
   }, []);
 
-  // ✅ CORREGIDO: Función de cierre mejorada para CheckoutModal
   const handleCheckoutClose = () => {
-    // ✅ SI EL PAGO FUE EXITOSO: Cerrar todo
     if (pagoExitoso) {
-      console.log('✅ Pago exitoso - cerrando modales desde AsientosModal');
       setCheckoutOpen(false);
       resetEstado();
       onReservaExitosa();
@@ -480,7 +439,6 @@ export default function AsientosModal({
       return;
     }
     
-    // ✅ SI NO HAY PAGO EXITOSO: Mostrar confirmación
     setCheckoutOpen(false);
     
     if (tiempoRestante > 0 && !pagoExitoso) {
@@ -506,7 +464,6 @@ export default function AsientosModal({
     onLoginRequired?.();
   };
 
-  // ✅ ACTUALIZADO: Funciones de renderizado con soporte para reservas propias
   const getEstadoAsiento = (asiento: AsientoConEstado) => {
     if (asiento.estado === 'ocupado') return 'ocupado';
     
@@ -582,7 +539,6 @@ export default function AsientosModal({
     );
   };
 
-  // Organizar asientos en filas
   const organizarAsientosEnFilas = () => {
     const asientosOrdenados = [...asientos].sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
     const filas = [];
@@ -597,7 +553,6 @@ export default function AsientosModal({
   const asientosLibres = asientos.filter(a => a.estado === 'libre').length;
   const asientosOcupados = asientos.filter(a => a.estado === 'ocupado' || a.estado === 'reservado').length;
 
-  // Formatear tiempo para display
   const formatearTiempo = (segundos: number) => {
     const minutos = Math.floor(segundos / 60);
     const segs = segundos % 60;
@@ -630,7 +585,6 @@ export default function AsientosModal({
             </DialogTitle>
           </DialogHeader>
 
-          {/* ✅ TIMER DE EXPIRACIÓN */}
           {timerActivo && tiempoRestante > 0 && !pagoExitoso && (
             <div className={`
               border rounded-lg p-4 mb-4 transition-all duration-300
@@ -678,7 +632,6 @@ export default function AsientosModal({
             </div>
           )}
 
-          {/* ✅ NUEVO: Banner de pago exitoso */}
           {pagoExitoso && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-3">
@@ -695,7 +648,6 @@ export default function AsientosModal({
             </div>
           )}
 
-          {/* ✅ NUEVO: Banner de reserva existente */}
           {mostrandoReservaExistente && reservaCreada && !pagoExitoso && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-3">
@@ -723,7 +675,6 @@ export default function AsientosModal({
             </div>
           )}
 
-          {/* Mostrar errores */}
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
               <div className="flex items-center gap-2 text-red-800">
@@ -776,7 +727,6 @@ export default function AsientosModal({
             </Card>
           )}
 
-          {/* ✅ ACTUALIZADO: Leyenda con reservas propias */}
           <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-lg border">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 rounded border border-green-600 shadow-sm"></div>
@@ -810,9 +760,7 @@ export default function AsientosModal({
             </div>
           ) : (
             <>
-              {/* Representación del bus */}
               <div className="mb-8 border-4 border-gray-800 rounded-xl bg-gradient-to-b from-gray-700 to-gray-900 shadow-2xl overflow-hidden">
-                {/* Cabina del conductor */}
                 <div className="bg-yellow-500 text-gray-900 text-center py-3 relative">
                   <div className="flex items-center justify-center gap-2 font-bold">
                     <Car className="h-5 w-5" />
@@ -827,33 +775,27 @@ export default function AsientosModal({
                   </div>
                 </div>
                 
-                {/* Cuerpo del bus con asientos */}
                 <div className="p-6 bg-gradient-to-b from-gray-100 to-gray-200 min-h-[400px]">
                   {filasDeAsientos.map((fila, filaIndex) => (
                     <div key={filaIndex} className="flex justify-center gap-8 mb-6 items-center relative">
-                      {/* Número de fila */}
                       <div className="w-6 text-center text-xs font-bold text-gray-600 bg-gray-300 py-1 rounded absolute left-2">
                         {filaIndex + 1}
                       </div>
                       
-                      {/* Lado izquierdo - 2 asientos */}
                       <div className="flex gap-4">
                         {fila.slice(0, 2).map(renderAsiento)}
                       </div>
                       
-                      {/* Pasillo con diseño realista */}
                       <div className="w-12 flex items-center justify-center">
                         <div className="h-8 w-full bg-gradient-to-r from-yellow-600 to-yellow-500 rounded-lg border border-yellow-700 shadow-inner"></div>
                       </div>
                       
-                      {/* Lado derecho - 2 asientos */}
                       <div className="flex gap-4">
                         {fila.slice(2, 4).map(renderAsiento)}
                       </div>
                     </div>
                   ))}
                   
-                  {/* Parte trasera del bus */}
                   <div className="text-center mt-8 py-4 border-t border-gray-300 relative">
                     <div className="bg-gray-800 text-white text-xs py-1 px-3 rounded-full inline-block">
                       <span>PARTE TRASERA DEL BUS</span>
@@ -868,7 +810,6 @@ export default function AsientosModal({
                 </div>
               </div>
 
-              {/* Resumen de selección mejorado */}
               {asientosSeleccionados.length > 0 && (
                 <Card className="mb-4 border-blue-200 bg-blue-50 shadow-lg">
                   <CardContent className="p-4">
@@ -971,7 +912,6 @@ export default function AsientosModal({
         </DialogContent>
       </Dialog>
 
-      {/* ✅ CHECKOUT MODAL MEJORADO */}
       {reservaCreada && (
         <CheckoutModal
           open={checkoutOpen}

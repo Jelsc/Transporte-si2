@@ -108,9 +108,14 @@ export function useMisReservas(): UseMisReservasReturn {
         total_asientos_reservados: reservasData.reduce((total: number, reserva: any) => 
           total + (reserva.items?.length || 0), 0
         ),
-        ingresos_totales: reservasData.reduce((total: number, reserva: any) => 
-          total + (reserva.pagado ? reserva.total : 0), 0
-        ),
+        ingresos_totales: reservasData.reduce((total: number, reserva: any) => {
+          const totalReserva = Number(reserva.total) || 0;
+          // Sumar si está pagada, confirmada, o completada
+          if (reserva.pagado || reserva.estado === 'pagada' || reserva.estado === 'confirmada' || reserva.estado === 'completada') {
+          return total + totalReserva;
+        }
+        return total;
+        }, 0),
         reservas_pagadas: reservasData.filter((r: any) => r.pagado).length,
         reservas_pendientes: reservasData.filter((r: any) => !r.pagado && r.estado === 'pendiente').length,
         reservas_confirmadas: reservasData.filter((r: any) => r.estado === 'confirmada').length,

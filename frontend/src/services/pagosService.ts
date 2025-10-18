@@ -1,8 +1,7 @@
-// services/pagosService.ts - VERSIÓN CORREGIDA
+
 import type { ApiResponse } from '@/types';
 import { apiRequest } from './authService';
 
-// Interfaces para tipos de datos
 export interface Pago {
   id: number;
   usuario: number;
@@ -38,7 +37,6 @@ export interface ConfirmarPagoData {
   payment_intent_id: string;
 }
 
-// Interfaces para respuestas específicas
 export interface CrearPagoResponse {
   success: boolean;
   message: string;
@@ -87,18 +85,11 @@ export interface CancelarPagoResponse {
 }
 
 export const pagosApi = {
-  /**
-   * Obtiene todos los pagos del usuario autenticado
-   */
   async list(): Promise<ApiResponse<Pago[]>> {
     try {
-      console.log('🔍 Solicitando lista de pagos...');
-      
       const response = await apiRequest('/api/pagos/pagos/');
-      console.log('📦 Respuesta de pagos:', response);
 
       if (response.success && response.data) {
-        // Manejar diferentes formatos de respuesta
         const data = response.data as ListarPagosResponse | Pago[];
         
         let pagos: Pago[] = [];
@@ -108,11 +99,8 @@ export const pagosApi = {
         } else if (typeof data === 'object' && 'pagos' in data) {
           pagos = data.pagos;
         } else if (typeof data === 'object' && 'results' in data) {
-          // Para compatibilidad con DRF
           pagos = (data as any).results;
         }
-        
-        console.log(`✅ ${pagos.length} pagos cargados`);
         
         return {
           success: true,
@@ -127,7 +115,7 @@ export const pagosApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al cargar pagos:', error);
+      console.error('Error al cargar pagos:', error);
       return {
         success: false,
         error: 'Error de conexión al cargar pagos',
@@ -136,16 +124,10 @@ export const pagosApi = {
     }
   },
 
-  /**
-   * Crea un nuevo pago para una reserva
-   */
   async crearPago(pagoData: CrearPagoData): Promise<ApiResponse<CrearPagoResponse>> {
     try {
-      console.log('💰 CREANDO PAGO:', pagoData);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
-        console.error('❌ No hay token de autenticación');
         return { success: false, error: 'No autenticado' };
       }
 
@@ -158,14 +140,9 @@ export const pagosApi = {
         body: JSON.stringify(pagoData),
       });
 
-      console.log('📥 Status:', response.status);
-      
       const responseText = await response.text();
-      console.log('📥 RESPUESTA COMPLETA:', responseText);
 
       if (!response.ok) {
-        console.error('❌ ERROR HTTP:', response.status);
-        
         try {
           const errorData = JSON.parse(responseText);
           return { 
@@ -180,13 +157,10 @@ export const pagosApi = {
         }
       }
 
-      // ✅ Éxito
       try {
         const data: CrearPagoResponse = JSON.parse(responseText);
-        console.log('✅ PAGO CREADO EXITOSAMENTE:', data);
         return { success: true, data };
       } catch (e) {
-        console.error('❌ Error parseando respuesta exitosa:', e);
         return { 
           success: false, 
           error: 'Error al procesar respuesta del servidor' 
@@ -194,18 +168,13 @@ export const pagosApi = {
       }
       
     } catch (error) {
-      console.error('❌ Error de red al crear pago:', error);
+      console.error('Error de red al crear pago:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * Confirma un pago con Stripe
-   */
   async confirmarPago(pagoId: number, confirmarData: ConfirmarPagoData): Promise<ApiResponse<ConfirmarPagoResponse>> {
     try {
-      console.log(`✅ CONFIRMANDO PAGO ${pagoId}:`, confirmarData);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
         return { success: false, error: 'No autenticado' };
@@ -221,7 +190,6 @@ export const pagosApi = {
       });
 
       const responseText = await response.text();
-      console.log('📥 Respuesta confirmación:', responseText);
 
       if (!response.ok) {
         try {
@@ -242,18 +210,13 @@ export const pagosApi = {
       return { success: true, data };
 
     } catch (error) {
-      console.error('❌ Error al confirmar pago:', error);
+      console.error('Error al confirmar pago:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * Cancela un pago
-   */
   async cancelarPago(pagoId: number): Promise<ApiResponse<CancelarPagoResponse>> {
     try {
-      console.log(`❌ CANCELANDO PAGO ${pagoId}`);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
         return { success: false, error: 'No autenticado' };
@@ -268,7 +231,6 @@ export const pagosApi = {
       });
 
       const responseText = await response.text();
-      console.log('📥 Respuesta cancelación:', responseText);
 
       if (!response.ok) {
         try {
@@ -289,23 +251,17 @@ export const pagosApi = {
       return { success: true, data };
 
     } catch (error) {
-      console.error('❌ Error al cancelar pago:', error);
+      console.error('Error al cancelar pago:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * Obtiene los pagos del usuario autenticado
-   */
   async misPagos(): Promise<ApiResponse<MisPagosResponse>> {
     try {
-      console.log('🔍 Solicitando mis pagos...');
-      
       const response = await apiRequest('/api/pagos/pagos/mis_pagos/');
       
       if (response.success && response.data) {
         const data = response.data as MisPagosResponse;
-        console.log(`✅ ${data.count} pagos personales cargados`);
         return {
           success: true,
           data
@@ -318,7 +274,7 @@ export const pagosApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al obtener mis pagos:', error);
+      console.error('Error al obtener mis pagos:', error);
       return {
         success: false,
         error: 'Error al cargar mis pagos'
@@ -326,18 +282,12 @@ export const pagosApi = {
     }
   },
 
-  /**
-   * Obtiene estadísticas de pagos (solo para administradores)
-   */
   async estadisticas(): Promise<ApiResponse<EstadisticasPagos>> {
     try {
-      console.log('📊 Solicitando estadísticas de pagos...');
-      
       const response = await apiRequest('/api/pagos/pagos/estadisticas/');
       
       if (response.success && response.data) {
         const data = response.data as EstadisticasPagos;
-        console.log('✅ Estadísticas de pagos cargadas');
         return {
           success: true,
           data
@@ -350,7 +300,7 @@ export const pagosApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al obtener estadísticas:', error);
+      console.error('Error al obtener estadísticas:', error);
       return {
         success: false,
         error: 'Error al cargar estadísticas'
@@ -358,18 +308,12 @@ export const pagosApi = {
     }
   },
 
-  /**
-   * Obtiene el detalle de un pago específico
-   */
   async getDetallePago(pagoId: number): Promise<ApiResponse<Pago>> {
     try {
-      console.log(`🔍 Solicitando detalle del pago ${pagoId}...`);
-      
       const response = await apiRequest(`/api/pagos/pagos/${pagoId}/`);
       
       if (response.success && response.data) {
         const data = response.data as Pago;
-        console.log('✅ Detalle de pago cargado');
         return {
           success: true,
           data
@@ -382,7 +326,7 @@ export const pagosApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al obtener detalle del pago:', error);
+      console.error('Error al obtener detalle del pago:', error);
       return {
         success: false,
         error: 'Error al cargar el detalle del pago'
