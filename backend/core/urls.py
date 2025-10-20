@@ -38,6 +38,7 @@ urlpatterns = [
 
     path("api/vehiculos/", include("vehiculos.urls")),
     path("api/viajes/", include("viajes.urls")),
+   path("api/encomienda/", include("encomiendas.urls")),
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
     

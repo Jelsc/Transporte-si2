@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, Home } from 'lucide-react';
+import { ChevronRight, Container, Home } from 'lucide-react';
 import { 
   BarChart3, 
   Users, 
@@ -12,7 +12,7 @@ import {
   Car,
   UserCheck,
   Truck,
-  Bus
+  Bus,
 } from 'lucide-react';
 
 // Define la estructura del sidebar para mantener consistencia
@@ -47,6 +47,7 @@ const sidebarStructure = [
       { id: 'vehiculos', name: 'Vehículos', icon: Car, route: '/admin/vehiculos' },
       { id: 'asignaciones', name: 'Asignaciones', icon: UserCheck, route: '/admin/asignaciones' },
       { id: 'viajes', name: 'Viajes', icon: Bus, route: '/admin/viajes' },
+      { id: 'encomiendas', name: 'Encomiendas', icon: Container, route: '/admin/encomiendas' },
     ]
   },
   { id: 'notificaciones', name: 'Notificaciones', icon: Bell, route: "/admin/notificaciones" },

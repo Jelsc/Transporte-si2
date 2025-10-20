@@ -145,6 +145,7 @@ INSTALLED_APPS = [
     "bitacora",
     'vehiculos',
     "viajes",
+    "encomiendas",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
@@ -382,3 +383,4 @@ GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET", "")
 
 # Configuración de sitios para allauth
 SITE_ID = int(os.getenv("SITE_ID", "1"))
+    

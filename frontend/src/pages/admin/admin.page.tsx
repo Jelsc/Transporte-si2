@@ -16,6 +16,7 @@ import {
   UserCheck,
   ShieldCheck,
   BookOpen,
+  Container,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -104,6 +105,12 @@ const sidebarModules: SidebarModule[] = [
         label: "Viajes",
         route: "/admin/viajes",
         icon: Bus,
+      },
+      {
+        id: "encomiendas",
+        label: "Encomiendas",
+        route: "/admin/encomiendas",
+        icon: Container,
       },
     ],
   },

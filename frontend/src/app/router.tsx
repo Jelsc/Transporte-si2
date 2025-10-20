@@ -17,16 +17,19 @@ import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
+import ClientEncomiendasPage from "@/pages/client/ClientEncomiendasPage";
+import AdminEncomiendasPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 
 
 export default function AppRouter() {
   return (
     <Router>
       <Routes>
-        {/* Rutas del cliente con layout */}
+        {/* Rutas del cliente con layout */}  
         <Route path="/" element={<ClientLayout />}>
           <Route index element={<HomePage />} />
           <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
+          <Route path="encomiendas" element={<ClientEncomiendasPage />} />
         </Route>
         
         {/* Rutas de autenticación sin layout */}
@@ -37,6 +40,9 @@ export default function AppRouter() {
         
         {/* Rutas de administración */}
         <Route path="/admin" element={<AdminLoginPage />} />
+
+         
+
         {/* Rutas protegidas de administración */}
         <Route
           path="/admin/roles"
@@ -133,6 +139,14 @@ export default function AppRouter() {
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <VehiculosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/encomiendas"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                <AdminEncomiendasPage />
                 </ProtectedRoute>
               }
             />
