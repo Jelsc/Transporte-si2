@@ -16,6 +16,8 @@ import AccountSettingsPage from "@/pages/auth/account-settings.page";
 import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
+import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
+import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
 
 
@@ -108,7 +110,7 @@ export default function AppRouter() {
           path="/admin/rutas"
           element={
             <ProtectedRoute requireAdmin={true}>
-              <div>Rutas (por implementar)</div>
+              <RutasOptimizadasPage />
             </ProtectedRoute>
           }
         />
@@ -133,6 +135,14 @@ export default function AppRouter() {
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <VehiculosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ubicaciones"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <UbicacionesPage />
                 </ProtectedRoute>
               }
             />

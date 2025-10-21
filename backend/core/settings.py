@@ -145,6 +145,8 @@ INSTALLED_APPS = [
     "bitacora",
     'vehiculos',
     "viajes",
+    "ubicaciones",
+    "rutas_optimizadas",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
@@ -382,3 +384,38 @@ GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET", "")
 
 # Configuración de sitios para allauth
 SITE_ID = int(os.getenv("SITE_ID", "1"))
+
+# ========== CONFIGURACIÓN DE CELERY ==========
+CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'America/La_Paz'
+CELERY_ENABLE_UTC = True
+
+# Configuración de OSRM con detección automática de IP
+def get_osrm_url():
+    """
+    Configurar la URL de OSRM:
+    - Usar valor de variable de entorno si existe
+    - Si no, intentar usar detección de IP
+    - Como última opción, usar localhost
+    """
+    osrm_url = os.getenv('OSRM_URL', 'http://osrm-backend:5000')
+    
+    # Detección automática para desarrollo local
+    if "localhost" in osrm_url or "127.0.0.1" in osrm_url:
+        try:
+            from core.utils.ip_detection import get_public_ip
+            ip = get_public_ip()
+            if ip and ip not in ('localhost', '127.0.0.1'):
+                osrm_url = f"http://{ip}:5000"
+                print(f"🗺️ [Django] IP pública detectada para OSRM: {ip}")
+        except Exception as e:
+            print(f"⚠️ [Django] No se pudo detectar IP para OSRM: {e}")
+    
+    print(f"🗺️ [Django] URL OSRM configurada: {osrm_url}")
+    return osrm_url
+
+OSRM_URL = get_osrm_url()

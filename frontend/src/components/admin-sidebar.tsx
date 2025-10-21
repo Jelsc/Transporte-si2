@@ -136,6 +136,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       icon: Route,
       submodules: [
         {
+          id: "ubicaciones",
+          name: "Ubicaciones",
+          icon: MapPin,
+          route: "/admin/ubicaciones",
+        },
+        {
           id: "vehiculos",
           name: "Vehículos",
           icon: Car,
@@ -146,6 +152,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           name: "Viajes",
           icon: Bus,
           route: "/admin/viajes",
+        },
+        {
+          id: "rutas-optimizadas",
+          name: "Rutas Optimizadas",
+          icon: Route,
+          route: "/admin/rutas",
         },
       ],
     },

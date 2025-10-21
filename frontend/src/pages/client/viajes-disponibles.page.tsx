@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import { viajesApi } from '@/services/viajesService';
 import type { Viaje, ViajeFilters } from '@/types';
+import type { Ubicacion } from '@/types/ubicaciones';
+import { api } from '@/lib/api';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -39,11 +41,33 @@ export default function ViajesPage() {
   const [origenFilter, setOrigenFilter] = useState('all');
   const [destinoFilter, setDestinoFilter] = useState('all');
   const [fechaFilter, setFechaFilter] = useState('');
+  
+  // Estados para ubicaciones
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [loadingUbicaciones, setLoadingUbicaciones] = useState(false);
 
-  const ciudades = [
-    'La Paz', 'Santa Cruz', 'Cochabamba', 'Oruro', 
-    'Potosi', 'Tarija', 'Beni', 'Pando'
-  ];
+  // Cargar ubicaciones al montar el componente
+  useEffect(() => {
+    cargarUbicaciones();
+  }, []);
+
+  const cargarUbicaciones = async () => {
+    setLoadingUbicaciones(true);
+    try {
+      const response = await api.get('/api/ubicaciones/', {
+        params: {
+          tipo: 'TERMINAL', // Solo terminales
+          activo: true,
+          ordering: 'nombre'
+        }
+      });
+      setUbicaciones(response.data.results || response.data);
+    } catch (error) {
+      console.error('Error al cargar ubicaciones:', error);
+    } finally {
+      setLoadingUbicaciones(false);
+    }
+  };
 
   // Debounce para el campo de búsqueda
   useEffect(() => {
@@ -190,16 +214,18 @@ export default function ViajesPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  Ciudad Origen
+                  Terminal Origen
                 </label>
-                <Select value={origenFilter} onValueChange={setOrigenFilter}>
+                <Select value={origenFilter} onValueChange={setOrigenFilter} disabled={loadingUbicaciones}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona origen" />
+                    <SelectValue placeholder={loadingUbicaciones ? "Cargando..." : "Selecciona origen"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las ciudades</SelectItem>
-                    {ciudades.map((ciudad) => (
-                      <SelectItem key={ciudad} value={ciudad}>{ciudad}</SelectItem>
+                    <SelectItem value="all">Todas las terminales</SelectItem>
+                    {ubicaciones.map((ubicacion) => (
+                      <SelectItem key={ubicacion.id} value={ubicacion.nombre}>
+                        {ubicacion.nombre}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -209,16 +235,18 @@ export default function ViajesPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  Ciudad Destino
+                  Terminal Destino
                 </label>
-                <Select value={destinoFilter} onValueChange={setDestinoFilter}>
+                <Select value={destinoFilter} onValueChange={setDestinoFilter} disabled={loadingUbicaciones}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona destino" />
+                    <SelectValue placeholder={loadingUbicaciones ? "Cargando..." : "Selecciona destino"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las ciudades</SelectItem>
-                    {ciudades.map((ciudad) => (
-                      <SelectItem key={ciudad} value={ciudad}>{ciudad}</SelectItem>
+                    <SelectItem value="all">Todas las terminales</SelectItem>
+                    {ubicaciones.map((ubicacion) => (
+                      <SelectItem key={ubicacion.id} value={ubicacion.nombre}>
+                        {ubicacion.nombre}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

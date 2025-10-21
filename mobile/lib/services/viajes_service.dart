@@ -38,7 +38,6 @@ class ViajesService {
       // Agregar parámetros a la URL
       final uriWithParams = url.replace(queryParameters: queryParams);
       
-      print('🌐 [ViajesService] Solicitando viajes: $uriWithParams');
       
       final response = await http.get(
         uriWithParams,
@@ -48,18 +47,15 @@ class ViajesService {
         },
       ).timeout(const Duration(seconds: 10));
 
-      print('📡 [ViajesService] Respuesta: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('✅ [ViajesService] Viajes obtenidos: ${data['results']?.length ?? 0}');
         return {
           'success': true,
           'data': data,
           'error': null,
         };
       } else {
-        print('❌ [ViajesService] Error: ${response.statusCode} - ${response.body}');
         return {
           'success': false,
           'data': null,
@@ -67,7 +63,6 @@ class ViajesService {
         };
       }
     } catch (e) {
-      print('💥 [ViajesService] Excepción: $e');
       return {
         'success': false,
         'data': null,
@@ -82,7 +77,6 @@ class ViajesService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl$_endpoint$id/');
       
-      print('🌐 [ViajesService] Solicitando viaje: $url');
       
       final response = await http.get(
         url,
@@ -92,18 +86,15 @@ class ViajesService {
         },
       ).timeout(const Duration(seconds: 10));
 
-      print('📡 [ViajesService] Respuesta: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('✅ [ViajesService] Viaje obtenido: ${data['id']}');
         return {
           'success': true,
           'data': data,
           'error': null,
         };
       } else {
-        print('❌ [ViajesService] Error: ${response.statusCode} - ${response.body}');
         return {
           'success': false,
           'data': null,
@@ -111,7 +102,6 @@ class ViajesService {
         };
       }
     } catch (e) {
-      print('💥 [ViajesService] Excepción: $e');
       return {
         'success': false,
         'data': null,

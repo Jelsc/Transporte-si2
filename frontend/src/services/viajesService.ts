@@ -9,8 +9,8 @@ import type {
 
 // Mappers para convertir entre formatos del frontend y backend
 const toDTO = (data: ViajeFormData) => ({
-  origen: data.origen,
-  destino: data.destino,
+  origen_id: data.origen_id,
+  destino_id: data.destino_id,
   fecha: data.fecha,
   hora: data.hora,
   vehiculo_id: data.vehiculo_id,
@@ -22,8 +22,12 @@ const toDTO = (data: ViajeFormData) => ({
 
 const fromDTO = (data: any): Viaje => ({
   id: data.id,
-  origen: data.origen,
-  destino: data.destino,
+  // Mantener compatibilidad con código legacy
+  origen: data.origen_detalle?.nombre || data.origen || '',
+  destino: data.destino_detalle?.nombre || data.destino || '',
+  // Datos detallados de ubicaciones
+  origen_detalle: data.origen_detalle,
+  destino_detalle: data.destino_detalle,
   fecha: data.fecha,
   hora: data.hora,
   vehiculo_id: data.vehiculo_id,
@@ -84,10 +88,15 @@ export const viajesApi = {
 
   // Crear nuevo viaje
   async create(data: ViajeFormData): Promise<ApiResponse<Viaje>> {
+    const dto = toDTO(data);
+    console.log('📤 Enviando datos al backend:', dto);
+    
     const response = await apiRequest('/api/viajes/', {
       method: 'POST',
-      body: JSON.stringify(toDTO(data)),
+      body: JSON.stringify(dto),
     });
+    
+    console.log('📥 Respuesta del backend:', response);
     
     if (response.success && response.data) {
       return {
@@ -148,16 +157,16 @@ export async function getViajes(): Promise<Viaje[]> {
 }
 
 export async function createViaje(data: {
-  origen: string;
-  destino: string;
+  origen_id: number;
+  destino_id: number;
   fecha: string;
   hora: string;
   vehiculo_id: number;
   precio: number;
 }): Promise<void> {
   const formData: ViajeFormData = {
-    origen: data.origen,
-    destino: data.destino,
+    origen_id: data.origen_id,
+    destino_id: data.destino_id,
     fecha: data.fecha,
     hora: data.hora,
     vehiculo_id: data.vehiculo_id,
@@ -172,8 +181,8 @@ export async function createViaje(data: {
 
 export async function updateViaje(id: number, data: any): Promise<void> {
   const formData: ViajeFormData = {
-    origen: data.origen,
-    destino: data.destino,
+    origen_id: data.origen_id,
+    destino_id: data.destino_id,
     fecha: data.fecha,
     hora: data.hora,
     vehiculo_id: typeof data.vehiculo_id === 'string' ? parseInt(data.vehiculo_id) : data.vehiculo_id,
