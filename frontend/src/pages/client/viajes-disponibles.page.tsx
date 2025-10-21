@@ -17,18 +17,42 @@ import {
   MapPin, 
   Calendar, 
   Clock, 
-  DollarSign, 
+  DollarSign,
   Users,
   ArrowRight,
-  Star,
-  Wifi,
+  Snowflake,
   Coffee,
-  Snowflake
+  Wifi,
+  LogIn,
+  UserPlus,
+  Shield,
+  Star
 } from 'lucide-react';
 import { viajesApi } from '@/services/viajesService';
 import type { Viaje, ViajeFilters } from '@/types';
+import AsientosModal from '@/pages/client/AsientosModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const ITEMS_PER_PAGE = 6;
+
+// Función para verificar autenticación
+const verificarAutenticacion = (): boolean => {
+  try {
+    const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+    return !!token;
+  } catch {
+    return false;
+  }
+};
 
 export default function ViajesPage() {
   const [viajes, setViajes] = useState<Viaje[]>([]);
@@ -40,12 +64,16 @@ export default function ViajesPage() {
   const [destinoFilter, setDestinoFilter] = useState('all');
   const [fechaFilter, setFechaFilter] = useState('');
 
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedViaje, setSelectedViaje] = useState<Viaje | null>(null);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+
   const ciudades = [
     'La Paz', 'Santa Cruz', 'Cochabamba', 'Oruro', 
     'Potosi', 'Tarija', 'Beni', 'Pando'
   ];
 
-  // Debounce para el campo de búsqueda
+  // Debounce para búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchDebounced(search);
@@ -54,7 +82,7 @@ export default function ViajesPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Cargar viajes disponibles
+  // Cargar viajes cuando cambian filtros o página
   useEffect(() => {
     fetchViajes();
   }, [searchDebounced, origenFilter, destinoFilter, fechaFilter, page]);
@@ -63,7 +91,7 @@ export default function ViajesPage() {
     setLoading(true);
     try {
       const filters: ViajeFilters = {
-        estado: 'programado', // Solo viajes programados
+        estado: 'programado',
         ...(searchDebounced && { search: searchDebounced }),
         ...(origenFilter !== 'all' && { origen: origenFilter }),
         ...(destinoFilter !== 'all' && { destino: destinoFilter }),
@@ -71,7 +99,6 @@ export default function ViajesPage() {
       };
 
       const response = await viajesApi.list(filters);
-      
       if (response.success && response.data) {
         setViajes(response.data.results);
       }
@@ -128,11 +155,39 @@ export default function ViajesPage() {
     setPage(1);
   };
 
+  const handleAbrirModal = (viaje: Viaje) => {
+    // 👇 VERIFICAR SI EL USUARIO ESTÁ AUTENTICADO
+    const autenticado = verificarAutenticacion();
+    
+    if (!autenticado) {
+      // Si no está autenticado, mostrar diálogo de login (NO abrir modal)
+      setSelectedViaje(viaje);
+      setLoginDialogOpen(true);
+      return;
+    }
+
+    // Si está autenticado, abrir modal normal
+    setSelectedViaje(viaje);
+    setModalOpen(true);
+  };
+
+  const handleIniciarSesion = () => {
+    setLoginDialogOpen(false);
+    // Redirigir a la página de login
+    window.location.href = '/login';
+  };
+
+  const handleRegistrarse = () => {
+    setLoginDialogOpen(false);
+    // Redirigir a la página de registro
+    window.location.href = '/register';
+  };
+
   const hasActiveFilters = search || origenFilter !== 'all' || destinoFilter !== 'all' || fechaFilter;
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
+      {/* Hero */}
       <div className="bg-gradient-to-br from-blue-200 via-blue-100 to-blue-50 py-20 px-6">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
@@ -348,7 +403,10 @@ export default function ViajesPage() {
                         {formatPrice(viaje.precio)}
                       </span>
                     </div>
-                    <Button className="flex items-center gap-2">
+                    <Button
+                      className="flex items-center gap-2"
+                      onClick={() => handleAbrirModal(viaje)}
+                    >
                       Reservar
                       <ArrowRight className="h-4 w-4" />
                     </Button>
@@ -359,6 +417,75 @@ export default function ViajesPage() {
           </div>
         )}
       </div>
+
+      {/* Modal de asientos - SOLO para usuarios autenticados */}
+      {selectedViaje && (
+        <AsientosModal
+          viajeId={selectedViaje.id}
+          viajeInfo={selectedViaje}
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onReservaExitosa={() => {
+            fetchViajes(); // refresca los viajes después de reservar
+          }}
+        />
+      )}
+
+      {/* 👇 DIÁLOGO DE AUTENTICACIÓN - MEJORADO */}
+      {/* 👇 DIÁLOGO DE AUTENTICACIÓN - CORREGIDO */}
+<AlertDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
+  <AlertDialogContent className="sm:max-w-md">
+    <AlertDialogHeader>
+      <AlertDialogTitle className="flex items-center gap-2 text-center justify-center">
+        <Shield className="h-6 w-6 text-blue-600" />
+        Inicia sesión para reservar
+      </AlertDialogTitle>
+      <AlertDialogDescription className="text-center">
+        Necesitas una cuenta para realizar reservas. ¡Es rápido y fácil!
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    
+    {/* Beneficios de tener cuenta */}
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <div className="flex items-start gap-3">
+        <div className="bg-blue-100 p-2 rounded-full flex-shrink-0">
+          <Star className="h-5 w-5 text-blue-600" />
+        </div>
+        <div>
+          <h4 className="font-semibold text-blue-900 text-sm">Ventajas de tener cuenta:</h4>
+          <ul className="text-xs text-blue-800 mt-1 space-y-1">
+            <li>• Gestiona tus reservas fácilmente</li>
+            <li>• Recibe notificaciones de tus viajes</li>
+            <li>• Acceso a promociones exclusivas</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    {/* 👇 FOOTER CORREGIDO - Mejor distribución */}
+    <div className="flex flex-col sm:flex-row gap-3 justify-end">
+      <AlertDialogCancel className="w-full sm:w-auto order-2 sm:order-1">
+        Quizás después
+      </AlertDialogCancel>
+      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto order-1 sm:order-2">
+        <Button 
+          onClick={handleRegistrarse}
+          className="bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 w-full sm:w-auto"
+        >
+          <UserPlus className="h-4 w-4" />
+          Crear Cuenta
+        </Button>
+        <Button 
+          onClick={handleIniciarSesion}
+          className="bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2 w-full sm:w-auto"
+        >
+          <LogIn className="h-4 w-4" />
+          Iniciar Sesión
+        </Button>
+      </div>
+    </div>
+  </AlertDialogContent>
+</AlertDialog>
     </div>
   );
 }

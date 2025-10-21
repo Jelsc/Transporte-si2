@@ -1,188 +1,136 @@
-    import React from 'react';
-    import { Button } from '@/components/ui/button';
-    import {
-      AlertDialog,
-      AlertDialogAction,
-      AlertDialogCancel,
-      AlertDialogContent,
-      AlertDialogDescription,
-      AlertDialogFooter,
-      AlertDialogHeader,
-      AlertDialogTitle,
-    } from '@/components/ui/alert-dialog';
-    import { Badge } from '@/components/ui/badge';
-    import { Loader2, AlertTriangle, Package, User, MapPin } from 'lucide-react';
-    import type { Encomienda } from '@/types/encomienda';
+ import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,  
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, Package, User, MapPin } from 'lucide-react';
+import type { Encomienda } from '@/types/encomienda';
 
-    interface EncomiendaDeleteProps {
-      isOpen: boolean;
-      onClose: () => void;
-      onConfirm: () => Promise<boolean>;
-      encomienda: Encomienda | null;
-      loading?: boolean;
+interface EncomiendaDeleteProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<boolean>;
+  encomienda?: Encomienda | null;
+  loading?: boolean;
+}
+
+export function EncomiendaDelete({
+  isOpen,
+  onClose,
+  onConfirm,
+  encomienda,
+  loading = false
+}: EncomiendaDeleteProps) {
+  const handleConfirm = async () => {
+    const success = await onConfirm();
+    if (success) {
+      onClose();
     }
+  };
 
-    export function EncomiendaDelete({ 
-      isOpen, 
-      onClose, 
-      onConfirm, 
-      encomienda, 
-      loading = false 
-    }: EncomiendaDeleteProps) {
-      if (!encomienda) return null;
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+    }
+  };
 
-      const handleConfirm = async () => {
-        const success = await onConfirm();
-        if (success) {
-          onClose();
-        }
-      };
+  if (!encomienda) return null;
 
-      const getStatusBadge = (estado: string) => {
-        const variants: Record<string, "success" | "warning" | "error" | "neutral"> = {
-          'pendiente': 'warning',
-          'en_ruta': 'neutral',
-          'entregado': 'success',
-          'cancelado': 'error',
-        };
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-red-600">
+            <AlertTriangle className="h-5 w-5" />
+            Confirmar Eliminación
+          </DialogTitle>
+          <DialogDescription>
+            Esta acción no se puede deshacer. La encomienda será eliminada permanentemente del sistema.
+          </DialogDescription>
+        </DialogHeader>
 
-        const labels: Record<string, string> = {
-          'pendiente': 'Pendiente',
-          'en_ruta': 'En Ruta',
-          'entregado': 'Entregado',
-          'cancelado': 'Cancelado',
-        };
-
-        return (
-          <Badge 
-            variant={variants[estado] || 'neutral'} 
-            badgeType="no-icon"
-            size="sm"
-          >
-            {labels[estado] || estado}
-          </Badge>
-        );
-      };
-
-      const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('es-BO');
-      };
-
-      return (
-        <AlertDialog open={isOpen} onOpenChange={onClose}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                Confirmar Eliminación de Encomienda
-              </AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <div className="space-y-4">
-                  <p>
-                    ¿Estás seguro de que deseas eliminar esta encomienda? 
-                    Esta acción no se puede deshacer.
+        <div className="space-y-4 py-4">
+          {/* Información de la encomienda a eliminar */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Package className="h-5 w-5 text-red-600 mt-0.5" />
+              <div className="space-y-2">
+                <div>
+                  <h4 className="font-semibold text-red-800">
+                    {encomienda.codigo_seguimiento}
+                  </h4>
+                  <p className="text-sm text-red-700">
+                    {encomienda.destinatario_nombre} - {encomienda.destino_ciudad}
                   </p>
-                  
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                    <div className="font-medium text-gray-900 flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      Información de la Encomienda:
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="font-medium">Código:</span>
-                        <div className="mt-1">
-                          <Badge variant="neutral" badgeType="no-icon" size="sm" className="font-mono">
-                            {encomienda.codigo_seguimiento}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Estado:</span>
-                        <div className="mt-1">
-                          {getStatusBadge(encomienda.estado)}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Remitente:</span>
-                        <div>{encomienda.remitente_nombre}</div>
-                        <div className="text-gray-500 text-xs">{encomienda.remitente_telefono}</div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Destinatario:</span>
-                        <div>{encomienda.destinatario_nombre}</div>
-                        <div className="text-gray-500 text-xs">{encomienda.destinatario_telefono}</div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Destino:</span>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {encomienda.destino_ciudad}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Peso:</span>
-                        <div className="mt-1">
-                          <Badge variant="information" badgeType="no-icon" size="sm">
-                            {encomienda.peso} kg
-                          </Badge>
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Precio:</span>
-                        <div className="font-semibold text-green-600">
-                          {encomienda.precio.toFixed(2)} BOB
-                        </div>
-                      </div>
-                      <div>
-                        <span className="font-medium">Fecha Registro:</span>
-                        <div>{formatDate(encomienda.fecha_creacion)}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-                    <div className="text-red-800 text-sm">
-                      <strong>Advertencia:</strong> Al eliminar esta encomienda, se perderá 
-                      toda la información asociada incluyendo historial de seguimiento.
-                    </div>
-                  </div>
-
-                  {encomienda.estado === 'en_ruta' && (
-                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
-                      <div className="text-yellow-800 text-sm">
-                        <strong>Nota:</strong> Esta encomienda está actualmente en ruta. 
-                        Asegúrate de notificar al conductor antes de eliminarla.
-                      </div>
-                    </div>
-                  )}
-
-                  {encomienda.estado === 'entregado' && (
-                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-                      <div className="text-blue-800 text-sm">
-                        <strong>Importante:</strong> Esta encomienda ya fue entregada. 
-                        La eliminación afectará los reportes históricos.
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={loading}>
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleConfirm}
-                disabled={loading}
-                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Eliminar Encomienda
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      );
-    }
+                
+                <div className="grid grid-cols-2 gap-2 text-xs text-red-600">
+                  <div className="flex items-center gap-1">
+                    <User className="h-3 w-3" />
+                    <span>Remitente: {encomienda.remitente_nombre}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />
+                    <span>Destino: {encomienda.destino_ciudad}</span>
+                  </div>
+                </div>
+                
+                <div className="text-xs text-red-600">
+                  <strong>Peso:</strong> {encomienda.peso} kg • 
+                  <strong> Precio:</strong> {encomienda.precio.toFixed(2)} BOB
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Advertencias */}
+          <div className="space-y-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <p className="font-medium">⚠️ Consideraciones importantes:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Se eliminará todo el historial de seguimiento</li>
+              <li>Los datos de pago asociados también serán eliminados</li>
+              <li>Esta acción afectará los reportes y estadísticas</li>
+              <li>No podrás recuperar esta información posteriormente</li>
+            </ul>
+          </div>
+        </div>
+
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={loading}
+            className="sm:flex-1"
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={handleConfirm}
+            disabled={loading}
+            className="sm:flex-1"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Eliminando...
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Sí, Eliminar
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

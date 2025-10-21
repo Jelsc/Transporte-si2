@@ -43,12 +43,10 @@ export function useEncomiendas(): UseEncomiendasState & UseEncomiendasActions {
       const response = await encomiendaService.list(filters);
 
       if (response.success && response.data) {
-        // Normalizamos la respuesta para que siempre tenga { results, count }
-        const normalizedData = Array.isArray(response.data)
-          ? { results: response.data, count: response.data.length }
-          : response.data;
-
-        setData(normalizedData);
+        setData({
+          results: response.data.results || [],
+          count: response.data.count || 0
+        });
       } else {
         setError(response.error || "Error al cargar encomiendas");
       }

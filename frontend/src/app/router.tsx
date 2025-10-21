@@ -9,6 +9,8 @@ import ProtectedRoute from "@/app/auth/ProtectedRoute";
 import RolesPage from "@/pages/admin/roles/roles.page";
 import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
+import { VentasReserva } from "./layout/VentasReserva";
+
 import PersonalPage from "@/pages/admin/personal/personal.page";
 import ConductoresPage from "@/pages/admin/conductores/driver.page";
 import UsuariosPage from "@/pages/admin/users/users.page";
@@ -17,8 +19,6 @@ import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
-import ClientEncomiendasPage from "@/pages/client/ClientEncomiendasPage";
-import AdminEncomiendasPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 
 
 export default function AppRouter() {
@@ -40,9 +40,6 @@ export default function AppRouter() {
         
         {/* Rutas de administración */}
         <Route path="/admin" element={<AdminLoginPage />} />
-
-         
-
         {/* Rutas protegidas de administración */}
         <Route
           path="/admin/roles"
@@ -76,8 +73,6 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-
-        {/* Otras rutas de admin protegidas */}
         <Route
           path="/admin/conductores"
           element={
@@ -142,16 +137,8 @@ export default function AppRouter() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/admin/encomiendas"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                <AdminEncomiendasPage />
-                </ProtectedRoute>
-              }
-            />
 
-        {/* rutas protegidas de usuario */}
+        {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
         <Route
           path="/perfil"
           element={
@@ -177,6 +164,15 @@ export default function AppRouter() {
           }
         />
         
+        {/* 👇 RUTA MIS-RESERVAS PROTEGIDA */}
+        <Route
+          path="/mis-reservas"
+          element={
+            <ProtectedRoute>
+              <MisReservasPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* catch-all */}
         <Route path="*" element={<HomePage />} />

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Package, Clock, Truck, CheckCircle, XCircle, DollarSign } from 'lucide-react';
+import { Plus, Package, Clock, Truck, CheckCircle, XCircle, DollarSign, Users, TrendingUp } from 'lucide-react';
 import { useEncomiendas } from '@/hooks/useEncomiendas';
 import { EncomiendaTable } from './components/EncomiendaTable';
 import { EncomiendaFiltersComponent } from './components/EncomiendaFilters';
@@ -10,10 +10,12 @@ import { EncomiendaDelete } from './components/EncomiendaDelete';
 import AdminLayout from '@/app/layout/admin-layout';
 import type { EncomiendaFilters } from '@/types/encomienda';
 import type { Encomienda } from '@/types/encomienda';
+import { encomiendaService } from '@/services/encomiendaService';
+import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 10;
 
-export default function EncomiendasPage() {
+export default function AdminEncomienda() {
   const [page, setPage] = useState<number>(1);
   const [search, setSearch] = useState<string>("");
   const [searchDebounced, setSearchDebounced] = useState<string>("");
@@ -21,6 +23,7 @@ export default function EncomiendasPage() {
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
   const [fechaDesdeFilter, setFechaDesdeFilter] = useState<string>("");
   const [fechaHastaFilter, setFechaHastaFilter] = useState<string>("");
+  const [stats, setStats] = useState<any>(null);
 
   const {
     data,
@@ -55,6 +58,18 @@ export default function EncomiendasPage() {
     await loadData(filters);
   };
 
+  // Cargar estadísticas
+  const cargarEstadisticas = async () => {
+    try {
+      const response = await encomiendaService.getStats();
+      if (response.success && response.data) {
+        setStats(response.data);
+      }
+    } catch (error) {
+      console.error('Error cargando estadísticas:', error);
+    }
+  };
+
   // Debounce para el campo de búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -68,6 +83,7 @@ export default function EncomiendasPage() {
   useEffect(() => {
     fetchEncomiendas();
     loadConductoresDisponibles();
+    cargarEstadisticas();
   }, [page, searchDebounced, estadoFilter, ciudadFilter, fechaDesdeFilter, fechaHastaFilter]);
 
   const handleCreate = () => {
@@ -82,13 +98,25 @@ export default function EncomiendasPage() {
     openDeleteModal(encomienda);
   };
 
+  const handleView = (encomienda: Encomienda) => {
+    // Aquí puedes implementar la vista detallada
+    toast.info(`Vista detallada de ${encomienda.codigo_seguimiento}`);
+  };
+
   const handleStoreSubmit = async (data: any): Promise<boolean> => {
     try {
+      // Asegurar que tenga método de pago
+      const encomiendaData = {
+        ...data,
+        metodo_pago: data.metodo_pago || 'efectivo'
+      };
+
       if (selectedItem) {
-        await updateItem(selectedItem.id, data);
+        await updateItem(selectedItem.id, encomiendaData);
       } else {
-        await createItem(data);
+        await createItem(encomiendaData);
       }
+      await cargarEstadisticas(); // Actualizar stats después de modificar
       return true;
     } catch {
       return false;
@@ -99,6 +127,7 @@ export default function EncomiendasPage() {
     try {
       if (selectedItem) {
         await deleteItem(selectedItem.id);
+        await cargarEstadisticas(); // Actualizar stats después de eliminar
         return true;
       }
       return false;
@@ -117,13 +146,13 @@ export default function EncomiendasPage() {
 
   const totalPages = Math.ceil((data?.count || 0) / ITEMS_PER_PAGE);
 
-  // Calcular estadísticas
-  const totalEncomiendas = data?.count || 0;
-  const encomiendasPendientes = data?.results?.filter(e => e.estado === 'pendiente').length || 0;
-  const encomiendasEnRuta = data?.results?.filter(e => e.estado === 'en_ruta').length || 0;
-  const encomiendasEntregadas = data?.results?.filter(e => e.estado === 'entregado').length || 0;
-  const encomiendasCanceladas = data?.results?.filter(e => e.estado === 'cancelado').length || 0;
-  const ingresosTotales = data?.results?.reduce((total, encomienda) => {
+  // Calcular estadísticas desde los datos locales si no hay stats del servicio
+  const totalEncomiendas = stats?.total || data?.count || 0;
+  const encomiendasPendientes = stats?.pendientes || data?.results?.filter(e => e.estado === 'pendiente').length || 0;
+  const encomiendasEnRuta = stats?.en_ruta || data?.results?.filter(e => e.estado === 'en_ruta').length || 0;
+  const encomiendasEntregadas = stats?.entregados || data?.results?.filter(e => e.estado === 'entregado').length || 0;
+  const encomiendasCanceladas = stats?.cancelados || data?.results?.filter(e => e.estado === 'cancelado').length || 0;
+  const ingresosTotales = stats?.ingresos_totales || data?.results?.reduce((total, encomienda) => {
     return total + (encomienda.precio || 0);
   }, 0) || 0;
 
@@ -145,7 +174,7 @@ export default function EncomiendasPage() {
         </div>
 
         {/* Estadísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total</CardTitle>
@@ -263,6 +292,7 @@ export default function EncomiendasPage() {
               loading={loading}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onView={handleView}
               page={page}
               totalPages={totalPages}
               onPageChange={(newPage) => {

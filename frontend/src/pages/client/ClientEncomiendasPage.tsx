@@ -16,7 +16,10 @@ import {
   Phone,
   DollarSign,
   Eye,
-  RefreshCw
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 import { 
   Select, 
@@ -25,19 +28,20 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import { encomiendaService } from '@/services/encomiendaService';
 import type { Encomienda, CreateEncomiendaRequest } from '@/types/encomienda';
 import { toast } from 'sonner';
 
-// CAMBIO: Exportación nombrada en lugar de default
-export function EncomiendasPage() {
+export function ClienteEncomienda() {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'nueva' | 'seguimiento' | 'historial'>('nueva');
   const [loading, setLoading] = useState(false);
   const [encomiendas, setEncomiendas] = useState<Encomienda[]>([]);
   const [codigoSeguimiento, setCodigoSeguimiento] = useState('');
   const [encomiendaSeguimiento, setEncomiendaSeguimiento] = useState<Encomienda | null>(null);
+  const [seguimientos, setSeguimientos] = useState<any[]>([]);
 
   // Estado para nueva encomienda
   const [nuevaEncomienda, setNuevaEncomienda] = useState<CreateEncomiendaRequest>({
@@ -50,7 +54,8 @@ export function EncomiendasPage() {
     destino_direccion: '',
     descripcion: '',
     peso: 0,
-    notas: ''
+    notas: '',
+    metodo_pago: 'efectivo' // Campo requerido por el backend
   });
 
   const ciudades = [
@@ -59,10 +64,17 @@ export function EncomiendasPage() {
   ];
 
   const estados = {
+    pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+    en_ruta: { label: 'En Ruta', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+    entregado: { label: 'Entregado', color: 'bg-green-100 text-green-800 border-green-200' },
+    cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-800 border-red-200' }
+  };
+
+  const estadosPago = {
     pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
-    en_ruta: { label: 'En Ruta', color: 'bg-blue-100 text-blue-800' },
-    entregado: { label: 'Entregado', color: 'bg-green-100 text-green-800' },
-    cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-800' }
+    completado: { label: 'Completado', color: 'bg-green-100 text-green-800' },
+    fallido: { label: 'Fallido', color: 'bg-red-100 text-red-800' },
+    procesando: { label: 'Procesando', color: 'bg-blue-100 text-blue-800' }
   };
 
   useEffect(() => {
@@ -77,8 +89,10 @@ export function EncomiendasPage() {
       const response = await encomiendaService.getMyEncomiendas();
       if (response.success && response.data) {
         setEncomiendas(response.data);
+      } else {
+        toast.error(response.error || 'Error al cargar historial');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Error al cargar historial de encomiendas');
       console.error('Error:', error);
     } finally {
@@ -121,10 +135,24 @@ export function EncomiendasPage() {
       return;
     }
 
+    // Validaciones básicas
+    if (!nuevaEncomienda.destinatario_nombre.trim()) {
+      toast.error('El nombre del destinatario es requerido');
+      return;
+    }
+
+    if (!nuevaEncomienda.destino_ciudad) {
+      toast.error('La ciudad de destino es requerida');
+      return;
+    }
+
+    if (nuevaEncomienda.peso <= 0) {
+      toast.error('El peso debe ser mayor a 0');
+      return;
+    }
+
     setLoading(true);
     try {
-      const precioCalculado = calcularPrecio(nuevaEncomienda.peso, nuevaEncomienda.destino_ciudad);
-      
       const response = await encomiendaService.create(nuevaEncomienda);
       
       if (response.success && response.data) {
@@ -141,11 +169,14 @@ export function EncomiendasPage() {
           destino_direccion: '',
           descripcion: '',
           peso: 0,
-          notas: ''
+          notas: '',
+          metodo_pago: 'efectivo'
         });
 
         setActiveTab('historial');
         cargarHistorialEncomiendas();
+      } else {
+        toast.error(response.error || 'Error al registrar encomienda');
       }
     } catch (error: any) {
       toast.error(error.message || 'Error al registrar encomienda');
@@ -166,10 +197,19 @@ export function EncomiendasPage() {
       const response = await encomiendaService.getByTrackingCode(codigoSeguimiento);
       if (response.success && response.data) {
         setEncomiendaSeguimiento(response.data);
+        // Cargar seguimientos si están incluidos en la respuesta
+        if (response.data.seguimientos) {
+          setSeguimientos(response.data.seguimientos);
+        }
+      } else {
+        toast.error(response.error || 'Encomienda no encontrada');
+        setEncomiendaSeguimiento(null);
+        setSeguimientos([]);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Encomienda no encontrada');
+      toast.error(error.message || 'Error al buscar encomienda');
       setEncomiendaSeguimiento(null);
+      setSeguimientos([]);
     } finally {
       setLoading(false);
     }
@@ -178,7 +218,23 @@ export function EncomiendasPage() {
   const precioCalculado = calcularPrecio(nuevaEncomienda.peso, nuevaEncomienda.destino_ciudad);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-BO');
+    return new Date(dateString).toLocaleDateString('es-BO', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getEstadoPago = (encomienda: Encomienda) => {
+    if (encomienda.estado_pago) {
+      return encomienda.estado_pago;
+    }
+    if (encomienda.pago_info) {
+      return encomienda.pago_info.estado;
+    }
+    return 'pendiente';
   };
 
   return (
@@ -251,6 +307,17 @@ export function EncomiendasPage() {
                             onChange={handleInputChange}
                             required
                             placeholder="Número de teléfono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">
+                            Dirección (Opcional)
+                          </label>
+                          <Input
+                            name="remitente_direccion"
+                            value={nuevaEncomienda.remitente_direccion}
+                            onChange={handleInputChange}
+                            placeholder="Dirección completa"
                           />
                         </div>
                       </div>
@@ -369,7 +436,7 @@ export function EncomiendasPage() {
                       <label className="text-sm font-medium text-gray-700 mb-2 block">
                         Descripción del Contenido *
                       </label>
-                      <textarea
+                      <Textarea
                         name="descripcion"
                         value={nuevaEncomienda.descripcion}
                         onChange={handleInputChange}
@@ -378,6 +445,28 @@ export function EncomiendasPage() {
                         className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px]"
                       />
                     </div>
+                    <div className="mt-4">
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Notas Adicionales (Opcional)
+                      </label>
+                      <Textarea
+                        name="notas"
+                        value={nuevaEncomienda.notas}
+                        onChange={handleInputChange}
+                        placeholder="Instrucciones especiales, observaciones..."
+                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="h-5 w-5 text-blue-600" />
+                      <span className="font-semibold text-blue-800">Información de Pago</span>
+                    </div>
+                    <p className="text-sm text-blue-700">
+                      El pago se realizará al momento de la entrega. Precio calculado: <strong>{precioCalculado.toFixed(2)} BOB</strong>
+                    </p>
                   </div>
 
                   <Button 
@@ -419,6 +508,7 @@ export function EncomiendasPage() {
                         placeholder="Ingresa el código de seguimiento..."
                         value={codigoSeguimiento}
                         onChange={(e) => setCodigoSeguimiento(e.target.value)}
+                        className="text-lg font-mono"
                       />
                     </div>
                     <Button 
@@ -436,34 +526,103 @@ export function EncomiendasPage() {
                   </div>
 
                   {encomiendaSeguimiento && (
-                    <Card className="bg-gray-50">
-                      <CardContent className="p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h4 className="font-semibold mb-2">Información General</h4>
-                            <div className="space-y-2">
-                              <p><strong>Código:</strong> {encomiendaSeguimiento.codigo_seguimiento}</p>
-                              <p><strong>Estado:</strong> 
-                                <Badge className={`ml-2 ${estados[encomiendaSeguimiento.estado].color}`}>
-                                  {estados[encomiendaSeguimiento.estado].label}
-                                </Badge>
-                              </p>
-                              <p><strong>Fecha de Registro:</strong> {formatDate(encomiendaSeguimiento.fecha_creacion)}</p>
+                    <div className="space-y-6">
+                      <Card className="bg-gray-50">
+                        <CardContent className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <h4 className="font-semibold mb-4 text-lg">Información General</h4>
+                              <div className="space-y-3">
+                                <div>
+                                  <strong>Código:</strong> 
+                                  <span className="font-mono ml-2 bg-gray-200 px-2 py-1 rounded">
+                                    {encomiendaSeguimiento.codigo_seguimiento}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <strong>Estado:</strong> 
+                                  <Badge className={`${estados[encomiendaSeguimiento.estado].color} border`}>
+                                    {estados[encomiendaSeguimiento.estado].label}
+                                  </Badge>
+                                </div>
+                                <div>
+                                  <strong>Fecha de Registro:</strong> 
+                                  <div className="text-sm text-gray-600">
+                                    {formatDate(encomiendaSeguimiento.fecha_creacion)}
+                                  </div>
+                                </div>
+                                {encomiendaSeguimiento.pago_info && (
+                                  <div className="flex items-center gap-2">
+                                    <strong>Estado Pago:</strong>
+                                    <Badge className={estadosPago[getEstadoPago(encomiendaSeguimiento) as keyof typeof estadosPago]?.color || 'bg-gray-100 text-gray-800'}>
+                                      {estadosPago[getEstadoPago(encomiendaSeguimiento) as keyof typeof estadosPago]?.label || getEstadoPago(encomiendaSeguimiento)}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold mb-4 text-lg">Información de Destino</h4>
+                              <div className="space-y-3">
+                                <div>
+                                  <strong>Destinatario:</strong> 
+                                  <div>{encomiendaSeguimiento.destinatario_nombre}</div>
+                                  <div className="text-sm text-gray-600">{encomiendaSeguimiento.destinatario_telefono}</div>
+                                </div>
+                                <div>
+                                  <strong>Ciudad:</strong> {encomiendaSeguimiento.destino_ciudad}
+                                </div>
+                                <div>
+                                  <strong>Dirección:</strong> 
+                                  <div className="text-sm text-gray-600">{encomiendaSeguimiento.destino_direccion}</div>
+                                </div>
+                                {encomiendaSeguimiento.conductor_nombre && (
+                                  <div>
+                                    <strong>Conductor:</strong> {encomiendaSeguimiento.conductor_nombre}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          <div>
-                            <h4 className="font-semibold mb-2">Destino</h4>
-                            <div className="space-y-2">
-                              <p><strong>Ciudad:</strong> {encomiendaSeguimiento.destino_ciudad}</p>
-                              <p><strong>Dirección:</strong> {encomiendaSeguimiento.destino_direccion}</p>
-                              {encomiendaSeguimiento.conductor_nombre && (
-                                <p><strong>Conductor:</strong> {encomiendaSeguimiento.conductor_nombre}</p>
-                              )}
+                        </CardContent>
+                      </Card>
+
+                      {/* Historial de Seguimiento */}
+                      {seguimientos.length > 0 && (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Clock className="h-5 w-5" />
+                              Historial de Seguimiento
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              {seguimientos.map((seguimiento, index) => (
+                                <div key={seguimiento.id} className="flex gap-4 border-l-2 border-blue-200 pl-4">
+                                  <div className="flex-shrink-0 w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                      <h5 className="font-semibold">{seguimiento.evento}</h5>
+                                      <span className="text-sm text-gray-500">
+                                        {formatDate(seguimiento.fecha)}
+                                      </span>
+                                    </div>
+                                    <p className="text-gray-600 mt-1">{seguimiento.descripcion}</p>
+                                    {seguimiento.ubicacion && (
+                                      <div className="flex items-center gap-1 mt-1 text-sm text-gray-500">
+                                        <MapPin className="h-3 w-3" />
+                                        {seguimiento.ubicacion}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
                   )}
                 </form>
               </CardContent>
@@ -513,6 +672,9 @@ export function EncomiendasPage() {
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
+                              <div className="bg-blue-100 p-2 rounded-lg">
+                                <Package className="h-6 w-6 text-blue-600" />
+                              </div>
                               <div>
                                 <p className="font-mono font-semibold text-lg">
                                   {encomienda.codigo_seguimiento}
@@ -520,20 +682,37 @@ export function EncomiendasPage() {
                                 <p className="text-sm text-gray-600">
                                   {encomienda.destinatario_nombre} - {encomienda.destino_ciudad}
                                 </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge className={estados[encomienda.estado].color}>
+                                    {estados[encomienda.estado].label}
+                                  </Badge>
+                                  {encomienda.pago_info && (
+                                    <Badge variant="outline" className={estadosPago[getEstadoPago(encomienda) as keyof typeof estadosPago]?.color}>
+                                      Pago: {estadosPago[getEstadoPago(encomienda) as keyof typeof estadosPago]?.label}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <Badge className={estados[encomienda.estado].color}>
-                                {estados[encomienda.estado].label}
-                              </Badge>
-                              <div className="text-right">
-                                <p className="font-semibold text-green-600">
-                                  {encomienda.precio.toFixed(2)} BOB
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  {formatDate(encomienda.fecha_creacion)}
-                                </p>
-                              </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-green-600 text-lg">
+                                {encomienda.precio.toFixed(2)} BOB
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {formatDate(encomienda.fecha_creacion)}
+                              </p>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="mt-2"
+                                onClick={() => {
+                                  setCodigoSeguimiento(encomienda.codigo_seguimiento);
+                                  setActiveTab('seguimiento');
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Ver Detalles
+                              </Button>
                             </div>
                           </div>
                         </CardContent>
@@ -550,5 +729,4 @@ export function EncomiendasPage() {
   );
 }
 
-// CAMBIO: Exportación por defecto también para compatibilidad
-export default EncomiendasPage;
+export default ClienteEncomienda;

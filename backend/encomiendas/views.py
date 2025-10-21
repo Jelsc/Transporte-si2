@@ -2,7 +2,7 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser  # ✅ Importar ambos
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count, Sum
 from django.utils import timezone
@@ -15,6 +15,9 @@ from .serializers import (
     ActualizarEstadoSerializer, TarifaEncomiendaSerializer, EncomiendaStatsSerializer
 )
 from .filters import EncomiendaFilter
+from pagos.serializers import ConfirmarPagoSerializer
+import stripe
+from django.conf import settings
 
 User = get_user_model()
 
@@ -28,7 +31,7 @@ class EncomiendaViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Encomienda.objects.select_related('conductor_asignado', 'creado_por').prefetch_related('seguimientos')
+        queryset = Encomienda.objects.select_related('conductor_asignado', 'creado_por', 'pago').prefetch_related('seguimientos')
         
         if user.groups.filter(name='Conductores').exists():
             return queryset.filter(conductor_asignado=user)
@@ -64,60 +67,57 @@ class EncomiendaViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def mis_encomiendas(self, request):
-      encomiendas = self.get_queryset().filter(creado_por=request.user)
-    
-      page = self.paginate_queryset(encomiendas)
-      if page is not None:
-        serializer = self.get_serializer(page, many=True)
+        encomiendas = self.get_queryset().filter(creado_por=request.user)
+        
+        page = self.paginate_queryset(encomiendas)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return Response({
+                'success': True,
+                'data': {
+                    'count': self.paginator.page.paginator.count,
+                    'results': serializer.data
+                }
+            })
+        
+        serializer = self.get_serializer(encomiendas, many=True)
         return Response({
             'success': True,
             'data': {
-                'count': self.paginator.page.paginator.count,
+                'count': encomiendas.count(),
                 'results': serializer.data
             }
         })
-    
-      serializer = self.get_serializer(encomiendas, many=True)
-      return Response({
-        'success': True,
-        'data': {
-            'count': encomiendas.count(),
-            'results': serializer.data
-        }
-    })
-
-
 
     @action(detail=False, methods=['get'])
     def asignadas(self, request):
-       if not request.user.groups.filter(name='Conductores').exists():
-         return Response({
-            'success': False,
-            'error': 'No tienes permisos de conductor'
-         }, status=status.HTTP_403_FORBIDDEN)
-    
-       encomiendas = self.get_queryset().filter(conductor_asignado=request.user)
-    
-       page = self.paginate_queryset(encomiendas)
-       if page is not None:
-        serializer = self.get_serializer(page, many=True)
+        if not request.user.groups.filter(name='Conductores').exists():
+            return Response({
+                'success': False,
+                'error': 'No tienes permisos de conductor'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        encomiendas = self.get_queryset().filter(conductor_asignado=request.user)
+        
+        page = self.paginate_queryset(encomiendas)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return Response({
+                'success': True,
+                'data': {
+                    'count': self.paginator.page.paginator.count,
+                    'results': serializer.data
+                }
+            })
+        
+        serializer = self.get_serializer(encomiendas, many=True)
         return Response({
             'success': True,
             'data': {
-                'count': self.paginator.page.paginator.count,
+                'count': encomiendas.count(),
                 'results': serializer.data
             }
         })
-    
-       serializer = self.get_serializer(encomiendas, many=True)
-       return Response({
-        'success': True,
-        'data': {
-            'count': encomiendas.count(),
-            'results': serializer.data
-        }
-    })
-
 
     @action(detail=True, methods=['post'])
     def asignar_conductor(self, request, pk=None):
@@ -210,6 +210,183 @@ class EncomiendaViewSet(viewsets.ModelViewSet):
             'error': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
+    # ACCIONES DE PAGO - NUEVAS
+    
+    @action(detail=True, methods=['post'], url_path='crear-pago-stripe')
+    def crear_pago_stripe(self, request, pk=None):
+        """Crear Payment Intent en Stripe para esta encomienda"""
+        encomienda = self.get_object()
+        
+        if not encomienda.pago:
+            return Response({
+                'success': False,
+                'error': 'Esta encomienda no tiene un pago asociado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if encomienda.pago.metodo_pago != 'stripe':
+            return Response({
+                'success': False,
+                'error': 'El método de pago no es Stripe'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            stripe.api_key = settings.STRIPE_SECRET_KEY
+            
+            # Crear Payment Intent en Stripe
+            payment_intent = stripe.PaymentIntent.create(
+                amount=int(encomienda.pago.monto * 100),  # Convertir a centavos
+                currency='usd',
+                metadata={
+                    'encomienda_id': encomienda.id,
+                    'codigo_seguimiento': encomienda.codigo_seguimiento,
+                    'user_id': request.user.id
+                },
+                automatic_payment_methods={
+                    'enabled': True,
+                },
+            )
+            
+            # Actualizar el pago con el ID de Stripe
+            encomienda.pago.stripe_payment_intent_id = payment_intent.id
+            encomienda.pago.estado = 'procesando'
+            encomienda.pago.save()
+            
+            # Crear seguimiento
+            EncomiendaSeguimiento.objects.create(
+                encomienda=encomienda,
+                evento='Pago iniciado',
+                descripcion=f'Pago Stripe iniciado. Monto: ${encomienda.pago.monto}',
+                usuario=request.user
+            )
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'client_secret': payment_intent.client_secret,
+                    'payment_intent_id': payment_intent.id,
+                    'monto': float(encomienda.pago.monto),
+                    'encomienda_id': encomienda.id
+                }
+            })
+            
+        except stripe.error.StripeError as e:
+            return Response({
+                'success': False,
+                'error': f'Error al crear pago en Stripe: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'], url_path='confirmar-pago')
+    def confirmar_pago(self, request, pk=None):
+        """Confirmar pago de Stripe"""
+        encomienda = self.get_object()
+        
+        if not encomienda.pago:
+            return Response({
+                'success': False,
+                'error': 'Esta encomienda no tiene un pago asociado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        serializer = ConfirmarPagoSerializer(data=request.data)
+        if serializer.is_valid():
+            payment_intent_id = serializer.validated_data['payment_intent_id']
+            
+            try:
+                stripe.api_key = settings.STRIPE_SECRET_KEY
+                
+                # Verificar el Payment Intent en Stripe
+                payment_intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+                
+                if payment_intent.status == 'succeeded':
+                    # Marcar pago como completado
+                    encomienda.pago.marcar_completado()
+                    encomienda.pago.stripe_payment_intent_id = payment_intent_id
+                    encomienda.pago.stripe_charge_id = payment_intent.latest_charge
+                    encomienda.pago.save()
+                    
+                    # Actualizar estado de la encomienda
+                    encomienda.estado = 'pendiente'  # Lista para procesar
+                    encomienda.save()
+                    
+                    # Crear seguimiento
+                    EncomiendaSeguimiento.objects.create(
+                        encomienda=encomienda,
+                        evento='Pago confirmado',
+                        descripcion=f'Pago confirmado exitosamente. ID: {payment_intent_id}',
+                        usuario=request.user
+                    )
+                    
+                    return Response({
+                        'success': True,
+                        'data': {
+                            'message': 'Pago confirmado exitosamente',
+                            'encomienda': EncomiendaSerializer(encomienda).data
+                        }
+                    })
+                else:
+                    # Marcar pago como fallido
+                    encomienda.pago.estado = 'fallido'
+                    encomienda.pago.save()
+                    
+                    return Response({
+                        'success': False,
+                        'error': f'El pago no se completó. Estado: {payment_intent.status}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except stripe.error.StripeError as e:
+                return Response({
+                    'success': False,
+                    'error': f'Error con Stripe: {str(e)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({
+            'success': False,
+            'error': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'], url_path='marcar-pago-efectivo')
+    def marcar_pago_efectivo(self, request, pk=None):
+        """Marcar pago en efectivo como completado (para administradores)"""
+        encomienda = self.get_object()
+        
+        if not encomienda.pago:
+            return Response({
+                'success': False,
+                'error': 'Esta encomienda no tiene un pago asociado'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if encomienda.pago.metodo_pago != 'efectivo':
+            return Response({
+                'success': False,
+                'error': 'El método de pago no es efectivo'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not request.user.is_staff:
+            return Response({
+                'success': False,
+                'error': 'Solo administradores pueden marcar pagos en efectivo como completados'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Marcar pago como completado
+        encomienda.pago.marcar_completado()
+        encomienda.estado = 'pendiente'
+        encomienda.save()
+        
+        # Crear seguimiento
+        EncomiendaSeguimiento.objects.create(
+            encomienda=encomienda,
+            evento='Pago en efectivo confirmado',
+            descripcion=f'Pago en efectivo confirmado por administrador. Monto: ${encomienda.pago.monto}',
+            usuario=request.user
+        )
+        
+        return Response({
+            'success': True,
+            'data': {
+                'message': 'Pago en efectivo marcado como completado',
+                'encomienda': EncomiendaSerializer(encomienda).data
+            }
+        })
+
     @action(detail=False, methods=['get'])
     def estadisticas(self, request):
         user = request.user
@@ -274,8 +451,8 @@ class TarifaEncomiendaViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAdminUser()]  # ✅ Ya está importado
-        return [IsAuthenticated()]  # ✅ Permiso por defecto
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
     
     def perform_create(self, serializer):
         tarifa = serializer.save()

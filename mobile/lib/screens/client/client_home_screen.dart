@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../auth/login_screen.dart';
 import 'viajes_disponibles_screen.dart';
+import '../encomiendas/listar_encomiendas_screen.dart'; // Nueva importación
+import '../encomiendas/crear_encomienda_screen.dart';   // Nueva importación
 import '../../widgets/neumorphic_card.dart';
 import '../../widgets/bottom_navigation_bar.dart';
 
@@ -49,7 +51,6 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,7 +63,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                   // Header con información del usuario
                   _buildHeader(),
                   
-                  // Contenido principal - Grid 2x3 con funcionalidades originales
+                  // Contenido principal - Grid 2x3 con funcionalidades
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(20.0),
@@ -95,14 +96,24 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                             title: 'Encomiendas',
                             subtitle: 'Envía y rastrea paquetes',
                             color: Colors.orange,
-                            onTap: () => _showComingSoon('Encomiendas'),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ListarEncomiendasScreen(),
+                              ),
+                            ),
                           ),
                           _buildNeumorphicCard(
-                            icon: Icons.location_on,
-                            title: 'Tracking',
-                            subtitle: 'Rastrea en tiempo real',
-                            color: Colors.purple,
-                            onTap: () => _showComingSoon('Tracking'),
+                            icon: Icons.add_box,
+                            title: 'Nueva Encomienda',
+                            subtitle: 'Crear nuevo envío',
+                            color: Colors.red,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CrearEncomiendaScreen(),
+                              ),
+                            ),
                           ),
                           _buildNeumorphicCard(
                             icon: Icons.history,
@@ -189,7 +200,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
