@@ -22,3 +22,23 @@ export * from './conductor';
 // TIPOS DE BITÁCORA
 // ========================================
 export * from './bitacora';
+
+// ========================================
+// TIPOS DE VEHÍCULOS
+// ========================================
+export * from './vehiculo';
+
+// ========================================
+// TIPOS DE VIAJES
+// ========================================
+export * from './viaje';
+
+// ========================================
+// TIPOS DE UBICACIONES
+// ========================================
+export * from './ubicaciones';
+
+// ========================================
+// TIPOS DE RUTAS OPTIMIZADAS
+// ========================================
+export * from './rutas-optimizadas';

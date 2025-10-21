@@ -9,19 +9,32 @@ import ProtectedRoute from "@/app/auth/ProtectedRoute";
 import RolesPage from "@/pages/admin/roles/roles.page";
 import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
+import { VentasReserva } from "./layout/VentasReserva";
+
 import PersonalPage from "@/pages/admin/personal/personal.page";
 import ConductoresPage from "@/pages/admin/conductores/driver.page";
 import UsuariosPage from "@/pages/admin/users/users.page";
 import AccountSettingsPage from "@/pages/auth/account-settings.page";
 import ClientLayout from "@/app/layout/client-layout";
+import ViajesPage from "@/pages/admin/viajes/viajes.page";
+import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
+import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
+import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
+import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
+import ClientEncomiendasPage from "@/pages/client/ClientEncomiendasPage";
+import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
+import AdminEncomiendasPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
+
 
 export default function AppRouter() {
   return (
     <Router>
       <Routes>
-        {/* Rutas del cliente con layout */}
+        {/* Rutas del cliente con layout */}  
         <Route path="/" element={<ClientLayout />}>
           <Route index element={<HomePage />} />
+          <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
+          <Route path="encomiendas" element={<ClientEncomiendasPage />} />
         </Route>
         
         {/* Rutas de autenticación sin layout */}
@@ -65,16 +78,6 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-
-        {/* Otras rutas de admin protegidas */}
-        <Route
-          path="/admin/flotas"
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <div>Flotas (por implementar)</div>
-            </ProtectedRoute>
-          }
-        />
         <Route
           path="/admin/conductores"
           element={
@@ -111,7 +114,7 @@ export default function AppRouter() {
           path="/admin/rutas"
           element={
             <ProtectedRoute requireAdmin={true}>
-              <div>Rutas (por implementar)</div>
+              <RutasOptimizadasPage />
             </ProtectedRoute>
           }
         />
@@ -123,8 +126,40 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
+            <Route
+              path="/admin/viajes"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                <ViajesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/vehiculos"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <VehiculosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/ubicaciones"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <UbicacionesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/encomiendas"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminEncomiendasPage />
+                </ProtectedRoute>
+              }
+            />
 
-        {/* rutas protegidas de usuario */}
+        {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
         <Route
           path="/perfil"
           element={
@@ -146,6 +181,16 @@ export default function AppRouter() {
           element={
             <ProtectedRoute>
               <div>Mis viajes (protegido)</div>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* 👇 RUTA MIS-RESERVAS PROTEGIDA */}
+        <Route
+          path="/mis-reservas"
+          element={
+            <ProtectedRoute>
+              <MisReservasPage />
             </ProtectedRoute>
           }
         />
