@@ -155,10 +155,10 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           route: "/admin/viajes",
         },
         {
-        id: "encomiendas",
-        name: "Encomiendas",
-        icon: Container, // Agregar el icono de Package
-        route: "/admin/encomiendas",
+          id: "encomiendas",
+          name: "Encomiendas",
+          icon: Container, // Agregar el icono de Package
+          route: "/admin/encomiendas",
       },
         {
           id: "rutas-optimizadas",

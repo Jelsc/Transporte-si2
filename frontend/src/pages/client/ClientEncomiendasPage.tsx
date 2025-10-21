@@ -197,10 +197,9 @@ export function ClienteEncomienda() {
       const response = await encomiendaService.getByTrackingCode(codigoSeguimiento);
       if (response.success && response.data) {
         setEncomiendaSeguimiento(response.data);
-        // Cargar seguimientos si están incluidos en la respuesta
-        if (response.data.seguimientos) {
-          setSeguimientos(response.data.seguimientos);
-        }
+        // Nota: Los seguimientos se cargarían desde un endpoint separado si existe
+        // Por ahora, limpiamos el array ya que no viene en la respuesta
+        setSeguimientos([]);
       } else {
         toast.error(response.error || 'Encomienda no encontrada');
         setEncomiendaSeguimiento(null);

@@ -70,6 +70,11 @@ export default function ViajesPage() {
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
   const [loadingUbicaciones, setLoadingUbicaciones] = useState(false);
 
+  // Estados para modal y autenticación
+  const [selectedViaje, setSelectedViaje] = useState<Viaje | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+
   // Cargar ubicaciones al montar el componente
   useEffect(() => {
     cargarUbicaciones();

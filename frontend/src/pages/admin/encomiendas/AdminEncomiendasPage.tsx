@@ -23,6 +23,8 @@ export default function AdminEncomienda() {
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
   const [fechaDesdeFilter, setFechaDesdeFilter] = useState<string>("");
   const [fechaHastaFilter, setFechaHastaFilter] = useState<string>("");
+  const [conductorFilter, setConductorFilter] = useState<string>("all");
+  const [metodoPagoFilter, setMetodoPagoFilter] = useState<string>("all");
   const [stats, setStats] = useState<any>(null);
 
   const {
@@ -53,6 +55,8 @@ export default function AdminEncomienda() {
       ...(ciudadFilter !== "all" && { destino_ciudad: ciudadFilter }),
       ...(fechaDesdeFilter && { fecha_desde: fechaDesdeFilter }),
       ...(fechaHastaFilter && { fecha_hasta: fechaHastaFilter }),
+      ...(conductorFilter !== "all" && { conductor_asignado: parseInt(conductorFilter) }),
+      ...(metodoPagoFilter !== "all" && { metodo_pago: metodoPagoFilter }),
     };
     
     await loadData(filters);
@@ -84,7 +88,7 @@ export default function AdminEncomienda() {
     fetchEncomiendas();
     loadConductoresDisponibles();
     cargarEstadisticas();
-  }, [page, searchDebounced, estadoFilter, ciudadFilter, fechaDesdeFilter, fechaHastaFilter]);
+  }, [page, searchDebounced, estadoFilter, ciudadFilter, fechaDesdeFilter, fechaHastaFilter, conductorFilter, metodoPagoFilter]);
 
   const handleCreate = () => {
     openStoreModal();
@@ -142,6 +146,8 @@ export default function AdminEncomienda() {
     setCiudadFilter('all');
     setFechaDesdeFilter('');
     setFechaHastaFilter('');
+    setConductorFilter('all');
+    setMetodoPagoFilter('all');
   };
 
   const totalPages = Math.ceil((data?.count || 0) / ITEMS_PER_PAGE);
@@ -258,13 +264,18 @@ export default function AdminEncomienda() {
           ciudadFilter={ciudadFilter}
           fechaDesdeFilter={fechaDesdeFilter}
           fechaHastaFilter={fechaHastaFilter}
+          conductorFilter={conductorFilter}
+          metodoPagoFilter={metodoPagoFilter}
           onSearchChange={setSearch}
           onEstadoFilterChange={setEstadoFilter}
           onCiudadFilterChange={setCiudadFilter}
           onFechaDesdeFilterChange={setFechaDesdeFilter}
           onFechaHastaFilterChange={setFechaHastaFilter}
+          onConductorFilterChange={setConductorFilter}
+          onMetodoPagoFilterChange={setMetodoPagoFilter}
           onClearFilters={handleClearFilters}
           loading={loading}
+          conductoresDisponibles={conductoresDisponibles}
         />
 
         {/* Tabla */}

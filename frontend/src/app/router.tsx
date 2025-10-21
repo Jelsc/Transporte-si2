@@ -21,6 +21,9 @@ import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
 import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
+import ClientEncomiendasPage from "@/pages/client/ClientEncomiendasPage";
+import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
+import AdminEncomiendasPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 
 
 export default function AppRouter() {
@@ -144,6 +147,14 @@ export default function AppRouter() {
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <UbicacionesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/encomiendas"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminEncomiendasPage />
                 </ProtectedRoute>
               }
             />

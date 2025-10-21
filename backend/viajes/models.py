@@ -73,7 +73,57 @@ class Viaje(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.origen} → {self.destino} ({self.fecha} {self.hora})"
+        return f"{self.origen.nombre} → {self.destino.nombre} ({self.fecha} {self.hora})"
+    
+    def clean(self):
+        """Validaciones personalizadas del modelo"""
+        super().clean()
+        
+        # Validar que origen y destino sean diferentes
+        if self.origen_id and self.destino_id and self.origen_id == self.destino_id:
+            raise ValidationError({
+                'destino': 'El destino debe ser diferente al origen'
+            })
+        
+        # Validar que las ubicaciones estén activas
+        if self.origen and not self.origen.activo:
+            raise ValidationError({
+                'origen': 'La ubicación de origen debe estar activa'
+            })
+        
+        if self.destino and not self.destino.activo:
+            raise ValidationError({
+                'destino': 'La ubicación de destino debe estar activa'
+            })
+        
+        # Validar asientos
+        if self.asientos_ocupados > self.asientos_disponibles:
+            raise ValidationError({
+                'asientos_ocupados': 'Los asientos ocupados no pueden superar los disponibles'
+            })
+    
+    def save(self, *args, **kwargs):
+        """Sobrescribir save para ejecutar validaciones"""
+        if not kwargs.pop('skip_validation', False):
+            self.clean()
+        super().save(*args, **kwargs)
+    
+    @property
+    def asientos_libres(self):
+        """Calcula los asientos libres"""
+        return self.asientos_disponibles - self.asientos_ocupados
+    
+    @property
+    def esta_lleno(self):
+        """Verifica si el viaje está lleno"""
+        return self.asientos_ocupados >= self.asientos_disponibles
+    
+    @property
+    def porcentaje_ocupacion(self):
+        """Calcula el porcentaje de ocupación"""
+        if self.asientos_disponibles == 0:
+            return 0
+        return (self.asientos_ocupados / self.asientos_disponibles) * 100
 
 # ==========================
 # MODELO ASIENTO (SIN CAMBIOS)
@@ -207,59 +257,4 @@ def actualizar_total_reserva(sender, instance, created, **kwargs):
 # DEBUG PARA VERIFICAR SEÑALES
 # ==========================
 print("🎯 MODELS.PY CARGADO - Señales para viajes registradas")
-
-# Verificar señales registradas
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
-print(f"Señales post_save para ItemReserva: {len(post_save._live_receivers(ItemReserva))}")
-        return f"{self.origen.nombre} → {self.destino.nombre} ({self.fecha} {self.hora})"
-    
-    def clean(self):
-        """Validaciones personalizadas del modelo"""
-        super().clean()
-        
-        # Validar que origen y destino sean diferentes
-        if self.origen_id and self.destino_id and self.origen_id == self.destino_id:
-            raise ValidationError({
-                'destino': 'El destino debe ser diferente al origen'
-            })
-        
-        # Validar que las ubicaciones estén activas
-        if self.origen and not self.origen.activo:
-            raise ValidationError({
-                'origen': 'La ubicación de origen debe estar activa'
-            })
-        
-        if self.destino and not self.destino.activo:
-            raise ValidationError({
-                'destino': 'La ubicación de destino debe estar activa'
-            })
-        
-        # Validar asientos
-        if self.asientos_ocupados > self.asientos_disponibles:
-            raise ValidationError({
-                'asientos_ocupados': 'Los asientos ocupados no pueden superar los disponibles'
-            })
-    
-    def save(self, *args, **kwargs):
-        """Sobrescribir save para ejecutar validaciones"""
-        self.clean()
-        super().save(*args, **kwargs)
-    
-    @property
-    def asientos_libres(self):
-        """Calcula los asientos libres"""
-        return self.asientos_disponibles - self.asientos_ocupados
-    
-    @property
-    def esta_lleno(self):
-        """Verifica si el viaje está lleno"""
-        return self.asientos_ocupados >= self.asientos_disponibles
-    
-    @property
-    def porcentaje_ocupacion(self):
-        """Calcula el porcentaje de ocupación"""
-        if self.asientos_disponibles == 0:
-            return 0
-        return (self.asientos_ocupados / self.asientos_disponibles) * 100
+print(f"Señales post_save para ItemReserva disponibles")

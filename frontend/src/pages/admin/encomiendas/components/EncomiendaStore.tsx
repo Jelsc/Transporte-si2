@@ -23,6 +23,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Package, User, MapPin, DollarSign, Truck, Calendar } from 'lucide-react';
 import type { Encomienda, CreateEncomiendaRequest, UpdateEncomiendaRequest } from '@/types/encomienda';
 
+// Tipo combinado para el formulario que incluye todos los campos posibles
+interface EncomiendaFormData extends CreateEncomiendaRequest {
+  // Campos adicionales para edición
+  estado?: 'pendiente' | 'en_ruta' | 'entregado' | 'cancelado';
+  conductor_asignado?: number | undefined;
+  fecha_entrega_real?: string | undefined;
+}
+
 interface EncomiendaStoreProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,7 +54,7 @@ export function EncomiendaStore({
     ? 'Modifica la información de la encomienda seleccionada' 
     : 'Registra una nueva encomienda en el sistema';
 
-  const [formData, setFormData] = useState<CreateEncomiendaRequest | UpdateEncomiendaRequest>({
+  const [formData, setFormData] = useState<EncomiendaFormData>({
     // Campos para creación
     remitente_nombre: '',
     remitente_telefono: '',
@@ -60,9 +68,8 @@ export function EncomiendaStore({
     notas: '',
     metodo_pago: 'efectivo',
     
-    // Campos para edición
+    // Campos para edición (opcionales)
     estado: 'pendiente',
-    conductor_asignado: undefined,
     fecha_entrega_real: '',
   });
 
@@ -114,7 +121,7 @@ export function EncomiendaStore({
           destino_direccion: initialData.destino_direccion,
           descripcion: initialData.descripcion,
           peso: initialData.peso,
-          metodo_pago: initialData.metodo_pago || 'efectivo',
+          metodo_pago: (initialData.metodo_pago as 'efectivo' | 'transferencia' | 'stripe') || 'efectivo',
         });
         
         // Calcular precio inicial

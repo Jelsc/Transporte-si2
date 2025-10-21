@@ -39,6 +39,9 @@ urlpatterns = [
     path("api/vehiculos/", include("vehiculos.urls")),
     path("api/viajes/", include("viajes.urls")),
     
+    # Encomiendas: gestión de paquetes y envíos
+    path("api/encomiendas/", include("encomiendas.urls")),
+    
     # Ubicaciones: catálogo único para viajes y encomiendas
     path("api/ubicaciones/", include("ubicaciones.urls")),
     
