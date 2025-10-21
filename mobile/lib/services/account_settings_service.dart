@@ -34,14 +34,11 @@ class AccountSettingsService {
     required String newPasswordConfirm,
   }) async {
     try {
-      print('🔧 [AccountSettingsService] Iniciando cambio de contraseña...');
-      print('🔧 [AccountSettingsService] Datos: oldPassword=${oldPassword.isNotEmpty ? "***" : "vacío"}, newPassword=${newPassword.isNotEmpty ? "***" : "vacío"}, confirm=${newPasswordConfirm.isNotEmpty ? "***" : "vacío"}');
       
       final baseUrl = await IPDetection.getBaseUrl();
       final endpoint = '/api/change-password/';
       final headers = await _getAuthHeaders();
       
-      print('🌐 [AccountSettingsService] URL: $baseUrl$endpoint');
       
       final response = await http.post(
         Uri.parse('$baseUrl$endpoint'),
@@ -53,21 +50,14 @@ class AccountSettingsService {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      print('📡 [AccountSettingsService] Cambio de contraseña - Status: ${response.statusCode}');
-      print('📦 [AccountSettingsService] Response: ${response.body}');
-      print('🔑 [AccountSettingsService] Headers enviados: $headers');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(utf8.decode(response.bodyBytes));
-        print('✅ [AccountSettingsService] Contraseña cambiada exitosamente');
         return {'success': true, 'data': data};
       } else {
-        print('❌ [AccountSettingsService] Error HTTP: ${response.statusCode}');
-        print('❌ [AccountSettingsService] Response body: ${response.body}');
         
         try {
           final errorData = json.decode(utf8.decode(response.bodyBytes));
-          print('❌ [AccountSettingsService] Error parseado: $errorData');
           
           // Manejar diferentes formatos de error
           String errorMessage = 'Error al cambiar la contraseña';
@@ -106,7 +96,6 @@ class AccountSettingsService {
           
           return {'success': false, 'error': errorMessage};
         } catch (parseError) {
-          print('❌ [AccountSettingsService] Error parseando respuesta: $parseError');
           return {
             'success': false, 
             'error': 'Error del servidor (${response.statusCode}): ${response.body}'
@@ -114,16 +103,12 @@ class AccountSettingsService {
         }
       }
     } on SocketException catch (e) {
-      print('❌ [AccountSettingsService] Error de socket: $e');
       return {'success': false, 'error': 'Error de red: $e'};
     } on http.ClientException catch (e) {
-      print('❌ [AccountSettingsService] Error de cliente HTTP: $e');
       return {'success': false, 'error': 'Error de conexión: $e'};
     } on FormatException catch (e) {
-      print('❌ [AccountSettingsService] Error de formato JSON: $e');
       return {'success': false, 'error': 'Error en el formato de la respuesta del servidor'};
     } catch (e) {
-      print('❌ [AccountSettingsService] Error inesperado: $e');
       return {'success': false, 'error': 'Error inesperado: $e'};
     }
   }
@@ -140,31 +125,24 @@ class AccountSettingsService {
         headers: headers,
       ).timeout(const Duration(seconds: 10));
 
-      print('📡 [AccountSettingsService] Obtener info usuario - Status: ${response.statusCode}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(utf8.decode(response.bodyBytes));
-        print('✅ [AccountSettingsService] Info de usuario obtenida');
         return {'success': true, 'data': data};
       } else {
         final errorData = json.decode(utf8.decode(response.bodyBytes));
-        print('❌ [AccountSettingsService] Error: ${response.statusCode} - $errorData');
         return {
           'success': false, 
           'error': errorData['detail'] ?? 'Error al obtener información del usuario'
         };
       }
     } on SocketException catch (e) {
-      print('❌ [AccountSettingsService] Error de socket: $e');
       return {'success': false, 'error': 'Error de red: $e'};
     } on http.ClientException catch (e) {
-      print('❌ [AccountSettingsService] Error de cliente HTTP: $e');
       return {'success': false, 'error': 'Error de conexión: $e'};
     } on FormatException catch (e) {
-      print('❌ [AccountSettingsService] Error de formato JSON: $e');
       return {'success': false, 'error': 'Error en el formato de la respuesta del servidor'};
     } catch (e) {
-      print('❌ [AccountSettingsService] Error inesperado: $e');
       return {'success': false, 'error': 'Error inesperado: $e'};
     }
   }
@@ -184,32 +162,24 @@ class AccountSettingsService {
         }),
       ).timeout(const Duration(seconds: 10));
 
-      print('📡 [AccountSettingsService] Reset contraseña - Status: ${response.statusCode}');
-      print('📦 [AccountSettingsService] Response: ${response.body}');
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(utf8.decode(response.bodyBytes));
-        print('✅ [AccountSettingsService] Email de reset enviado');
         return {'success': true, 'data': data};
       } else {
         final errorData = json.decode(utf8.decode(response.bodyBytes));
-        print('❌ [AccountSettingsService] Error: ${response.statusCode} - $errorData');
         return {
           'success': false, 
           'error': errorData['detail'] ?? errorData['email'] ?? 'Error al enviar email de restablecimiento'
         };
       }
     } on SocketException catch (e) {
-      print('❌ [AccountSettingsService] Error de socket: $e');
       return {'success': false, 'error': 'Error de red: $e'};
     } on http.ClientException catch (e) {
-      print('❌ [AccountSettingsService] Error de cliente HTTP: $e');
       return {'success': false, 'error': 'Error de conexión: $e'};
     } on FormatException catch (e) {
-      print('❌ [AccountSettingsService] Error de formato JSON: $e');
       return {'success': false, 'error': 'Error en el formato de la respuesta del servidor'};
     } catch (e) {
-      print('❌ [AccountSettingsService] Error inesperado: $e');
       return {'success': false, 'error': 'Error inesperado: $e'};
     }
   }

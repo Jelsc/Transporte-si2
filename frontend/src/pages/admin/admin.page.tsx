@@ -85,12 +85,12 @@ const sidebarModules: SidebarModule[] = [
     id: "operaciones",
     name: "Operaciones",
     icon: Route,
-    route: "/admin/rutas",
+    route: "/admin/ubicaciones",
     options: [
       {
-        id: "rutas",
-        label: "Rutas",
-        route: "/admin/rutas",
+        id: "ubicaciones",
+        label: "Ubicaciones",
+        route: "/admin/ubicaciones",
         icon: MapPin,
       },
       {

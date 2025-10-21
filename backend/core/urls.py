@@ -38,6 +38,12 @@ urlpatterns = [
 
     path("api/vehiculos/", include("vehiculos.urls")),
     path("api/viajes/", include("viajes.urls")),
+    
+    # Ubicaciones: catálogo único para viajes y encomiendas
+    path("api/ubicaciones/", include("ubicaciones.urls")),
+    
+    # Rutas Optimizadas: VRP/PDPTW para encomiendas y entregas
+    path("api/rutas-optimizadas/", include("rutas_optimizadas.urls")),
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
 

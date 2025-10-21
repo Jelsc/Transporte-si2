@@ -4,8 +4,24 @@
 
 export interface Viaje {
   id: number;
-  origen: string;
-  destino: string;
+  origen?: string; // Deprecated - usar origen_detalle
+  destino?: string; // Deprecated - usar destino_detalle
+  origen_detalle?: {
+    id: number;
+    nombre: string;
+    tipo: string;
+    direccion_texto: string;
+    lat: number;
+    lng: number;
+  };
+  destino_detalle?: {
+    id: number;
+    nombre: string;
+    tipo: string;
+    direccion_texto: string;
+    lat: number;
+    lng: number;
+  };
   fecha: string;
   hora: string;
   vehiculo_id: number;
@@ -19,8 +35,8 @@ export interface Viaje {
 }
 
 export interface ViajeFormData {
-  origen: string;
-  destino: string;
+  origen_id?: number;
+  destino_id?: number;
   fecha: string;
   hora: string;
   vehiculo_id: number;
