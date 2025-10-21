@@ -36,10 +36,13 @@ urlpatterns = [
     path("api/personal/", include("personal.urls")),
     path("api/bitacora/", include("bitacora.urls")),
     path("api/vehiculos/", include("vehiculos.urls")),
-    path("api/viajes/", include("viajes.urls")),
-    # Notificaciones push
-    path("api/notificaciones/", include("notificaciones.urls")),
-    # ENDPOINTS DE PRUEBA MOVIDOS A notificaciones.urls
+
+    path("api/", include("viajes.urls")),
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
+
+    path("api/notificaciones/", include("notificaciones.urls")),
+    path("api/pagos/", include("pagos.urls")),  # AGREGAR AQUÍ
+    
+    
 ]

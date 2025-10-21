@@ -13,6 +13,8 @@ const navbarOptions = [
   { id: "rutas", name: "Rutas", href: "#rutas" },
   { id: "choferes", name: "Choferes", href: "#choferes" },
   { id: "contacto", name: "Contacto", href: "#contacto" },
+
+  { id: "mis-reservas", name: "Mis Reservas", href: "/mis-reservas" },
 ];
 
 const Navbar = () => {
