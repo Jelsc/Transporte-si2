@@ -19,8 +19,12 @@ import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
+
 import ReservasPage from "@/pages/admin/reservas/reservas.page";
 import MisReservasPage from '@/pages/client/MisReservas/mis-reservas.page';
+
+import NotificationHistoryPage from "@/pages/client/notification-history.page";
+
 
 export default function AppRouter() {
   return (
@@ -31,13 +35,25 @@ export default function AppRouter() {
           <Route index element={<HomePage />} />
           <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
         </Route>
-        
+
+        {/* Rutas protegidas del cliente */}
+        <Route path="/client" element={<ClientLayout />}>
+          <Route
+            path="notificaciones"
+            element={
+              <ProtectedRoute>
+                <NotificationHistoryPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
         {/* Rutas de autenticación sin layout */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/code-verification" element={<CodeVerificationPage />} />
         <Route path="/profile/edit" element={<AccountSettingsPage />} />
-        
+
         {/* Rutas de administración */}
         <Route path="/admin" element={<AdminLoginPage />} />
         

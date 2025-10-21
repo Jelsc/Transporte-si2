@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/client/client_home_screen.dart';
+import '../screens/client/notification_history_screen.dart';
 import '../screens/conductor/conductor_home_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/onboarding_screen.dart';
@@ -14,9 +15,13 @@ class AppRouter {
   static const String login = '/login';
   static const String home = '/home';
   static const String conductorHome = '/conductor-home';
+
   static const String seleccionAsientos = '/seleccion-asientos';
   static const String checkout = '/checkout';
   static const String confirmacionReserva = '/confirmacion-reserva';
+
+  static const String notificationHistory = '/notification-history';
+
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -44,6 +49,7 @@ class AppRouter {
           settings: settings,
         );
 
+
       case seleccionAsientos:
         final viaje = settings.arguments as Viaje;
         return MaterialPageRoute(
@@ -68,6 +74,11 @@ class AppRouter {
             reserva: args['reserva'] as Reserva,
             viaje: args['viaje'] as Viaje,
           ),
+
+      case notificationHistory:
+        return MaterialPageRoute(
+          builder: (_) => const NotificationHistoryScreen(),
+
           settings: settings,
         );
 

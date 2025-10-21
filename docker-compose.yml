@@ -41,8 +41,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
+    # ✅ Sin volúmenes de montaje host - Los cambios requieren rebuild de la imagen
     command: bash -lc "python detect_ip.py && python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py collectstatic --noinput || true && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
@@ -56,11 +55,10 @@ services:
     env_file:
       - ./frontend/.env
     environment:
-      HOST: "0.0.0.0"  # Vite necesita HOST para exponer en 0.0.0.0
+      HOST: "0.0.0.0" # Vite necesita HOST para exponer en 0.0.0.0
       # Dejamos VITE_API_URL vacío para habilitar detección automática
       VITE_API_URL: ""
-    volumes:
-      - ./frontend:/app
+    # ✅ Sin volúmenes de montaje host - Los cambios requieren rebuild de la imagen
     command: sh -lc "npm install && npm run dev -- --host"
     ports:
       - "5173:5173"
