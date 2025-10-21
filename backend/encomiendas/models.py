@@ -1,9 +1,10 @@
 from django.db import models
-from django.conf import settings  # ✅ Importar settings
-from django.contrib.auth import get_user_model  # ✅ Importar get_user_model
+from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 
+User = get_user_model()
 
 class Encomienda(models.Model):
     ESTADO_CHOICES = [
@@ -38,9 +39,9 @@ class Encomienda(models.Model):
     fecha_entrega_estimada = models.DateField(blank=True, null=True)
     fecha_entrega_real = models.DateTimeField(blank=True, null=True)
     
-    # Asignaciones - ✅ Usar el modelo de usuario personalizado
+    # Asignaciones
     conductor_asignado = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # ✅ Cambiar a settings.AUTH_USER_MODEL
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL, 
         blank=True, 
         null=True,
@@ -48,12 +49,22 @@ class Encomienda(models.Model):
         limit_choices_to={'groups__name': 'Conductores'}
     )
     
-    # Información adicional - ✅ Usar el modelo de usuario personalizado
+    # Información adicional
     notas = models.TextField(blank=True, null=True)
     creado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # ✅ Cambiar a settings.AUTH_USER_MODEL
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE, 
         related_name='encomiendas_creadas'
+    )
+    
+    # RELACIÓN CON PAGO - NUEVO
+    pago = models.OneToOneField(
+        'pagos.Pago',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='encomienda',
+        verbose_name='Pago asociado'
     )
     
     class Meta:
@@ -119,9 +130,8 @@ class EncomiendaSeguimiento(models.Model):
     descripcion = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
     ubicacion = models.CharField(max_length=200, blank=True, null=True)
-    # ✅ Usar el modelo de usuario personalizado
     usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # ✅ Cambiar a settings.AUTH_USER_MODEL
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True
