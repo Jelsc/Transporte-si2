@@ -15,6 +15,10 @@ import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
+# from dotenv import load_dotenv
+
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -143,8 +147,10 @@ INSTALLED_APPS = [
     # "dj_rest_auth.jwt_auth",
     "rest_framework_simplejwt.token_blacklist",
     "bitacora",
+    "pagos",
     'vehiculos',
     "viajes",
+    "encomiendas",
     "ubicaciones",
     "rutas_optimizadas",
 ]
@@ -328,7 +334,7 @@ REST_FRAMEWORK = {
     ],
     # --- NUEVO ---
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,  # registros por página
+    "PAGE_SIZE": 100,  # registros por página
 }
 # REST_USE_JWT = True
 
@@ -383,6 +389,11 @@ GOOGLE_OAUTH2_CLIENT_ID = os.getenv("GOOGLE_OAUTH2_CLIENT_ID", "")
 GOOGLE_OAUTH2_CLIENT_SECRET = os.getenv("GOOGLE_OAUTH2_CLIENT_SECRET", "")
 
 # Configuración de sitios para allauth
+SITE_ID = 1
+
+# ====== STRIPE CONFIGURATION ======
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
 SITE_ID = int(os.getenv("SITE_ID", "1"))
 
 # ========== CONFIGURACIÓN DE CELERY ==========

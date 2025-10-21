@@ -46,6 +46,9 @@ urlpatterns = [
     path("api/rutas-optimizadas/", include("rutas_optimizadas.urls")),
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
+
+    path("api/bitacora/", include("bitacora.urls")),
+    path("api/pagos/", include("pagos.urls")),  # AGREGAR AQUÍ
     
     
 ]

@@ -1,6 +1,7 @@
 import { Hero } from "./components/Hero";
 import { Servicios } from "./components/Servicios";
 import { Choferes } from "./components/Choferes";
+import { EncomiendasSection } from "./components/EncomiendasSection";
 
 const HomePage: React.FC = () => {
   return (
@@ -8,6 +9,7 @@ const HomePage: React.FC = () => {
       <Hero />
       <Servicios />
       <Choferes />
+       <EncomiendasSection />
     </div>
   );
 };

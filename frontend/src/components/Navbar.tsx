@@ -9,10 +9,13 @@ import { NavUserHeader } from "./nav-user-header";
 const navbarOptions = [
   {id: "home", name: "Home", href: "/"},
   { id: "viajes", name: "Viajes", href: "/consulta-viajes" },
+  { id: "encomiendas", name: "Encomiendas", href: "/encomiendas" },
   { id: "servicios", name: "Servicios", href: "#servicios" },
   { id: "rutas", name: "Rutas", href: "#rutas" },
   { id: "choferes", name: "Choferes", href: "#choferes" },
   { id: "contacto", name: "Contacto", href: "#contacto" },
+
+  { id: "mis-reservas", name: "Mis Reservas", href: "/mis-reservas" },
 ];
 
 const Navbar = () => {

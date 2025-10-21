@@ -9,6 +9,8 @@ import ProtectedRoute from "@/app/auth/ProtectedRoute";
 import RolesPage from "@/pages/admin/roles/roles.page";
 import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
+import { VentasReserva } from "./layout/VentasReserva";
+
 import PersonalPage from "@/pages/admin/personal/personal.page";
 import ConductoresPage from "@/pages/admin/conductores/driver.page";
 import UsuariosPage from "@/pages/admin/users/users.page";
@@ -25,10 +27,11 @@ export default function AppRouter() {
   return (
     <Router>
       <Routes>
-        {/* Rutas del cliente con layout */}
+        {/* Rutas del cliente con layout */}  
         <Route path="/" element={<ClientLayout />}>
           <Route index element={<HomePage />} />
           <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
+          <Route path="encomiendas" element={<ClientEncomiendasPage />} />
         </Route>
         
         {/* Rutas de autenticación sin layout */}
@@ -72,8 +75,6 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-
-        {/* Otras rutas de admin protegidas */}
         <Route
           path="/admin/conductores"
           element={
@@ -147,7 +148,7 @@ export default function AppRouter() {
               }
             />
 
-        {/* rutas protegidas de usuario */}
+        {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
         <Route
           path="/perfil"
           element={
@@ -173,6 +174,15 @@ export default function AppRouter() {
           }
         />
         
+        {/* 👇 RUTA MIS-RESERVAS PROTEGIDA */}
+        <Route
+          path="/mis-reservas"
+          element={
+            <ProtectedRoute>
+              <MisReservasPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* catch-all */}
         <Route path="*" element={<HomePage />} />
