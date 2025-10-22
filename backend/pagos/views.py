@@ -9,6 +9,7 @@ from django.utils import timezone
 from bitacora.utils import registrar_bitacora
 from .models import Pago
 from .serializers import PagoSerializer, CrearPagoSerializer, ConfirmarPagoSerializer
+from notificaciones.services import NotificationService
 
 # Configurar Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -142,6 +143,25 @@ class PagoViewSet(viewsets.ModelViewSet):
                     'estado': pago.estado,
                     'payment_intent_id': intent.id
                 }, status=status.HTTP_201_CREATED)
+                # Notificar al usuario que se creó un pago (Stripe)
+                try:
+                    NotificationService.enviar_notificacion(
+                        usuario_id=request.user.id,
+                        titulo='Pago creado',
+                        mensaje=f'Se creó el pago #{pago.id} para la reserva {reserva.codigo_reserva}.',
+                        tipo_codigo='pago_creado',
+                        data_extra={
+                            'pago_id': pago.id,
+                            'reserva_id': reserva.id,
+                            'codigo_reserva': reserva.codigo_reserva,
+                            'monto': str(pago.monto),
+                            'metodo_pago': pago.metodo_pago
+                        },
+                        prioridad='normal'
+                    )
+                except Exception:
+                    # No bloquear el flujo si falla la notificación
+                    pass
             
             else:
                 # Para pagos manuales (efectivo/transferencia), marcar como completados inmediatamente
@@ -173,6 +193,25 @@ class PagoViewSet(viewsets.ModelViewSet):
                     modulo="PAGOS"
                 )
                 
+                # Notificar al usuario que el pago manual fue completado
+                try:
+                    NotificationService.enviar_notificacion(
+                        usuario_id=request.user.id,
+                        titulo='Pago completado',
+                        mensaje=f'Tu pago #{pago.id} fue confirmado y la reserva {reserva.codigo_reserva} activada.',
+                        tipo_codigo='pago_completado',
+                        data_extra={
+                            'pago_id': pago.id,
+                            'reserva_id': reserva.id,
+                            'codigo_reserva': reserva.codigo_reserva,
+                            'monto': str(pago.monto),
+                            'metodo_pago': pago.metodo_pago
+                        },
+                        prioridad='alta'
+                    )
+                except Exception:
+                    pass
+
                 return Response({
                     'success': True,
                     'message': 'Pago creado y confirmado exitosamente',
@@ -281,6 +320,25 @@ class PagoViewSet(viewsets.ModelViewSet):
                     modulo="PAGOS"
                 )
                 
+                # Notificar al usuario que su pago fue confirmado
+                try:
+                    NotificationService.enviar_notificacion(
+                        usuario_id=pago.usuario.id,
+                        titulo='Pago confirmado',
+                        mensaje=f'Pago #{pago.id} confirmado correctamente. Reserva {pago.reserva.codigo_reserva if pago.reserva else "N/A"}.',
+                        tipo_codigo='pago_confirmado',
+                        data_extra={
+                            'pago_id': pago.id,
+                            'reserva_id': pago.reserva.id if pago.reserva else None,
+                            'codigo_reserva': pago.reserva.codigo_reserva if pago.reserva else None,
+                            'monto': str(pago.monto),
+                            'metodo_pago': pago.metodo_pago
+                        },
+                        prioridad='alta'
+                    )
+                except Exception:
+                    pass
+
                 return Response({
                     'success': True,
                     'message': 'Pago confirmado exitosamente',
@@ -366,6 +424,24 @@ class PagoViewSet(viewsets.ModelViewSet):
                 modulo="PAGOS"
             )
             
+            # Notificar al usuario que el pago fue cancelado
+            try:
+                NotificationService.enviar_notificacion(
+                    usuario_id=pago.usuario.id,
+                    titulo='Pago cancelado',
+                    mensaje=f'El pago #{pago.id} fue cancelado. Si tenías una reserva temporal, los asientos fueron liberados.',
+                    tipo_codigo='pago_cancelado',
+                    data_extra={
+                        'pago_id': pago.id,
+                        'reserva_id': pago.reserva.id if pago.reserva else None,
+                        'codigo_reserva': pago.reserva.codigo_reserva if pago.reserva else None,
+                        'monto': str(pago.monto)
+                    },
+                    prioridad='normal'
+                )
+            except Exception:
+                pass
+
             return Response({
                 'success': True,
                 'message': 'Pago cancelado exitosamente',

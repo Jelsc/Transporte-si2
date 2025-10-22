@@ -16,6 +16,7 @@ from .serializers import (
     CrearReservaTemporalSerializer
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from notificaciones.services import NotificationService
 
 class ViajeViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
@@ -204,6 +205,25 @@ class ReservaViewSet(viewsets.ModelViewSet):
                 
                 # 5. Serializar respuesta
                 reserva_data = ReservaSerializer(reserva, context={'request': request}).data
+                # Enviar notificación al usuario sobre la reserva temporal creada
+                try:
+                    NotificationService.enviar_notificacion(
+                        usuario_id=request.user.id,
+                        titulo='Reserva creada (temporal)',
+                        mensaje=f'Reserva {reserva.codigo_reserva} creada. Tienes 15 minutos para pagar.',
+                        tipo_codigo='reserva_creada',
+                        data_extra={
+                            'reserva_id': reserva.id,
+                            'codigo_reserva': reserva.codigo_reserva,
+                            'viaje_id': reserva.viaje.id if reserva.viaje else None,
+                            'asientos': [a.numero for a in reserva.items.all()],
+                            'total': str(reserva.total)
+                        },
+                        prioridad='normal'
+                    )
+                except Exception:
+                    # No bloquear la creación de la reserva si falla la notificación
+                    pass
                 
                 return Response({
                     'success': True,
@@ -320,6 +340,23 @@ class ReservaViewSet(viewsets.ModelViewSet):
             
             with transaction.atomic():
                 reserva.confirmar_pago()
+                # Notificar al usuario que la reserva fue confirmada
+                try:
+                    NotificationService.enviar_notificacion(
+                        usuario_id=reserva.cliente.id,
+                        titulo='Reserva confirmada',
+                        mensaje=f'Tu reserva {reserva.codigo_reserva} fue confirmada correctamente.',
+                        tipo_codigo='reserva_confirmada',
+                        data_extra={
+                            'reserva_id': reserva.id,
+                            'codigo_reserva': reserva.codigo_reserva,
+                            'viaje_id': reserva.viaje.id if reserva.viaje else None,
+                            'total': str(reserva.total)
+                        },
+                        prioridad='alta'
+                    )
+                except Exception:
+                    pass
             
             reserva_data = ReservaSerializer(reserva, context={'request': request}).data
             
@@ -367,6 +404,22 @@ class ReservaViewSet(viewsets.ModelViewSet):
                 reserva.estado = 'cancelada'
                 reserva.save()
                 reserva.liberar_asientos()
+                # Notificar al usuario que la reserva temporal fue cancelada
+                try:
+                    NotificationService.enviar_notificacion(
+                        usuario_id=reserva.cliente.id,
+                        titulo='Reserva cancelada',
+                        mensaje=f'Tu reserva {reserva.codigo_reserva} fue cancelada y los asientos liberados.',
+                        tipo_codigo='reserva_cancelada',
+                        data_extra={
+                            'reserva_id': reserva.id,
+                            'codigo_reserva': reserva.codigo_reserva,
+                            'viaje_id': reserva.viaje.id if reserva.viaje else None
+                        },
+                        prioridad='normal'
+                    )
+                except Exception:
+                    pass
             
             return Response({
                 'success': True,
@@ -536,6 +589,34 @@ class ReservaViewSet(viewsets.ModelViewSet):
                 "message": f"Se agregaron {len(nuevos_items)} asientos a la reserva",
                 "reserva": serializer.data
             })
+            # Notificar al usuario que se agregaron asientos
+            try:
+                # Construir lista de números de asiento correctamente
+                asientos_numeros = []
+                for item in nuevos_items:
+                    # item.asiento puede no estar poblado hasta que se refresque/relacione; obtener desde la instancia creada
+                    if hasattr(item, 'asiento') and item.asiento:
+                        asientos_numeros.append(item.asiento.numero)
+                # Si bulk_create devolvió objetos sin atributos relacionados, intentar obtener desde la reserva
+                if not asientos_numeros:
+                    asientos_numeros = [it.asiento.numero for it in reserva.items.order_by('-id')[:len(nuevos_items)]]
+
+                NotificationService.enviar_notificacion(
+                    usuario_id=reserva.cliente.id,
+                    titulo='Asientos agregados',
+                    mensaje=f'Se agregaron {len(nuevos_items)} asientos a tu reserva {reserva.codigo_reserva}.',
+                    tipo_codigo='reserva_asientos_agregados',
+                    data_extra={
+                        'reserva_id': reserva.id,
+                        'codigo_reserva': reserva.codigo_reserva,
+                        'asientos_agregados': asientos_numeros,
+                        'total': str(reserva.total)
+                    },
+                    prioridad='normal'
+                )
+            except Exception:
+                # No bloquear la respuesta si falla la notificación
+                pass
             
         except Reserva.DoesNotExist:
             return Response(
