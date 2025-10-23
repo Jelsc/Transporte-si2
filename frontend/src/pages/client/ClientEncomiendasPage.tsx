@@ -86,10 +86,9 @@ export function ClienteEncomienda() {
     cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-800 border-red-200' }
   };
 
-  // ✅ ACTUALIZADO: Estados de pago más específicos
   const estadosPago = {
     pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', puedePagar: true },
-    completado: { label: 'Pagado', color: 'bg-green-100 text-green-800', puedePagar: false },
+    completado: { label: 'Completado', color: 'bg-green-100 text-green-800', puedePagar: false },
     fallido: { label: 'Fallido', color: 'bg-red-100 text-red-800', puedePagar: true },
     procesando: { label: 'Procesando', color: 'bg-blue-100 text-blue-800', puedePagar: false }
   };
@@ -244,27 +243,15 @@ export function ClienteEncomienda() {
     }
   };
 
-  // ✅ FUNCIÓN CORREGIDA PARA PAGO EN EFECTIVO
+  // Función para manejar pagos
   const handleProcesarPago = async (metodoPago: 'efectivo' | 'tarjeta') => {
     if (!encomiendaParaPagar) return;
 
     try {
       if (metodoPago === 'efectivo') {
-        // ✅ CORREGIDO: Ahora sí marca el pago en efectivo como completado
-        toast.info('Procesando pago en efectivo...');
-        
-        const result = await marcarPagoEfectivo(encomiendaParaPagar.id);
-        
-        if (result.success) {
-          toast.success('✅ Pago en efectivo registrado exitosamente. Lleva tu paquete a nuestras instalaciones.');
-          setShowPagoModal(false);
-          
-          // Recargar el historial para actualizar el estado
-          await loadMyEncomiendas();
-        } else {
-          toast.error(result.error || 'Error al registrar el pago en efectivo');
-        }
-        
+        // Para pago en efectivo, mostrar mensaje informativo
+        toast.info('Has seleccionado pago en efectivo. Puedes pagar al momento de entregar o recibir el paquete en nuestras instalaciones.');
+        setShowPagoModal(false);
       } else if (metodoPago === 'tarjeta') {
         // Para pago con tarjeta, procesar con Stripe
         toast.info('Iniciando proceso de pago con tarjeta...');
@@ -637,6 +624,7 @@ export function ClienteEncomienda() {
                                     {getEstadoPagoConfig(getEstadoPago(encomiendaSeguimiento)).label}
                                   </Badge>
                                 </div>
+                                {/* ✅ BOTÓN DE PAGO ELIMINADO DEL SEGUIMIENTO */}
                               </div>
                             </div>
                             <div>
@@ -801,8 +789,8 @@ export function ClienteEncomienda() {
                                       onClick={() => handlePagarEncomienda(encomienda)}
                                       className="bg-green-600 hover:bg-green-700"
                                     >
-                                      <DollarSign className="w-4 h-4 mr-1" />
-                                      Pagar Encomienda
+                                      <CreditCard className="w-4 h-4 mr-1" />
+                                      Pagar
                                     </Button>
                                   )}
                                 </div>

@@ -288,22 +288,56 @@ class EncomiendaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def marcar_pago_efectivo(self, request, pk=None):
-        """Marcar pago en efectivo como completado (solo admin)"""
-        if not request.user.is_staff:
+        """Marcar pago en efectivo como completado (admin o dueño de la encomienda)"""
+        encomienda = self.get_object()
+        
+        # ✅ PERMITIR A: 
+        # 1. Administradores (is_staff)
+        # 2. Dueño de la encomienda (creado_por)
+        puede_marcar_pago = (
+            request.user.is_staff or 
+            encomienda.creado_por == request.user
+        )
+        
+        if not puede_marcar_pago:
             return Response(
-                {'error': 'Solo administradores pueden realizar esta acción'},
+                {'error': 'No tienes permisos para realizar esta acción. Solo el administrador o el dueño de la encomienda pueden marcar el pago.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        encomienda = self.get_object()
+        # Verificar que el pago no esté ya completado
+        if encomienda.estado_pago == 'completado':
+            return Response(
+                {'error': 'La encomienda ya tiene un pago completado'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar que la encomienda no esté cancelada
+        if encomienda.estado == 'cancelado':
+            return Response(
+                {'error': 'No se puede pagar una encomienda cancelada'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Marcar como pagado
         encomienda.estado_pago = 'completado'
         encomienda.save()
+        
+        # Determinar quién realizó el pago para el mensaje
+        if request.user.is_staff:
+            quien_pago = "el administrador"
+        else:
+            quien_pago = "el cliente"
         
         # Crear seguimiento
         Seguimiento.objects.create(
             encomienda=encomienda,
             evento="Pago en efectivo confirmado",
-            descripcion="El pago en efectivo ha sido marcado como completado por el administrador."
+            descripcion=f"El pago en efectivo ha sido marcado como completado por {quien_pago}. El cliente debe llevar el paquete a la sucursal para completar la entrega."
         )
         
-        return Response(EncomiendaSerializer(encomienda).data)
+        return Response({
+            'success': True,
+            'message': f'Pago en efectivo marcado como completado por {quien_pago}.',
+            'data': EncomiendaSerializer(encomienda).data
+        })

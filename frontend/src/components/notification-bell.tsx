@@ -54,14 +54,8 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
 
   // Cargar notificaciones cuando el componente se monta o cuando el usuario se autentica
   useEffect(() => {
-    console.log(
-      "🔔 [NotificationBell] useEffect - isAuthenticated:",
-      isAuthenticated
-    );
+
     if (isAuthenticated) {
-      console.log(
-        "🔔 [NotificationBell] Usuario autenticado, cargando notificaciones..."
-      );
       loadNotifications();
       initializeNotificationService();
     }
@@ -101,8 +95,7 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
 
   // Cargar notificaciones desde el backend
   const loadNotifications = async () => {
-    console.log("🔔 [NotificationBell] Cargando notificaciones...");
-    console.log("🔔 [NotificationBell] isAuthenticated:", isAuthenticated);
+
 
     if (!isAuthenticated) {
       console.log("🔔 [NotificationBell] Usuario no autenticado");
@@ -115,34 +108,17 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
     try {
       const service = await loadNotificationService();
       if (!service) {
-        console.warn("🔔 [NotificationBell] NotificationService no disponible");
         setIsLoading(false);
         return;
       }
 
-      console.log(
-        "🔔 [NotificationBell] Llamando a NotificationService.getNotifications()"
-      );
       const allNotifications = await service.getNotifications();
-      console.log(
-        "🔔 [NotificationBell] Notificaciones recibidas:",
-        allNotifications
-      );
 
       if (!Array.isArray(allNotifications)) {
-        console.warn(
-          "🔔 [NotificationBell] Las notificaciones no son un array:",
-          allNotifications
-        );
         setNotifications([]);
         setUnreadCount(0);
         return;
       }
-
-      console.log(
-        "🔔 [NotificationBell] Cantidad de notificaciones:",
-        allNotifications.length
-      );
 
       // Ordenar por fecha de creación (más recientes primero)
       const sortedNotifications = allNotifications.sort(
@@ -158,12 +134,6 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
         (n) => n.fue_leida === false
       ).length;
       setUnreadCount(unread);
-
-      console.log(
-        "🔔 [NotificationBell] Notificaciones para mostrar:",
-        sortedNotifications.slice(0, 5)
-      );
-      console.log("🔔 [NotificationBell] No leídas:", unread);
     } catch (error) {
       console.error(
         "🔔 [NotificationBell] Error al cargar notificaciones:",
@@ -258,13 +228,9 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
 
   // No mostrar si no está autenticado
   if (!isAuthenticated) {
-    console.log(
-      "🔔 [NotificationBell] Usuario no autenticado - componente oculto"
-    );
     return null;
   }
 
-  console.log("🔔 [NotificationBell] Renderizando componente, isOpen:", isOpen);
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -274,7 +240,6 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
           size="icon"
           className={`relative hover:bg-gray-100 ${className}`}
           onClick={() => {
-            console.log("🔔 [NotificationBell] Campanita clickeada");
             if (!isOpen) {
               loadNotifications(); // Cargar cuando se abre
             }
@@ -307,7 +272,6 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
               <button
                 className="text-xs bg-blue-500 text-white px-2 py-1 rounded"
                 onClick={() => {
-                  console.log("🔔 [DEBUG] Forzando recarga de notificaciones");
                   loadNotifications();
                 }}
               >

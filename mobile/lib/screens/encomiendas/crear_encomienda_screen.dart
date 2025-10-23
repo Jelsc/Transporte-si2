@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/services/encomienda_service.dart';
 import 'package:mobile/models/crear_encomienda_model.dart';
-import 'package:mobile/models/encomienda_model.dart'; // AGREGAR
 
 class CrearEncomiendaScreen extends StatefulWidget {
   const CrearEncomiendaScreen({super.key});
@@ -33,9 +32,14 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
     'Potosi', 'Tarija', 'Beni', 'Pando'
   ];
 
-  // Calcular precio basado en el backend
   void _calcularPrecio() {
     if (_pesoController.text.isEmpty || _destinoCiudadSeleccionada.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Complete peso y ciudad destino primero'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
@@ -70,7 +74,12 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
       });
 
       try {
-        // Crear el objeto request
+        // ✅ CALCULAR PRECIO ANTES DE CREAR
+        if (_precioCalculado == 0) {
+          _calcularPrecio(); // Asegurar que el precio esté calculado
+        }
+
+        // Crear el objeto request CON PRECIO
         final request = CrearEncomiendaRequest(
           remitenteNombre: _remitenteNombreController.text,
           remitenteTelefono: _remitenteTelefonoController.text,
@@ -81,7 +90,12 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
           destinoDireccion: _destinoDireccionController.text,
           descripcion: _descripcionController.text,
           peso: double.parse(_pesoController.text),
+          precio: _precioCalculado, // ✅ ENVIAR EL PRECIO CALCULADO
         );
+
+        // DEBUG: Verificar datos
+        print('📦 Datos a enviar: ${request.toJson()}');
+        print('📦 Precio enviado: $_precioCalculado');
 
         // Validar el request
         final error = request.validar();
@@ -112,7 +126,7 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
                 backgroundColor: Colors.green,
               ),
             );
-            Navigator.pop(context, result.data); // Retornar la encomienda creada
+            Navigator.pop(context, result.data);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -138,7 +152,7 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
     }
   }
 
-  // MÉTODOS DE CONSTRUCCIÓN (se mantienen iguales)
+  // MÉTODOS DE CONSTRUCCIÓN
   Widget _buildLoading() {
     return const Center(child: CircularProgressIndicator());
   }
@@ -159,27 +173,27 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
   }
 
   Widget _buildTextField({
-  required String label,
-  required TextEditingController controller,
-  required String? Function(String?) validator,
-  IconData? icon,
-  TextInputType keyboardType = TextInputType.text,
-  int maxLines = 1,
-  void Function(String)? onChanged, // ✅ AGREGAR este parámetro
-}) {
-  return TextFormField(
-    controller: controller,
-    keyboardType: keyboardType,
-    maxLines: maxLines,
-    decoration: InputDecoration(
-      labelText: label,
-      border: const OutlineInputBorder(),
-      prefixIcon: icon != null ? Icon(icon) : null,
-    ),
-    validator: validator,
-    onChanged: onChanged, // ✅ PASAR el parámetro al TextFormField
-  );
-}
+    required String label,
+    required TextEditingController controller,
+    required String? Function(String?) validator,
+    IconData? icon,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    void Function(String)? onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        prefixIcon: icon != null ? Icon(icon) : null,
+      ),
+      validator: validator,
+      onChanged: onChanged,
+    );
+  }
 
   Widget _buildDropdownCiudad() {
     return DropdownButtonFormField<String>(
@@ -249,7 +263,7 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
         ),
         const SizedBox(height: 12),
         ElevatedButton(
-          onPressed: _creando ? null : _crearEncomienda,
+          onPressed: (_creando || _precioCalculado == 0) ? null : _crearEncomienda,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
@@ -263,6 +277,16 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
                 )
               : const Text('Crear Encomienda'),
         ),
+        if (_precioCalculado == 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Debe calcular el precio primero',
+            style: TextStyle(
+              color: Colors.red.shade700,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ],
     );
   }

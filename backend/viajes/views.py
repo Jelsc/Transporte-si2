@@ -7,6 +7,8 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db import transaction
 from django.db.models import F, Q
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from .models import Viaje, Asiento, Reserva, ItemReserva
 from .serializers import (
     ViajeSerializer, 
@@ -18,7 +20,11 @@ from .serializers import (
 )
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from notificaciones.services import NotificationService
+import logging
 
+logger = logging.getLogger(__name__)
+
+@method_decorator(csrf_exempt, name='dispatch')
 class ViajeViewSet(viewsets.ModelViewSet):
     queryset = Viaje.objects.all().order_by('fecha', 'hora')
     serializer_class = ViajeSerializer
@@ -32,23 +38,45 @@ class ViajeViewSet(viewsets.ModelViewSet):
         'estado': ['exact'],
     }
     
+    # Sobrescribir permisos por defecto
+    permission_classes = []  # Vacío para que get_permissions() tenga control total
+    
     def get_permissions(self):
         """
         Permite lectura pública, pero creación/edición/eliminación solo para usuarios autenticados con staff
         """
+        logger.info(f"🔐 get_permissions - Action: {self.action}, User: {self.request.user}, Authenticated: {self.request.user.is_authenticated}")
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         # Para crear, actualizar o eliminar, solo requiere autenticación
-        # El check de is_staff se hace en perform_create/update/destroy si es necesario
         return [IsAuthenticated()]
+    
+    def list(self, request, *args, **kwargs):
+        """
+        Override del método list para agregar logging
+        """
+        logger.info(f"📋 LIST REQUEST - User: {request.user}, Headers: {request.headers.get('Authorization', 'No Auth Header')}")
+        return super().list(request, *args, **kwargs)
+    
+    def create(self, request, *args, **kwargs):
+        """
+        Override del método create para agregar logging
+        """
+        logger.info(f"📝 CREATE REQUEST - User: {request.user}, Is Staff: {request.user.is_staff if request.user.is_authenticated else 'Not authenticated'}")
+        logger.info(f"📦 Data recibida: {request.data}")
+        logger.info(f"🔑 Authorization Header: {request.headers.get('Authorization', 'No Auth Header')}")
+        return super().create(request, *args, **kwargs)
     
     def perform_create(self, serializer):
         """
         Valida que solo usuarios staff puedan crear viajes
         """
+        logger.info(f"✅ perform_create - User: {self.request.user}, Is Staff: {self.request.user.is_staff}")
         if not self.request.user.is_staff:
+            logger.warning(f"❌ Usuario {self.request.user} no tiene permisos de staff")
             raise PermissionDenied("Solo el personal administrativo puede crear viajes.")
         serializer.save()
+        logger.info(f"✨ Viaje creado exitosamente")
     
     def perform_update(self, serializer):
         """

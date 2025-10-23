@@ -1,4 +1,3 @@
-// src/app/pages/admin/encomiendas/components/PagoModal.tsx
 import React, { useState } from 'react';
 import {
   Dialog,
