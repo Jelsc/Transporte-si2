@@ -20,7 +20,7 @@ import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
 import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
-import ClienteEncomienda from "@/pages/clienpagt/ClientEncomiendasPage";
+import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
 import AdminEncomienda from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 import ReservasPage from "@/pages/admin/reservas/reservas.page";

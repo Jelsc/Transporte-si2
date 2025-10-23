@@ -151,12 +151,11 @@ INSTALLED_APPS = [
     # Proveedores sociales (ej: Google)
     "allauth.socialaccount.providers.google",
     # dj-rest-auth (REST endpoints de login/registro/password/social)
-    # Apps del proyecto
-    "notificaciones",
     "dj_rest_auth",
     "dj_rest_auth.registration",
-    # "dj_rest_auth.jwt_auth",
     "rest_framework_simplejwt.token_blacklist",
+    # Apps del proyecto
+    "notificaciones",
     "bitacora",
     "pagos",
     'vehiculos',
@@ -408,40 +407,9 @@ SITE_ID = 1
 # ====== STRIPE CONFIGURATION ======
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
-SITE_ID = int(os.getenv("SITE_ID", "1"))
-
-# ====== SECURITY SETTINGS FOR PRODUCTION ======
-# Configuraciones de seguridad que se activan solo en producción
-
-# SSL/HTTPS Configuration
-if not DEBUG:
-    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "True") == "True"
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-    # Cookies security
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_HTTPONLY = True
-
-    # HSTS (HTTP Strict Transport Security)
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-
-    # Content security
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
-    X_FRAME_OPTIONS = "DENY"
-
-    # Referrer policy
-    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 # ====== FIREBASE CONFIGURATION ======
-# Configuración de Firebase para notificaciones push
-FIREBASE_SERVICE_ACCOUNT_PATH = os.getenv(
-    "FIREBASE_SERVICE_ACCOUNT_PATH", "/app/firebase-credentials.json"
-)
+FIREBASE_SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH", "/app/firebase-credentials.json")
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "transporte-si2")
 FIREBASE_MESSAGING_SENDER_ID = os.getenv("FIREBASE_MESSAGING_SENDER_ID", "543273137943")
 
@@ -453,64 +421,6 @@ NOTIFICATION_BADGE_URL = os.getenv(
     "NOTIFICATION_BADGE_URL", "https://tu-dominio.com/static/img/badge-72x72.png"
 )
 
-# ====== LOGGING CONFIGURATION ======
-# Configuración de logs mejorada para producción
-import os
-import logging
-
-# Asegurar que el directorio de logs existe
-LOG_DIR = "/app/logs"
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR, exist_ok=True)
-
-# Configurar handlers según el entorno
-log_handlers = ["console"]
-if DEBUG:
-    # En desarrollo, usar solo consola para simplicidad
-    log_handlers = ["console"]
-else:
-    # En producción, usar archivo y consola
-    log_handlers = ["file", "console"]
-
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
-            "style": "{",
-        },
-        "simple": {
-            "format": "{levelname} {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "file": {
-            "level": "INFO",
-            "class": "logging.FileHandler",
-            "filename": os.path.join(LOG_DIR, "django.log"),
-            "formatter": "verbose",
-        },
-        "console": {
-            "level": "DEBUG" if DEBUG else "INFO",
-            "class": "logging.StreamHandler",
-            "formatter": "simple",
-        },
-    },
-    "loggers": {
-        "django": {
-            "handlers": log_handlers,
-            "level": "DEBUG" if DEBUG else "INFO",
-            "propagate": True,
-        },
-        "notificaciones": {
-            "handlers": log_handlers,
-            "level": "DEBUG",
-            "propagate": True,
-        },
-    },
-}
 # ========== CONFIGURACIÓN DE CELERY ==========
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')

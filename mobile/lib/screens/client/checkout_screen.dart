@@ -37,23 +37,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _tiempoRestante = widget.reserva.tiempoRestante;
     _iniciarTimer();
     _configurarStripe();
-    _debugReserva(); // ✅ Debug para ver los datos
-  }
-
-  // ✅ Debug para verificar los datos de la reserva
-  void _debugReserva() {
-    print('🔍 [CheckoutScreen] Reserva recibida:');
-    print('  - Código: ${widget.reserva.codigoReserva}');
-    print('  - Estado: ${widget.reserva.estado}');
-    print('  - Total: ${widget.reserva.total}');
-    print('  - Items: ${widget.reserva.items.length}');
-
-    for (var i = 0; i < widget.reserva.items.length; i++) {
-      final item = widget.reserva.items[i];
-      print(
-        '    ${i + 1}. Asiento ID: ${item.asientoId}, Número: ${item.numeroAsiento}',
-      );
-    }
   }
 
   @override
@@ -68,9 +51,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           'pk_test_51SFOxOB9S1VdGc0Rs6sEecz84SqlUSMGZ7CzOTNf1WLUPMrZfcEdPe3y0zDsfBPsxM0pR1cV4azJCjLspvfzLboL00KY7wBet1';
 
       await stripe.Stripe.instance.applySettings();
-      print('✅ Stripe configurado correctamente');
     } catch (e) {
-      print('❌ Error configurando Stripe: $e');
+      // Error configurando Stripe
     }
   }
 
@@ -135,8 +117,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final clientSecret = data['client_secret'];
         final pagoId = data['pago_id'];
 
-        print('✅ Pago creado en backend: $pagoId');
-
         try {
           await stripe.Stripe.instance.initPaymentSheet(
             paymentSheetParameters: stripe.SetupPaymentSheetParameters(
@@ -146,7 +126,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
 
           await stripe.Stripe.instance.presentPaymentSheet();
-          print('✅ Payment Sheet completado exitosamente');
 
           final resultadoConfirmacion = await _pagoService.confirmarPagoStripe(
             pagoId: pagoId,
@@ -179,25 +158,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // ✅ NUEVO MÉTODO: Obtener reserva actualizada del backend
   Future<Reserva> _obtenerReservaActualizada() async {
     try {
-      print(
-        '🔄 [CheckoutScreen] Obteniendo reserva actualizada del backend...',
-      );
       final resultado = await _reservaService.obtenerReserva(widget.reserva.id);
 
       if (resultado['success'] == true) {
         final reservaActualizada = resultado['data'] as Reserva;
-        print(
-          '✅ [CheckoutScreen] Reserva actualizada obtenida - Estado: ${reservaActualizada.estado}',
-        );
         return reservaActualizada;
       } else {
-        print(
-          '⚠️ [CheckoutScreen] No se pudo obtener reserva actualizada, usando la original',
-        );
         return widget.reserva;
       }
     } catch (e) {
-      print('❌ [CheckoutScreen] Error obteniendo reserva actualizada: $e');
       return widget.reserva;
     }
   }
@@ -343,19 +312,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final minutos = segundos ~/ 60;
     final segs = segundos % 60;
     return '${minutos.toString().padLeft(2, '0')}:${segs.toString().padLeft(2, '0')}';
-  }
-
-  String _obtenerNombreMetodoPago(String metodo) {
-    switch (metodo) {
-      case 'stripe':
-        return 'Tarjeta Crédito/Débito';
-      case 'efectivo':
-        return 'Pago en Efectivo';
-      case 'transferencia':
-        return 'Transferencia Bancaria';
-      default:
-        return metodo;
-    }
   }
 
   @override

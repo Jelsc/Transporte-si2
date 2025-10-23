@@ -23,9 +23,6 @@ class ReservaService {
 
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
-      print('🔐 [ReservaService] Token incluido en headers');
-    } else {
-      print('⚠️ [ReservaService] No se encontró token de autenticación');
     }
 
     return headers;
@@ -41,14 +38,8 @@ class ReservaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl${_endpoint}crear-temporal/');
 
-      print(
-        '🌐 [ReservaService] Creando reserva temporal: viaje=$viajeId, asientos=$asientosIds',
-      );
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
-
-      print('🔐 [ReservaService] Headers enviados: $headers');
 
       final response = await http
           .post(
@@ -62,17 +53,10 @@ class ReservaService {
           )
           .timeout(const Duration(seconds: 15));
 
-      print(
-        '📡 [ReservaService] Respuesta crear reserva: ${response.statusCode}',
-      );
-
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
           final reserva = Reserva.fromJson(data['data']);
-          print(
-            '✅ [ReservaService] Reserva temporal creada: ${reserva.codigoReserva}',
-          );
           return {
             'success': true,
             'data': reserva,
@@ -88,9 +72,6 @@ class ReservaService {
           };
         }
       } else {
-        print(
-          '❌ [ReservaService] Error crear reserva: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -98,7 +79,6 @@ class ReservaService {
         };
       }
     } catch (e) {
-      print('💥 [ReservaService] Excepción crear reserva: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -109,8 +89,6 @@ class ReservaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl${_endpoint}$reservaId/confirmar-pago/');
 
-      print('🌐 [ReservaService] Confirmando pago para reserva: $reservaId');
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
@@ -118,15 +96,10 @@ class ReservaService {
           .post(url, headers: headers, body: json.encode({}))
           .timeout(const Duration(seconds: 15));
 
-      print(
-        '📡 [ReservaService] Respuesta confirmar pago: ${response.statusCode}',
-      );
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
           final reserva = Reserva.fromJson(data['data']);
-          print('✅ [ReservaService] Pago confirmado: ${reserva.codigoReserva}');
           return {'success': true, 'data': reserva, 'error': null};
         } else {
           return {
@@ -136,9 +109,6 @@ class ReservaService {
           };
         }
       } else {
-        print(
-          '❌ [ReservaService] Error confirmar pago: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -146,7 +116,6 @@ class ReservaService {
         };
       }
     } catch (e) {
-      print('💥 [ReservaService] Excepción confirmar pago: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -159,8 +128,6 @@ class ReservaService {
         '$baseUrl${_endpoint}$reservaId/cancelar-temporal/',
       );
 
-      print('🌐 [ReservaService] Cancelando reserva temporal: $reservaId');
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
@@ -168,18 +135,10 @@ class ReservaService {
           .post(url, headers: headers)
           .timeout(const Duration(seconds: 10));
 
-      print(
-        '📡 [ReservaService] Respuesta cancelar reserva: ${response.statusCode}',
-      );
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('✅ [ReservaService] Reserva cancelada exitosamente');
         return {'success': true, 'data': data, 'error': null};
       } else {
-        print(
-          '❌ [ReservaService] Error cancelar reserva: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -187,7 +146,6 @@ class ReservaService {
         };
       }
     } catch (e) {
-      print('💥 [ReservaService] Excepción cancelar reserva: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -198,8 +156,6 @@ class ReservaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl${_endpoint}$reservaId/');
 
-      print('🌐 [ReservaService] Obteniendo reserva: $reservaId');
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
@@ -207,20 +163,12 @@ class ReservaService {
           .get(url, headers: headers)
           .timeout(const Duration(seconds: 10));
 
-      print(
-        '📡 [ReservaService] Respuesta obtener reserva: ${response.statusCode}',
-      );
-
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         try {
           final reserva = Reserva.fromJson(jsonData);
-          print(
-            '✅ [ReservaService] Reserva obtenida exitosamente - Estado: ${reserva.estado}',
-          );
           return {'success': true, 'data': reserva, 'error': null};
         } catch (e) {
-          print('❌ [ReservaService] Error parseando reserva: $e');
           return {
             'success': false,
             'data': null,
@@ -228,16 +176,12 @@ class ReservaService {
           };
         }
       } else if (response.statusCode == 404) {
-        print('❌ [ReservaService] Reserva no encontrada: $reservaId');
         return {
           'success': false,
           'data': null,
           'error': 'Reserva no encontrada',
         };
       } else {
-        print(
-          '❌ [ReservaService] Error obtener reserva: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -245,7 +189,6 @@ class ReservaService {
         };
       }
     } catch (e) {
-      print('💥 [ReservaService] Excepción obtener reserva: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -256,8 +199,6 @@ class ReservaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl/api/mis-reservas/');
 
-      print('🌐 [ReservaService] Obteniendo reservas del usuario');
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
@@ -265,18 +206,10 @@ class ReservaService {
           .get(url, headers: headers)
           .timeout(const Duration(seconds: 10));
 
-      print(
-        '📡 [ReservaService] Respuesta mis reservas: ${response.statusCode}',
-      );
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('✅ [ReservaService] Reservas obtenidas exitosamente');
         return {'success': true, 'data': data, 'error': null};
       } else {
-        print(
-          '❌ [ReservaService] Error mis reservas: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -284,7 +217,6 @@ class ReservaService {
         };
       }
     } catch (e) {
-      print('💥 [ReservaService] Excepción mis reservas: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -295,8 +227,6 @@ class ReservaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl${_endpoint}$reservaId/estado-temporal/');
 
-      print('🌐 [ReservaService] Obteniendo estado de reserva: $reservaId');
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
@@ -304,18 +234,10 @@ class ReservaService {
           .get(url, headers: headers)
           .timeout(const Duration(seconds: 10));
 
-      print(
-        '📡 [ReservaService] Respuesta estado reserva: ${response.statusCode}',
-      );
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('✅ [ReservaService] Estado de reserva obtenido');
         return {'success': true, 'data': data, 'error': null};
       } else {
-        print(
-          '❌ [ReservaService] Error estado reserva: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -323,7 +245,6 @@ class ReservaService {
         };
       }
     } catch (e) {
-      print('💥 [ReservaService] Excepción estado reserva: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -334,10 +255,6 @@ class ReservaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl${_endpoint}$reservaId/detalle-completo/');
 
-      print(
-        '🌐 [ReservaService] Obteniendo detalle completo de reserva: $reservaId',
-      );
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
@@ -345,18 +262,12 @@ class ReservaService {
           .get(url, headers: headers)
           .timeout(const Duration(seconds: 10));
 
-      print(
-        '📡 [ReservaService] Respuesta detalle reserva: ${response.statusCode}',
-      );
-
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
         try {
           final reserva = Reserva.fromJson(jsonData);
-          print('✅ [ReservaService] Detalle de reserva obtenido exitosamente');
           return {'success': true, 'data': reserva, 'error': null};
         } catch (e) {
-          print('❌ [ReservaService] Error parseando detalle reserva: $e');
           return {
             'success': false,
             'data': null,
@@ -364,9 +275,6 @@ class ReservaService {
           };
         }
       } else {
-        print(
-          '❌ [ReservaService] Error detalle reserva: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -375,7 +283,6 @@ class ReservaService {
         };
       }
     } catch (e) {
-      print('💥 [ReservaService] Excepción detalle reserva: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }

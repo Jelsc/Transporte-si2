@@ -22,16 +22,11 @@ class EncomiendaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final headers = await _getHeaders();
       
-      print('📦 Creando encomienda: ${request.toJson()}');
-      
       final response = await http.post(
         Uri.parse('$baseUrl/api/encomiendas/'),
         headers: headers,
         body: json.encode(request.toJson()),
       );
-
-      print('📦 Response status: ${response.statusCode}');
-      print('📦 Response body: ${response.body}');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final responseData = json.decode(response.body);
@@ -51,7 +46,6 @@ class EncomiendaService {
         );
       }
     } catch (e) {
-      print('❌ Error en crearEncomienda: $e');
       return ApiResponse<Encomienda>(
         success: false,
         error: 'Error de conexión: $e'
@@ -65,15 +59,10 @@ class EncomiendaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final headers = await _getHeaders();
       
-      print('📦 Obteniendo mis encomiendas...');
-      
       final response = await http.get(
         Uri.parse('$baseUrl/api/encomiendas/mis_encomiendas/'),
         headers: headers,
       );
-
-      print('📦 Mis encomiendas response: ${response.statusCode}');
-      print('📦 Mis encomiendas body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
@@ -121,7 +110,6 @@ class EncomiendaService {
         );
       }
     } catch (e) {
-      print('❌ Error en getMisEncomiendas: $e');
       return ApiResponse<List<Encomienda>>(
         success: false,
         error: 'Error de conexión: $e'
@@ -145,14 +133,9 @@ class EncomiendaService {
     try {
       final baseUrl = await IPDetection.getBaseUrl();
       
-      print('📦 Buscando seguimiento: $codigo');
-      
       final response = await http.get(
         Uri.parse('$baseUrl/api/encomiendas/seguimiento/$codigo/'),
       );
-
-      print('📦 Seguimiento response: ${response.statusCode}');
-      print('📦 Seguimiento body: ${response.body}');
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
@@ -175,7 +158,6 @@ class EncomiendaService {
         );
       }
     } catch (e) {
-      print('❌ Error en getSeguimiento: $e');
       return ApiResponse<Encomienda>(
         success: false,
         error: 'Error de conexión: $e'
@@ -208,7 +190,6 @@ class EncomiendaService {
         );
       }
     } catch (e) {
-      print('❌ Error en getEstadisticas: $e');
       return ApiResponse<Map<String, dynamic>>(
         success: false,
         error: 'Error de conexión: $e'
@@ -250,7 +231,6 @@ class EncomiendaService {
         );
       }
     } catch (e) {
-      print('❌ Error en actualizarEstado: $e');
       return ApiResponse<Encomienda>(
         success: false,
         error: 'Error de conexión: $e'
@@ -284,7 +264,6 @@ class EncomiendaService {
         );
       }
     } catch (e) {
-      print('❌ Error en crearPagoStripe: $e');
       return ApiResponse<Map<String, dynamic>>(
         success: false,
         error: 'Error de conexión: $e'
@@ -319,7 +298,6 @@ class EncomiendaService {
         );
       }
     } catch (e) {
-      print('❌ Error en confirmarPago: $e');
       return ApiResponse<Encomienda>(
         success: false,
         error: 'Error de conexión: $e'

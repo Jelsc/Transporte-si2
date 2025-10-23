@@ -13,9 +13,6 @@ class PagoService {
   Future<Map<String, String>> _getHeaders() async {
     try {
       final token = await _authService.getToken();
-      print(
-        '🔐 [PagoService] Token obtenido: ${token != null ? "✅" : "❌ NULL"}',
-      );
 
       return {
         'Accept': 'application/json',
@@ -23,7 +20,6 @@ class PagoService {
         'Authorization': 'Bearer $token', // ✅ TOKEN INCLUIDO
       };
     } catch (e) {
-      print('❌ [PagoService] Error obteniendo token: $e');
       return {'Accept': 'application/json', 'Content-Type': 'application/json'};
     }
   }
@@ -34,12 +30,6 @@ class PagoService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl${_endpoint}crear_pago/');
       final headers = await _getHeaders();
-
-      print('🌐 [PagoService] Creando pago Stripe para reserva: $reservaId');
-      print('🔗 URL: $url');
-      print(
-        '🔐 Headers con token: ${headers.containsKey('Authorization') ? "✅" : "❌"}',
-      );
 
       final response = await http
           .post(
@@ -52,9 +42,6 @@ class PagoService {
           )
           .timeout(const Duration(seconds: 15));
 
-      print('📡 [PagoService] Respuesta crear pago: ${response.statusCode}');
-      print('📋 Body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
 
@@ -66,7 +53,6 @@ class PagoService {
           final clientSecret = data['client_secret'];
           final paymentIntentId = data['payment_intent_id'];
 
-          print('✅ [PagoService] Pago Stripe creado: $pagoId');
           return {
             'success': true,
             'data': {
@@ -93,15 +79,13 @@ class PagoService {
               'Error de autenticación. Por favor, inicia sesión nuevamente.',
         };
       } else {
-        print('❌ [PagoService] Error crear pago: ${response.statusCode}');
         return {
           'success': false,
           'data': null,
           'error': 'Error ${response.statusCode}: ${response.body}',
         };
       }
-    } on http.ClientException catch (e) {
-      print('🌐 [PagoService] Error de conexión: $e');
+    } on http.ClientException {
       return {
         'success': false,
         'data': null,
@@ -120,11 +104,6 @@ class PagoService {
       final url = Uri.parse('$baseUrl/api/pagos/pagos/$pagoId/confirmar/');
       final headers = await _getHeaders();
 
-      print(
-        '🌐 [PagoService] Confirmando pago Stripe: pago=$pagoId, intent=$paymentIntentId',
-      );
-      print('🔗 URL: $url');
-
       final response = await http
           .post(
             url,
@@ -133,27 +112,17 @@ class PagoService {
           )
           .timeout(const Duration(seconds: 15));
 
-      print(
-        '📡 [PagoService] Respuesta confirmar pago: ${response.statusCode}',
-      );
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
         if (data['success'] == true) {
-          print('✅ [PagoService] Pago confirmado exitosamente en backend');
-
           // ✅ INTENTAR PARSEAR EL PAGO, PERO NO ES CRÍTICO
           Pago? pago;
           try {
             if (data['pago'] != null) {
               pago = Pago.fromJson(data['pago']);
-              print(
-                '💰 Pago parseado: ${pago.id} - ${pago.monto} - ${pago.estado}',
-              );
             }
           } catch (e) {
-            print('⚠️ [PagoService] Error parseando pago (no crítico): $e');
             // No lanzamos excepción porque la confirmación fue exitosa
           }
 
@@ -172,7 +141,6 @@ class PagoService {
           };
         }
       } else {
-        print('❌ [PagoService] Error confirmar pago: ${response.statusCode}');
         return {
           'success': false,
           'data': null,
@@ -180,7 +148,6 @@ class PagoService {
         };
       }
     } catch (e) {
-      print('💥 [PagoService] Excepción confirmar pago: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -195,14 +162,6 @@ class PagoService {
       final url = Uri.parse('$baseUrl${_endpoint}crear_pago/');
       final headers = await _getHeaders();
 
-      print(
-        '🌐 [PagoService] Creando pago manual: reserva=$reservaId, metodo=$metodoPago',
-      );
-      print('🔗 URL: $url');
-      print(
-        '🔐 Headers con token: ${headers.containsKey('Authorization') ? "✅" : "❌"}',
-      );
-
       final response = await http
           .post(
             url,
@@ -214,9 +173,6 @@ class PagoService {
           )
           .timeout(const Duration(seconds: 15));
 
-      print('📡 [PagoService] Respuesta pago manual: ${response.statusCode}');
-      print('📋 Body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
 
@@ -224,7 +180,6 @@ class PagoService {
         if (data['success'] == true ||
             data['pago_id'] != null ||
             data['id'] != null) {
-          print('✅ [PagoService] Pago manual creado exitosamente');
           return {'success': true, 'data': data, 'error': null};
         } else {
           return {
@@ -234,7 +189,6 @@ class PagoService {
           };
         }
       } else if (response.statusCode == 401) {
-        print('🔐 [PagoService] Error 401 - Token inválido o expirado');
         return {
           'success': false,
           'data': null,
@@ -242,7 +196,6 @@ class PagoService {
               'Error de autenticación. Por favor, inicia sesión nuevamente.',
         };
       } else {
-        print('❌ [PagoService] Error pago manual: ${response.statusCode}');
         return {
           'success': false,
           'data': null,
@@ -250,7 +203,6 @@ class PagoService {
         };
       }
     } catch (e) {
-      print('💥 [PagoService] Excepción pago manual: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -262,22 +214,14 @@ class PagoService {
       final url = Uri.parse('$baseUrl${_endpoint}$pagoId/cancelar/');
       final headers = await _getHeaders();
 
-      print('🌐 [PagoService] Cancelando pago: $pagoId');
-      print('🔗 URL: $url');
-
       final response = await http
           .post(url, headers: headers)
           .timeout(const Duration(seconds: 10));
 
-      print('📡 [PagoService] Respuesta cancelar pago: ${response.statusCode}');
-      print('📋 Body: ${response.body}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('✅ [PagoService] Pago cancelado exitosamente');
         return {'success': true, 'data': data, 'error': null};
       } else if (response.statusCode == 401) {
-        print('🔐 [PagoService] Error 401 al cancelar pago');
         return {
           'success': false,
           'data': null,
@@ -285,7 +229,6 @@ class PagoService {
               'Error de autenticación. Por favor, inicia sesión nuevamente.',
         };
       } else {
-        print('❌ [PagoService] Error cancelar pago: ${response.statusCode}');
         return {
           'success': false,
           'data': null,
@@ -293,7 +236,6 @@ class PagoService {
         };
       }
     } catch (e) {
-      print('💥 [PagoService] Excepción cancelar pago: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -305,14 +247,9 @@ class PagoService {
       final url = Uri.parse('$baseUrl${_endpoint}mis_pagos/');
       final headers = await _getHeaders();
 
-      print('🌐 [PagoService] Obteniendo mis pagos');
-      print('🔗 URL: $url');
-
       final response = await http
           .get(url, headers: headers)
           .timeout(const Duration(seconds: 10));
-
-      print('📡 [PagoService] Respuesta mis pagos: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -322,10 +259,8 @@ class PagoService {
                 .toList() ??
             [];
 
-        print('✅ [PagoService] Pagos obtenidos: ${pagos.length}');
         return {'success': true, 'data': pagos, 'error': null};
       } else if (response.statusCode == 401) {
-        print('🔐 [PagoService] Error 401 al obtener pagos');
         return {
           'success': false,
           'data': null,
@@ -333,7 +268,6 @@ class PagoService {
               'Error de autenticación. Por favor, inicia sesión nuevamente.',
         };
       } else {
-        print('❌ [PagoService] Error mis pagos: ${response.statusCode}');
         return {
           'success': false,
           'data': null,
@@ -341,7 +275,6 @@ class PagoService {
         };
       }
     } catch (e) {
-      print('💥 [PagoService] Excepción mis pagos: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -353,16 +286,9 @@ class PagoService {
       final url = Uri.parse('$baseUrl$_endpoint');
       final headers = await _getHeaders();
 
-      print('🔍 [PagoService] Probando conexión: $url');
-      print(
-        '🔍 Headers: ${headers.containsKey('Authorization') ? "✅ Con token" : "❌ Sin token"}',
-      );
-
       final response = await http
           .get(url, headers: headers)
           .timeout(Duration(seconds: 10));
-
-      print('🔍 [PagoService] Test response: ${response.statusCode}');
 
       return {
         'success': response.statusCode == 200,
@@ -373,7 +299,6 @@ class PagoService {
             : 'Error ${response.statusCode}: ${response.body}',
       };
     } catch (e) {
-      print('🔍 [PagoService] Error probando conexión: $e');
       return {'success': false, 'error': '$e'};
     }
   }

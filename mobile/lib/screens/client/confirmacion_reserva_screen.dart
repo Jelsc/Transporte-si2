@@ -19,9 +19,6 @@ class ConfirmacionReservaScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ DEBUG: Verificar datos de la reserva
-    _debugReserva();
-
     return Scaffold(
       backgroundColor: Colors.green[50],
       body: SafeArea(
@@ -58,22 +55,6 @@ class ConfirmacionReservaScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  // ✅ NUEVO: Debug para verificar datos
-  void _debugReserva() {
-    print('🔍 [ConfirmacionReservaScreen] Datos de la reserva:');
-    print('  - Código: ${reserva.codigoReserva}');
-    print('  - Estado: ${reserva.estado}');
-    print('  - Total: ${reserva.total}');
-    print('  - Items: ${reserva.items.length}');
-
-    for (var i = 0; i < reserva.items.length; i++) {
-      final item = reserva.items[i];
-      print(
-        '    ${i + 1}. Asiento ID: ${item.asientoId}, Número: ${item.numeroAsiento}',
-      );
-    }
   }
 
   Widget _buildHeader() {

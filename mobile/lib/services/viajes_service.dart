@@ -23,9 +23,6 @@ class ViajesService {
 
     if (token != null) {
       headers['Authorization'] = 'Bearer $token';
-      print('🔐 [ViajesService] Token incluido en headers');
-    } else {
-      print('⚠️ [ViajesService] No se encontró token de autenticación');
     }
 
     return headers;
@@ -64,8 +61,6 @@ class ViajesService {
       // Agregar parámetros a la URL
       final uriWithParams = url.replace(queryParameters: queryParams);
 
-      print('🌐 [ViajesService] Solicitando viajes: $uriWithParams');
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
@@ -73,18 +68,10 @@ class ViajesService {
           .get(uriWithParams, headers: headers)
           .timeout(const Duration(seconds: 10));
 
-      print('📡 [ViajesService] Respuesta: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print(
-          '✅ [ViajesService] Viajes obtenidos: ${data['results']?.length ?? 0}',
-        );
         return {'success': true, 'data': data, 'error': null};
       } else {
-        print(
-          '❌ [ViajesService] Error: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -106,8 +93,6 @@ class ViajesService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl$_endpoint$id/');
 
-      print('🌐 [ViajesService] Solicitando viaje: $url');
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
@@ -115,16 +100,10 @@ class ViajesService {
           .get(url, headers: headers)
           .timeout(const Duration(seconds: 10));
 
-      print('📡 [ViajesService] Respuesta: ${response.statusCode}');
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('✅ [ViajesService] Viaje obtenido: ${data['id']}');
         return {'success': true, 'data': data, 'error': null};
       } else {
-        print(
-          '❌ [ViajesService] Error: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -132,7 +111,6 @@ class ViajesService {
         };
       }
     } catch (e) {
-      print('💥 [ViajesService] Excepción: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -143,17 +121,12 @@ class ViajesService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl/api/asientos/?viaje=$viajeId');
 
-      print('🌐 [ViajesService] Solicitando asientos para viaje: $viajeId');
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
 
       final response = await http
           .get(url, headers: headers)
           .timeout(const Duration(seconds: 10));
-
-      print('📡 [ViajesService] Respuesta asientos: ${response.statusCode}');
-      print('📋 [ViajesService] Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -163,22 +136,14 @@ class ViajesService {
 
         if (data is List) {
           asientosList = data;
-          print('📊 [ViajesService] Formato: Lista directa');
         } else if (data is Map) {
           // Buscar en diferentes keys posibles
           if (data['results'] != null) {
             asientosList = data['results'] is List ? data['results'] : [];
-            print('📊 [ViajesService] Formato: Map con "results"');
           } else if (data['asientos'] != null) {
             asientosList = data['asientos'] is List ? data['asientos'] : [];
-            print('📊 [ViajesService] Formato: Map con "asientos"');
           } else if (data['data'] != null) {
             asientosList = data['data'] is List ? data['data'] : [];
-            print('📊 [ViajesService] Formato: Map con "data"');
-          } else {
-            // Si es Map pero no tiene keys conocidas, verificar si contiene datos de asientos
-            print('📊 [ViajesService] Formato: Map sin keys conocidas');
-            print('🔍 [ViajesService] Keys del Map: ${data.keys}');
           }
         }
 
@@ -189,17 +154,12 @@ class ViajesService {
             final asiento = Asiento.fromJson(item);
             asientos.add(asiento);
           } catch (e) {
-            print('⚠️ [ViajesService] Error parseando asiento: $e');
-            print('📄 [ViajesService] Datos del asiento: $item');
+            // Ignorar asientos con error de parseo
           }
         }
 
-        print('✅ [ViajesService] Asientos obtenidos: ${asientos.length}');
         return {'success': true, 'data': asientos, 'error': null};
       } else {
-        print(
-          '❌ [ViajesService] Error asientos: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -207,8 +167,6 @@ class ViajesService {
         };
       }
     } catch (e) {
-      print('💥 [ViajesService] Excepción asientos: $e');
-      print('🔄 [ViajesService] Error completo: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
@@ -222,14 +180,8 @@ class ViajesService {
       final baseUrl = await IPDetection.getBaseUrl();
       final url = Uri.parse('$baseUrl/api/reservas/verificar-disponibilidad/');
 
-      print(
-        '🌐 [ViajesService] Verificando disponibilidad: viaje=$viajeId, asientos=$asientosIds',
-      );
-
       // ✅ USAR HEADERS CON AUTENTICACIÓN
       final headers = await _getAuthHeaders();
-
-      print('🔐 [ViajesService] Headers enviados: $headers');
 
       final response = await http
           .post(
@@ -242,20 +194,10 @@ class ViajesService {
           )
           .timeout(const Duration(seconds: 10));
 
-      print(
-        '📡 [ViajesService] Respuesta disponibilidad: ${response.statusCode}',
-      );
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print(
-          '✅ [ViajesService] Disponibilidad verificada: ${data['disponible']}',
-        );
         return {'success': true, 'data': data, 'error': null};
       } else {
-        print(
-          '❌ [ViajesService] Error disponibilidad: ${response.statusCode} - ${response.body}',
-        );
         return {
           'success': false,
           'data': null,
@@ -263,7 +205,6 @@ class ViajesService {
         };
       }
     } catch (e) {
-      print('💥 [ViajesService] Excepción disponibilidad: $e');
       return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
