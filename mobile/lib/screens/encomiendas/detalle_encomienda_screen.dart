@@ -39,7 +39,6 @@ class _DetalleEncomiendaScreenState extends State<DetalleEncomiendaScreen> {
       if (result.success && result.data != null) {
         _encomienda = result.data!;
       } else {
-        // Mostrar error si no se pudo actualizar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result.error ?? 'Error al actualizar seguimiento'),

@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class EncomiendaSeguimiento {
   final int id;
   final int encomiendaId;
@@ -5,7 +7,6 @@ class EncomiendaSeguimiento {
   final String descripcion;
   final DateTime fecha;
   final String? ubicacion;
-  final String? usuarioNombre;
 
   EncomiendaSeguimiento({
     required this.id,
@@ -14,7 +15,6 @@ class EncomiendaSeguimiento {
     required this.descripcion,
     required this.fecha,
     this.ubicacion,
-    this.usuarioNombre,
   });
 
   factory EncomiendaSeguimiento.fromJson(Map<String, dynamic> json) {
@@ -23,10 +23,18 @@ class EncomiendaSeguimiento {
       encomiendaId: json['encomienda'] ?? json['encomienda_id'] ?? 0,
       evento: json['evento'] ?? '',
       descripcion: json['descripcion'] ?? '',
-      fecha: DateTime.parse(json['fecha'] ?? DateTime.now().toIso8601String()),
+      fecha: _parseDateTime(json['fecha']),
       ubicacion: json['ubicacion'],
-      usuarioNombre: json['usuario_nombre'],
     );
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    try {
+      return DateTime.parse(value);
+    } catch (e) {
+      return DateTime.now();
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -37,24 +45,49 @@ class EncomiendaSeguimiento {
       'descripcion': descripcion,
       'fecha': fecha.toIso8601String(),
       'ubicacion': ubicacion,
-      'usuario_nombre': usuarioNombre,
     };
   }
 
   // Propiedades calculadas para UI
   String get fechaFormateada {
-    return '${fecha.day}/${fecha.month}/${fecha.year} ${fecha.hour}:${fecha.minute.toString().padLeft(2, '0')}';
+    return DateFormat('dd/MM/yyyy HH:mm').format(fecha);
   }
 
   String get fechaCorta {
-    return '${fecha.day}/${fecha.month}/${fecha.year}';
+    return DateFormat('dd/MM/yyyy').format(fecha);
   }
 
   String get hora {
-    return '${fecha.hour}:${fecha.minute.toString().padLeft(2, '0')}';
+    return DateFormat('HH:mm').format(fecha);
+  }
+
+  String get diaSemana {
+    return DateFormat('EEEE', 'es_ES').format(fecha);
   }
 
   // Métodos de utilidad
   bool get tieneUbicacion => ubicacion != null && ubicacion!.isNotEmpty;
-  bool get tieneUsuario => usuarioNombre != null && usuarioNombre!.isNotEmpty;
+  
+  bool get esReciente {
+    final ahora = DateTime.now();
+    final diferencia = ahora.difference(fecha);
+    return diferencia.inHours < 24;
+  }
+
+  // Método para mostrar información resumida
+  String get resumen {
+    if (tieneUbicacion) {
+      return '$evento - $ubicacion';
+    }
+    return evento;
+  }
+
+  // Método para obtener color según el tipo de evento
+  String get tipoEvento {
+    if (evento.toLowerCase().contains('entreg')) return 'entrega';
+    if (evento.toLowerCase().contains('ruta')) return 'transito';
+    if (evento.toLowerCase().contains('registr')) return 'registro';
+    if (evento.toLowerCase().contains('cancel')) return 'cancelacion';
+    return 'general';
+  }
 }

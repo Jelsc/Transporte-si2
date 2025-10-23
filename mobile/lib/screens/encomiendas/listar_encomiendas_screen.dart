@@ -41,18 +41,22 @@ class _ListarEncomiendasScreenState extends State<ListarEncomiendasScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          // REEMPLAZA estas líneas (45 y 50):
-      if (encomiendasResponse.success) {
-        _encomiendas = (encomiendasResponse.data as List<dynamic>)
-       .map((item) => Encomienda.fromJson(item as Map<String, dynamic>))
-       .toList(); 
-      } else {
-      _errorMessage = encomiendasResponse.error;
-     }
+          
+          // ✅ CORREGIDO: Casting explícito de tipos
+          if (encomiendasResponse.success) {
+            _encomiendas = (encomiendasResponse.data as List<dynamic>?)
+                ?.map((item) => Encomienda.fromJson(item as Map<String, dynamic>))
+                .toList() ?? [];
+          } else {
+            _errorMessage = encomiendasResponse.error;
+          }
 
-if (estadisticasResponse.success) {
-  _estadisticas = estadisticasResponse.data as Map<String, dynamic>;
-}
+          // ✅ CORREGIDO: Casting explícito de tipos
+          if (estadisticasResponse.success) {
+            _estadisticas = (estadisticasResponse.data as Map<String, dynamic>?) ?? {};
+          } else {
+            _errorMessage ??= estadisticasResponse.error;
+          }
         });
       }
     } catch (e) {
@@ -65,6 +69,7 @@ if (estadisticasResponse.success) {
     }
   }
 
+  // ✅ AGREGADO: Método build requerido
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,7 +103,7 @@ if (estadisticasResponse.success) {
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 3),
+      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 0),
     );
   }
 
@@ -204,7 +209,7 @@ if (estadisticasResponse.success) {
               itemCount: _encomiendas.length,
               itemBuilder: (context, index) {
                 final encomienda = _encomiendas[index];
-                return _buildEncomiendaCard(encomienda);
+                return _buildEncomiendaCard(encomienda); // ✅ AHORA SÍ SE USA
               },
             ),
           ),
@@ -269,42 +274,61 @@ if (estadisticasResponse.success) {
     );
   }
 
+  // ✅ AHORA SÍ SE USA este método
   Widget _buildEncomiendaCard(Encomienda encomienda) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: NeumorphicCard(
         onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => DetalleEncomiendaScreen(
-        encomienda: encomienda, // ✅ PASA EL OBJETO DIRECTAMENTE
-      ),
-    ),
-  );
-},
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetalleEncomiendaScreen(
+                encomienda: encomienda,
+              ),
+            ),
+          );
+        },
         child: Padding( 
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Header con estado y precio
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(encomienda.estadoIcon, size: 20, color: encomienda.estadoColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        encomienda.estadoTexto,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: encomienda.estadoColor,
+                  // Estado y código
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(encomienda.estadoIcon, size: 20, color: encomienda.estadoColor),
+                            const SizedBox(width: 8),
+                            Text(
+                              encomienda.estadoTexto,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: encomienda.estadoColor,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          encomienda.codigoSeguimiento,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  
+                  // Precio
                   Text(
                     encomienda.precioFormateado,
                     style: const TextStyle(
@@ -318,15 +342,7 @@ if (estadisticasResponse.success) {
               
               const SizedBox(height: 12),
               
-              // Código y destinatario
-              Text(
-                encomienda.codigoSeguimiento,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
+              // Destinatario
               Text(
                 'Para: ${encomienda.destinatarioNombre}',
                 style: TextStyle(
@@ -341,10 +357,13 @@ if (estadisticasResponse.success) {
                 children: [
                   Icon(Icons.location_on, size: 16, color: Colors.grey.shade600),
                   const SizedBox(width: 4),
-                  Text(
-                    encomienda.destinoCiudad,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
+                  Expanded(
+                    child: Text(
+                      '${encomienda.destinoCiudad} - ${encomienda.destinoDireccion}',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -352,15 +371,37 @@ if (estadisticasResponse.success) {
               
               const SizedBox(height: 8),
               
-              // Fecha
+              // Fecha y estado de pago
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
-                  Text(
-                    encomienda.fechaCreacionFormateada,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        encomienda.fechaCreacionFormateada,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  // Estado de pago
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: encomienda.estadoPagoColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      encomienda.estadoPagoTexto,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: encomienda.estadoPagoColor,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],

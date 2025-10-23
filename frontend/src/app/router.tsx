@@ -19,7 +19,9 @@ import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
-
+import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
+import AdminEncomienda from "@/pages/admin/encomiendas/AdminEncomiendasPage";
+import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 
 export default function AppRouter() {
   return (
@@ -29,7 +31,7 @@ export default function AppRouter() {
         <Route path="/" element={<ClientLayout />}>
           <Route index element={<HomePage />} />
           <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
-          <Route path="encomiendas" element={<ClientEncomiendasPage />} />
+          <Route path="encomiendas" element={<ClienteEncomienda/>} />
         </Route>
         
         {/* Rutas de autenticación sin layout */}
@@ -137,6 +139,15 @@ export default function AppRouter() {
                 </ProtectedRoute>
               }
             />
+            <Route
+          path="/admin/encomiendas"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminEncomienda />
+            </ProtectedRoute>
+          }
+        />
+
 
         {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
         <Route

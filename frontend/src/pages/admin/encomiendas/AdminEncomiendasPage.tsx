@@ -10,12 +10,11 @@ import { EncomiendaDelete } from './components/EncomiendaDelete';
 import AdminLayout from '@/app/layout/admin-layout';
 import type { EncomiendaFilters } from '@/types/encomienda';
 import type { Encomienda } from '@/types/encomienda';
-import { encomiendaService } from '@/services/encomiendaService';
 import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 10;
 
-export default function AdminEncomienda() {
+export default function AdminEncomiendaPage() {
   const [page, setPage] = useState<number>(1);
   const [search, setSearch] = useState<string>("");
   const [searchDebounced, setSearchDebounced] = useState<string>("");
@@ -23,7 +22,6 @@ export default function AdminEncomienda() {
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
   const [fechaDesdeFilter, setFechaDesdeFilter] = useState<string>("");
   const [fechaHastaFilter, setFechaHastaFilter] = useState<string>("");
-  const [stats, setStats] = useState<any>(null);
 
   const {
     data,
@@ -43,6 +41,7 @@ export default function AdminEncomienda() {
     closeDeleteModal,
     clearError,
     loadConductoresDisponibles,
+    calcularPrecio,
   } = useEncomiendas();
 
   // Función para cargar datos con filtros y paginación
@@ -58,23 +57,11 @@ export default function AdminEncomienda() {
     await loadData(filters);
   };
 
-  // Cargar estadísticas
-  const cargarEstadisticas = async () => {
-    try {
-      const response = await encomiendaService.getStats();
-      if (response.success && response.data) {
-        setStats(response.data);
-      }
-    } catch (error) {
-      console.error('Error cargando estadísticas:', error);
-    }
-  };
-
   // Debounce para el campo de búsqueda
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchDebounced(search);
-    }, 1000);
+    }, 500); // Reducido a 500ms para mejor experiencia
 
     return () => clearTimeout(timer);
   }, [search]);
@@ -83,8 +70,15 @@ export default function AdminEncomienda() {
   useEffect(() => {
     fetchEncomiendas();
     loadConductoresDisponibles();
-    cargarEstadisticas();
   }, [page, searchDebounced, estadoFilter, ciudadFilter, fechaDesdeFilter, fechaHastaFilter]);
+
+  // Mostrar errores con toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+      clearError();
+    }
+  }, [error]);
 
   const handleCreate = () => {
     openStoreModal();
@@ -99,26 +93,35 @@ export default function AdminEncomienda() {
   };
 
   const handleView = (encomienda: Encomienda) => {
-    // Aquí puedes implementar la vista detallada
     toast.info(`Vista detallada de ${encomienda.codigo_seguimiento}`);
+    // Aquí puedes implementar la navegación a la vista detallada
   };
 
-  const handleStoreSubmit = async (data: any): Promise<boolean> => {
+  const handleStoreSubmit = async (formData: any): Promise<boolean> => {
     try {
-      // Asegurar que tenga método de pago
+      // Asegurar que tenga método de pago y calcular precio si es nueva
       const encomiendaData = {
-        ...data,
-        metodo_pago: data.metodo_pago || 'efectivo'
+        ...formData,
+        metodo_pago: formData.metodo_pago || 'efectivo',
+        // Si es nueva encomienda, calcular el precio automáticamente
+        ...(!selectedItem && {
+          precio: calcularPrecio(formData.peso, formData.destino_ciudad)
+        })
       };
 
       if (selectedItem) {
         await updateItem(selectedItem.id, encomiendaData);
+        toast.success('Encomienda actualizada correctamente');
       } else {
         await createItem(encomiendaData);
+        toast.success('Encomienda creada correctamente');
       }
-      await cargarEstadisticas(); // Actualizar stats después de modificar
+      
+      // Recargar datos después de modificar
+      await fetchEncomiendas();
       return true;
-    } catch {
+    } catch (err: any) {
+      toast.error(err.message || 'Error al guardar encomienda');
       return false;
     }
   };
@@ -127,11 +130,14 @@ export default function AdminEncomienda() {
     try {
       if (selectedItem) {
         await deleteItem(selectedItem.id);
-        await cargarEstadisticas(); // Actualizar stats después de eliminar
+        toast.success('Encomienda eliminada correctamente');
+        // Recargar datos después de eliminar
+        await fetchEncomiendas();
         return true;
       }
       return false;
-    } catch {
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar encomienda');
       return false;
     }
   };
@@ -142,17 +148,24 @@ export default function AdminEncomienda() {
     setCiudadFilter('all');
     setFechaDesdeFilter('');
     setFechaHastaFilter('');
+    setPage(1); // Resetear a primera página
+  };
+
+  const handleRefresh = async () => {
+    await fetchEncomiendas();
+    await loadConductoresDisponibles();
+    toast.success('Datos actualizados');
   };
 
   const totalPages = Math.ceil((data?.count || 0) / ITEMS_PER_PAGE);
 
-  // Calcular estadísticas desde los datos locales si no hay stats del servicio
-  const totalEncomiendas = stats?.total || data?.count || 0;
-  const encomiendasPendientes = stats?.pendientes || data?.results?.filter(e => e.estado === 'pendiente').length || 0;
-  const encomiendasEnRuta = stats?.en_ruta || data?.results?.filter(e => e.estado === 'en_ruta').length || 0;
-  const encomiendasEntregadas = stats?.entregados || data?.results?.filter(e => e.estado === 'entregado').length || 0;
-  const encomiendasCanceladas = stats?.cancelados || data?.results?.filter(e => e.estado === 'cancelado').length || 0;
-  const ingresosTotales = stats?.ingresos_totales || data?.results?.reduce((total, encomienda) => {
+  // Calcular estadísticas desde los datos locales
+  const totalEncomiendas = data?.count || 0;
+  const encomiendasPendientes = data?.results?.filter(e => e.estado === 'pendiente').length || 0;
+  const encomiendasEnRuta = data?.results?.filter(e => e.estado === 'en_ruta').length || 0;
+  const encomiendasEntregadas = data?.results?.filter(e => e.estado === 'entregado').length || 0;
+  const encomiendasCanceladas = data?.results?.filter(e => e.estado === 'cancelado').length || 0;
+  const ingresosTotales = data?.results?.reduce((total, encomienda) => {
     return total + (encomienda.precio || 0);
   }, 0) || 0;
 
@@ -167,10 +180,21 @@ export default function AdminEncomienda() {
               Administra y monitorea todas las encomiendas del sistema
             </p>
           </div>
-          <Button onClick={handleCreate} className="flex items-center gap-2 w-full sm:w-auto">
-            <Plus className="h-4 w-4" />
-            Nueva Encomienda
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              <TrendingUp className="h-4 w-4" />
+              Actualizar
+            </Button>
+            <Button onClick={handleCreate} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Nueva Encomienda
+            </Button>
+          </div>
         </div>
 
         {/* Estadísticas */}
@@ -270,23 +294,14 @@ export default function AdminEncomienda() {
         {/* Tabla */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Encomiendas</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Lista de Encomiendas</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                Total: {totalEncomiendas} encomiendas
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-800">{error}</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={clearError}
-                  className="mt-2"
-                >
-                  Cerrar
-                </Button>
-              </div>
-            )}
-            
             <EncomiendaTable
               data={data?.results || []}
               loading={loading}
@@ -295,9 +310,7 @@ export default function AdminEncomienda() {
               onView={handleView}
               page={page}
               totalPages={totalPages}
-              onPageChange={(newPage) => {
-                setPage(newPage);
-              }}
+              onPageChange={setPage}
             />
           </CardContent>
         </Card>
@@ -310,6 +323,7 @@ export default function AdminEncomienda() {
           initialData={selectedItem}
           loading={loading}
           conductoresDisponibles={conductoresDisponibles}
+          calcularPrecio={calcularPrecio}
         />
 
         <EncomiendaDelete

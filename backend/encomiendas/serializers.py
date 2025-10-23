@@ -1,155 +1,91 @@
 from rest_framework import serializers
-from .models import Encomienda, EncomiendaSeguimiento, TarifaEncomienda
-from django.conf import settings
-from django.contrib.auth import get_user_model
+from .models import Encomienda, Seguimiento
+from conductores.models import Conductor
+from pagos.models import Pago
 
-User = get_user_model()
-
-class UserSerializer(serializers.ModelSerializer):
-    nombre_completo = serializers.SerializerMethodField()
-    
+class SeguimientoSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'nombre_completo']
-    
-    def get_nombre_completo(self, obj):
-        return obj.get_full_name()
-
-
-class EncomiendaSeguimientoSerializer(serializers.ModelSerializer):
-    usuario_nombre = serializers.CharField(source='usuario.get_full_name', read_only=True)
-    
-    class Meta:
-        model = EncomiendaSeguimiento
-        fields = '__all__'
-        read_only_fields = ['fecha', 'usuario']
-
+        model = Seguimiento
+        fields = ['id', 'evento', 'descripcion', 'ubicacion', 'fecha']
 
 class EncomiendaSerializer(serializers.ModelSerializer):
-    conductor_nombre = serializers.SerializerMethodField()
+    conductor_nombre = serializers.CharField(source='conductor_asignado.nombre_completo', read_only=True)
+    conductor_info = serializers.SerializerMethodField()
+    seguimientos = SeguimientoSerializer(many=True, read_only=True)
+    pago_detalle = serializers.SerializerMethodField()
     creado_por_nombre = serializers.CharField(source='creado_por.get_full_name', read_only=True)
-    seguimientos = EncomiendaSeguimientoSerializer(many=True, read_only=True)
-    
-    # INFORMACIÓN DEL PAGO - NUEVO
-    pago_info = serializers.SerializerMethodField()
-    estado_pago = serializers.CharField(source='pago.estado', read_only=True)
-    metodo_pago = serializers.CharField(source='pago.metodo_pago', read_only=True)
-    
+    puede_ser_asignada = serializers.BooleanField(read_only=True)
+    puede_ser_entregada = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Encomienda
-        fields = '__all__'
-        read_only_fields = ['codigo_seguimiento', 'fecha_creacion', 'precio', 'creado_por', 'pago']
-    
-    def get_conductor_nombre(self, obj):
+        fields = [
+            'id', 'codigo_seguimiento', 'remitente_nombre', 'remitente_telefono', 'remitente_direccion',
+            'destinatario_nombre', 'destinatario_telefono', 'destino_ciudad', 'destino_direccion',
+            'descripcion', 'peso', 'precio', 'notas', 'estado', 'fecha_creacion', 
+            'fecha_entrega_estimada', 'fecha_entrega_real', 'conductor_asignado', 'conductor_nombre',
+            'conductor_info', 'creado_por', 'creado_por_nombre', 'metodo_pago', 'estado_pago',
+            'pago_info', 'pago_detalle', 'seguimientos', 'pago', 'puede_ser_asignada', 'puede_ser_entregada'
+        ]
+        read_only_fields = ['codigo_seguimiento', 'fecha_creacion', 'creado_por', 'pago']
+
+    def get_conductor_info(self, obj):
         if obj.conductor_asignado:
-            return obj.conductor_asignado.get_full_name()
+            return {
+                'id': obj.conductor_asignado.id,
+                'nombre_completo': obj.conductor_asignado.nombre_completo,
+                'telefono': obj.conductor_asignado.telefono,
+                'tipo_licencia': obj.conductor_asignado.tipo_licencia,
+                'nro_licencia': obj.conductor_asignado.nro_licencia,
+                'estado': obj.conductor_asignado.estado
+            }
         return None
-    
-    def get_pago_info(self, obj):
+
+    def get_pago_detalle(self, obj):
         if obj.pago:
             return {
                 'id': obj.pago.id,
                 'monto': str(obj.pago.monto),
                 'estado': obj.pago.estado,
                 'metodo_pago': obj.pago.metodo_pago,
-                'fecha_creacion': obj.pago.fecha_creacion,
-                'stripe_payment_intent_id': obj.pago.stripe_payment_intent_id,
+                'fecha_creacion': obj.pago.fecha_creacion
             }
         return None
 
-
 class CreateEncomiendaSerializer(serializers.ModelSerializer):
-    # CAMPO PARA MÉTODO DE PAGO - NUEVO
-    metodo_pago = serializers.ChoiceField(
-        choices=[
-            ('stripe', 'Stripe'),
-            ('efectivo', 'Efectivo'),
-            ('transferencia', 'Transferencia'),
-        ],
-        write_only=True,
-        required=True
-    )
-    
     class Meta:
         model = Encomienda
         fields = [
             'remitente_nombre', 'remitente_telefono', 'remitente_direccion',
-            'destinatario_nombre', 'destinatario_telefono', 'destino_ciudad',
-            'destino_direccion', 'descripcion', 'peso', 'notas', 'metodo_pago'
+            'destinatario_nombre', 'destinatario_telefono', 'destino_ciudad', 
+            'destino_direccion', 'descripcion', 'peso', 'precio', 'notas',
+            'metodo_pago'
         ]
-    
-    def create(self, validated_data):
-        request = self.context.get('request')
-        metodo_pago = validated_data.pop('metodo_pago')
-        
-        # Crear la encomienda primero
-        encomienda = Encomienda.objects.create(
-            creado_por=request.user,
-            **validated_data
-        )
-        
-        # Crear el pago asociado - NUEVO
-        from pagos.models import Pago
-        
-        pago = Pago.objects.create(
-            usuario=request.user,
-            monto=encomienda.precio,
-            metodo_pago=metodo_pago,
-            descripcion=f"Pago por encomienda #{encomienda.codigo_seguimiento} - {encomienda.destinatario_nombre}",
-            estado='pendiente'
-        )
-        
-        # Asignar el pago a la encomienda
-        encomienda.pago = pago
-        encomienda.save()
-        
-        # Crear seguimiento inicial
-        from .models import EncomiendaSeguimiento
-        EncomiendaSeguimiento.objects.create(
-            encomienda=encomienda,
-            evento='Encomienda creada',
-            descripcion=f'Encomienda creada con código {encomienda.codigo_seguimiento}. Pago {metodo_pago} pendiente.',
-            usuario=request.user
-        )
-        
-        return encomienda
-
 
 class UpdateEncomiendaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Encomienda
         fields = [
-            'estado', 'conductor_asignado', 'fecha_entrega_real', 'notas'
+            'remitente_nombre', 'remitente_telefono', 'remitente_direccion',
+            'destinatario_nombre', 'destinatario_telefono', 'destino_ciudad', 
+            'destino_direccion', 'descripcion', 'peso', 'precio', 'notas',
+            'estado', 'conductor_asignado', 'metodo_pago', 'estado_pago',
+            'fecha_entrega_estimada', 'fecha_entrega_real'
         ]
-
 
 class AsignarConductorSerializer(serializers.Serializer):
     conductor_id = serializers.IntegerField()
-    
+
     def validate_conductor_id(self, value):
         try:
-            conductor = User.objects.get(id=value, groups__name='Conductores')
-        except User.DoesNotExist:
-            raise serializers.ValidationError("El conductor especificado no existe o no tiene el rol adecuado")
-        return value
-
+            conductor = Conductor.objects.get(id=value)
+            if not conductor.puede_conducir():
+                raise serializers.ValidationError("El conductor no está disponible para asignación")
+            return value
+        except Conductor.DoesNotExist:
+            raise serializers.ValidationError("Conductor no encontrado")
 
 class ActualizarEstadoSerializer(serializers.Serializer):
     estado = serializers.ChoiceField(choices=Encomienda.ESTADO_CHOICES)
     notas = serializers.CharField(required=False, allow_blank=True)
-    fecha_entrega_real = serializers.DateTimeField(required=False)
-
-
-class TarifaEncomiendaSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TarifaEncomienda
-        fields = '__all__'
-
-
-class EncomiendaStatsSerializer(serializers.Serializer):
-    total = serializers.IntegerField()
-    pendientes = serializers.IntegerField()
-    en_ruta = serializers.IntegerField()
-    entregados = serializers.IntegerField()
-    cancelados = serializers.IntegerField()
-    ingresos_totales = serializers.DecimalField(max_digits=12, decimal_places=2)
+    ubicacion = serializers.CharField(required=False, allow_blank=True)
