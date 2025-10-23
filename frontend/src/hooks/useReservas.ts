@@ -123,9 +123,14 @@ export function useReservas(): UseReservasReturn {
           total_asientos_reservados: targetData.reduce((total, reserva) => 
             total + (reserva.items?.length || 0), 0
           ),
-          ingresos_totales: targetData.reduce((total, reserva) => 
-            total + (reserva.pagado ? reserva.total : 0), 0
-          ),
+        ingresos_totales: targetData.reduce((total: number, reserva: any) => {
+          const totalReserva = Number(reserva.total) || 0;
+          // Sumar si está pagada, confirmada, o completada
+        if (reserva.pagado || reserva.estado === 'pagada' || reserva.estado === 'confirmada' || reserva.estado === 'completada') {
+          return total + totalReserva;
+        }
+        return total;
+        }, 0),
           reservas_pagadas: targetData.filter(r => r.pagado).length,
           reservas_pendientes: targetData.filter(r => !r.pagado && r.estado === 'pendiente').length,
           reservas_confirmadas: targetData.filter(r => r.estado === 'confirmada').length,

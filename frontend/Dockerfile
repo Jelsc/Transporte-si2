@@ -7,9 +7,11 @@ RUN apk add --no-cache tzdata && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone
 
-# Copia package*.json primero para cache de npm ci si quieres
-# COPY package*.json /app/
-# RUN npm ci
+# ✅ Copiar package.json primero para cache de dependencias
+COPY package*.json /app/
+RUN npm install
 
-# Para dev montamos la carpeta, así que solo exponemos puerto
+# ✅ Copiar el resto del código
+COPY . /app/
+
 EXPOSE 5173
