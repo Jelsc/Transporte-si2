@@ -25,19 +25,19 @@ import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
 import AdminEncomiendaPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 import ReservasPage from "@/pages/admin/reservas/reservas.page";
+import Dashboard from "@/pages/admin/Dashboard";
 
 import NotificationHistoryPage from "@/pages/client/notification-history.page";
-
 
 export default function AppRouter() {
   return (
     <Router>
       <Routes>
-        {/* Rutas del cliente con layout */}  
+        {/* Rutas del cliente con layout */}
         <Route path="/" element={<ClientLayout />}>
           <Route index element={<HomePage />} />
           <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
-          <Route path="encomiendas" element={<ClienteEncomienda/>} />
+          <Route path="encomiendas" element={<ClienteEncomienda />} />
         </Route>
 
         {/* Rutas protegidas del cliente */}
@@ -82,6 +82,15 @@ export default function AppRouter() {
           element={
             <ProtectedRoute requireAdmin={true}>
               <BitacoraPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <Dashboard />
             </ProtectedRoute>
           }
         />
@@ -141,43 +150,42 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-            <Route
-              path="/admin/viajes"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                <ViajesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/vehiculos"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                  <VehiculosPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/ubicaciones"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                  <UbicacionesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/encomiendas"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                  <AdminEncomiendaPage />
-                </ProtectedRoute>
-              }
-            />
+        <Route
+          path="/admin/viajes"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ViajesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/vehiculos"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <VehiculosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/ubicaciones"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <UbicacionesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/encomiendas"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminEncomienda />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/reservas"
           element={
             <ProtectedRoute requireAdmin={true}>
-                
               <ReservasPage />
             </ProtectedRoute>
           }
@@ -194,7 +202,6 @@ export default function AppRouter() {
           path="/admin/pagos"
           element={
             <ProtectedRoute requireAdmin={true}>
-            
               <VentasReserva />
             </ProtectedRoute>
           }
@@ -225,7 +232,7 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        
+
         {/* 👇 RUTA MIS-RESERVAS PROTEGIDA */}
         <Route
           path="/mis-reservas"
