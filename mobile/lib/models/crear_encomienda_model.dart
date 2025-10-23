@@ -8,6 +8,7 @@
   final String destinoDireccion;
   final String descripcion;
   final double peso;
+  final double precio;
   final String metodoPago;
 
   CrearEncomiendaRequest({
@@ -20,6 +21,7 @@
     required this.destinoDireccion,
     required this.descripcion,
     required this.peso,
+    required this.precio,
     this.metodoPago = 'efectivo',
   });
 
@@ -34,6 +36,7 @@
       'destino_direccion': destinoDireccion,
       'descripcion': descripcion,
       'peso': peso,
+      'precio': precio,
       'metodo_pago': metodoPago,
     };
   }
@@ -47,7 +50,8 @@
         destinoCiudad.isNotEmpty &&
         destinoDireccion.isNotEmpty &&
         descripcion.isNotEmpty &&
-        peso > 0;
+        peso > 0 &&
+        precio > 0;
   }
 
   String? validar() {
@@ -72,6 +76,7 @@
     
     if (peso <= 0) return 'El peso debe ser mayor a 0';
     if (peso > 100) return 'El peso no puede exceder los 100 kg';
+    if (precio <= 0) return 'El precio debe ser mayor a 0';
     
     return null;
   }
@@ -104,6 +109,7 @@
     String? destinoDireccion,
     String? descripcion,
     double? peso,
+    double? precio,
     String? metodoPago,
   }) {
     return CrearEncomiendaRequest(
@@ -116,6 +122,7 @@
       destinoDireccion: destinoDireccion ?? this.destinoDireccion,
       descripcion: descripcion ?? this.descripcion,
       peso: peso ?? this.peso,
+      precio: precio ?? this.precio,
       metodoPago: metodoPago ?? this.metodoPago,
     );
   }
