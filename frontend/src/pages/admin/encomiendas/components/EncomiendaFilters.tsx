@@ -5,19 +5,29 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, FilterX, Calendar } from 'lucide-react';
 
+interface ConductorOption {
+  id: number;
+  nombre: string;
+}
+
 interface EncomiendaFiltersProps {
   search: string;
   estadoFilter: string;
   ciudadFilter: string;
   fechaDesdeFilter: string;
   fechaHastaFilter: string;
+  conductorFilter: string;
+  metodoPagoFilter: string;
   onSearchChange: (value: string) => void;
   onEstadoFilterChange: (value: string) => void;
   onCiudadFilterChange: (value: string) => void;
   onFechaDesdeFilterChange: (value: string) => void;
   onFechaHastaFilterChange: (value: string) => void;
+  onConductorFilterChange: (value: string) => void;
+  onMetodoPagoFilterChange: (value: string) => void;
   onClearFilters: () => void;
   loading: boolean;
+  conductoresDisponibles: ConductorOption[];
 }
 
 const estados = [
@@ -40,26 +50,40 @@ const ciudades = [
   { value: 'Pando', label: 'Pando' },
 ];
 
+const metodosPago = [
+  { value: 'all', label: 'Todos los métodos' },
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'tarjeta', label: 'Tarjeta' },
+  { value: 'transferencia', label: 'Transferencia' },
+];
+
 export function EncomiendaFiltersComponent({
   search,
   estadoFilter,
   ciudadFilter,
   fechaDesdeFilter,
   fechaHastaFilter,
+  conductorFilter,
+  metodoPagoFilter,
   onSearchChange,
   onEstadoFilterChange,
   onCiudadFilterChange,
   onFechaDesdeFilterChange,
   onFechaHastaFilterChange,
+  onConductorFilterChange,
+  onMetodoPagoFilterChange,
   onClearFilters,
   loading,
+  conductoresDisponibles,
 }: EncomiendaFiltersProps) {
   const hasActiveFilters = 
     search !== '' || 
     estadoFilter !== 'all' || 
     ciudadFilter !== 'all' || 
     fechaDesdeFilter !== '' || 
-    fechaHastaFilter !== '';
+    fechaHastaFilter !== '' ||
+    conductorFilter !== 'all' ||
+    metodoPagoFilter !== 'all';
 
   return (
     <Card>
@@ -114,6 +138,41 @@ export function EncomiendaFiltersComponent({
                 {ciudades.map((ciudad) => (
                   <SelectItem key={ciudad.value} value={ciudad.value}>
                     {ciudad.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Filtro por conductor */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Conductor</label>
+            <Select value={conductorFilter} onValueChange={onConductorFilterChange} disabled={loading}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar conductor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los conductores</SelectItem>
+                {conductoresDisponibles.map((conductor) => (
+                  <SelectItem key={conductor.id} value={conductor.id.toString()}>
+                    {conductor.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Filtro por método de pago */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Método de Pago</label>
+            <Select value={metodoPagoFilter} onValueChange={onMetodoPagoFilterChange} disabled={loading}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar método" />
+              </SelectTrigger>
+              <SelectContent>
+                {metodosPago.map((metodo) => (
+                  <SelectItem key={metodo.value} value={metodo.value}>
+                    {metodo.label}
                   </SelectItem>
                 ))}
               </SelectContent>

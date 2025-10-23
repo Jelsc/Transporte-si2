@@ -19,9 +19,10 @@ import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
 import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
+import CrearSolicitudPage from "@/pages/admin/rutas-optimizadas/crear-solicitud.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
 import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
-import AdminEncomienda from "@/pages/admin/encomiendas/AdminEncomiendasPage";
+import AdminEncomiendaPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 import ReservasPage from "@/pages/admin/reservas/reservas.page";
 
@@ -168,7 +169,7 @@ export default function AppRouter() {
               path="/admin/encomiendas"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <AdminEncomienda />
+                  <AdminEncomiendaPage />
                 </ProtectedRoute>
               }
             />
@@ -178,6 +179,14 @@ export default function AppRouter() {
             <ProtectedRoute requireAdmin={true}>
                 
               <ReservasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rutas-optimizadas/crear"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <CrearSolicitudPage />
             </ProtectedRoute>
           }
         />

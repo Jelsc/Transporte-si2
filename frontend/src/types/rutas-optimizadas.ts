@@ -64,4 +64,6 @@ export interface SolicitudRuta {
   vehiculos_disponibles?: Vehiculo[];
   mensaje_resultado?: string;
   fecha_creacion: string;
+  numero_entregas?: number;
+  tiene_rutas?: boolean;
 }

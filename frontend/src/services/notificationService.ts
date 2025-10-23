@@ -63,7 +63,6 @@ class NotificationService {
       this.setupMessageListeners();
 
       this.isInitialized = true;
-      console.log("🔔 NotificationService web inicializado");
     } catch (error) {
       console.error("Error al inicializar NotificationService:", error);
       throw error;
@@ -333,7 +332,6 @@ class NotificationService {
 
       const baseUrl = getApiBaseUrl();
       const url = `${baseUrl}/api/notificaciones/notificaciones/`;
-      console.log("🔔 [NotificationService] Haciendo request a:", url);
 
       const response = await fetch(url, {
         headers: {
@@ -342,8 +340,6 @@ class NotificationService {
         },
       });
 
-      console.log("🔔 [NotificationService] Response status:", response.status);
-      console.log("🔔 [NotificationService] Response ok:", response.ok);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -360,19 +356,10 @@ class NotificationService {
       }
 
       const data = await response.json();
-      console.log("🔔 [NotificationService] Data recibida:", data);
 
       const notifications = data.results || data;
-      console.log(
-        "🔔 [NotificationService] Notificaciones extraídas:",
-        notifications
-      );
 
       if (!Array.isArray(notifications)) {
-        console.warn(
-          "🔔 [NotificationService] La respuesta del servidor no es un array:",
-          data
-        );
         return [];
       }
 
@@ -385,10 +372,6 @@ class NotificationService {
           notification.fecha_lectura !== undefined,
       }));
 
-      console.log(
-        "🔔 [NotificationService] Notificaciones procesadas:",
-        processedNotifications
-      );
       return processedNotifications;
     } catch (error) {
       console.error(

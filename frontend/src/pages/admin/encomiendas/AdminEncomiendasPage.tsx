@@ -23,6 +23,8 @@ export default function AdminEncomiendaPage() {
   const [ciudadFilter, setCiudadFilter] = useState<string>("all");
   const [fechaDesdeFilter, setFechaDesdeFilter] = useState<string>("");
   const [fechaHastaFilter, setFechaHastaFilter] = useState<string>("");
+  const [conductorFilter, setConductorFilter] = useState<string>("all");
+  const [metodoPagoFilter, setMetodoPagoFilter] = useState<string>("all");
 
   const {
     data,
@@ -78,7 +80,7 @@ export default function AdminEncomiendaPage() {
   useEffect(() => {
     fetchEncomiendas();
     loadConductoresDisponibles();
-  }, [page, searchDebounced, estadoFilter, ciudadFilter, fechaDesdeFilter, fechaHastaFilter]);
+  }, [page, searchDebounced, estadoFilter, ciudadFilter, fechaDesdeFilter, fechaHastaFilter, conductorFilter, metodoPagoFilter]);
 
   // Mostrar errores con toast
   useEffect(() => {
@@ -185,6 +187,8 @@ export default function AdminEncomiendaPage() {
     setCiudadFilter('all');
     setFechaDesdeFilter('');
     setFechaHastaFilter('');
+    setConductorFilter('all');
+    setMetodoPagoFilter('all');
     setPage(1); // Resetear a primera página
   };
   

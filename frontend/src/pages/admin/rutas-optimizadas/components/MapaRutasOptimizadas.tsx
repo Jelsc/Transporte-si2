@@ -42,6 +42,18 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
   const [mapaCargado, setMapaCargado] = useState(false);
   const [rutaSeleccionada, setRutaSeleccionada] = useState<string | null>(null);
 
+  // DEBUG: Log de rutas recibidas
+  useEffect(() => {
+    console.log('🗺️ MapaRutasOptimizadas - Rutas recibidas:', rutas);
+    console.log('🗺️ MapaRutasOptimizadas - Número de rutas:', rutas.length);
+    if (rutas.length > 0) {
+      console.log('🗺️ MapaRutasOptimizadas - Primera ruta:', rutas[0]);
+      if (rutas[0]) {
+        console.log('🗺️ MapaRutasOptimizadas - Paradas de primera ruta:', rutas[0].paradas);
+      }
+    }
+  }, [rutas]);
+
   // Helper para obtener nombre del vehículo con garantía de string
   const obtenerNombreVehiculo = useCallback((vehiculo: RutaOptimizada['vehiculo']) => {
     if (typeof vehiculo === 'number') return `Vehículo ${vehiculo}`;
