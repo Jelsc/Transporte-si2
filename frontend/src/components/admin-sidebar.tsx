@@ -137,6 +137,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       icon: Route,
       submodules: [
         {
+          id: "ubicaciones",
+          name: "Ubicaciones",
+          icon: MapPin,
+          route: "/admin/ubicaciones",
+        },
+        {
           id: "vehiculos",
           name: "Vehículos",
           icon: Car,
@@ -149,11 +155,17 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           route: "/admin/viajes",
         },
         {
-        id: "encomiendas",
-        name: "Encomiendas",
-        icon: Container, // Agregar el icono de Package
-        route: "/admin/encomiendas",
+          id: "encomiendas",
+          name: "Encomiendas",
+          icon: Container, // Agregar el icono de Package
+          route: "/admin/encomiendas",
       },
+        {
+          id: "rutas-optimizadas",
+          name: "Rutas Optimizadas",
+          icon: Route,
+          route: "/admin/rutas",
+        },
       ],
     },
     {

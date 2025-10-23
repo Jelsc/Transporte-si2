@@ -39,10 +39,33 @@ export const api = axios.create({
   withCredentials: false, // pon true si usas cookies/CSRF
 });
 
+// Interceptor para agregar el token de autenticación a todas las peticiones
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para manejar errores de respuesta
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     const msg = err?.response?.data?.detail || err.message || "Error de red";
+    
+    // Si es error 401, podrías redirigir al login
+    if (err?.response?.status === 401) {
+      console.warn('⚠️ Error 401: No autenticado');
+      // Opcional: redirigir al login
+      // window.location.href = '/admin';
+    }
+    
     toast.error(msg);
     return Promise.reject(err);
   }

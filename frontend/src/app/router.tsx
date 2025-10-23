@@ -18,8 +18,10 @@ import AccountSettingsPage from "@/pages/auth/account-settings.page";
 import ClientLayout from "@/app/layout/client-layout";
 import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
+import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
+import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
-import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
+import ClienteEncomienda from "@/pages/clienpagt/ClientEncomiendasPage";
 import AdminEncomienda from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 
@@ -111,7 +113,7 @@ export default function AppRouter() {
           path="/admin/rutas"
           element={
             <ProtectedRoute requireAdmin={true}>
-              <div>Rutas (por implementar)</div>
+              <RutasOptimizadasPage />
             </ProtectedRoute>
           }
         />
@@ -140,14 +142,21 @@ export default function AppRouter() {
               }
             />
             <Route
-          path="/admin/encomiendas"
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <AdminEncomienda />
-            </ProtectedRoute>
-          }
-        />
-
+              path="/admin/ubicaciones"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <UbicacionesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/encomiendas"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminEncomienda />
+                </ProtectedRoute>
+              }
+            />
 
         {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
         <Route

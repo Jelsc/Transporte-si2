@@ -17,6 +17,14 @@ import { DollarSign, Package, User, MapPin, Weight } from 'lucide-react';
 import type { Encomienda } from '@/types/encomienda';
 import type { ConductorOption } from '@/types/conductor';
 
+// Tipo combinado para el formulario que incluye todos los campos posibles
+interface EncomiendaFormData extends CreateEncomiendaRequest {
+  // Campos adicionales para edición
+  estado?: 'pendiente' | 'en_ruta' | 'entregado' | 'cancelado';
+  conductor_asignado?: number | undefined;
+  fecha_entrega_real?: string | undefined;
+}
+
 interface EncomiendaStoreProps {
   isOpen: boolean;
   onClose: () => void;

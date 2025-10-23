@@ -13,6 +13,7 @@ import {
   UserCheck,
   Truck,
   Bus,
+  MapPin
 } from 'lucide-react';
 
 // Define la estructura del sidebar para mantener consistencia
@@ -43,6 +44,7 @@ const sidebarStructure = [
     name: 'Operaciones',
     icon: Route,
     submodules: [
+      { id: 'ubicaciones', name: 'Ubicaciones', icon: MapPin, route: '/admin/ubicaciones' },
       { id: 'rutas', name: 'Rutas', icon: Route, route: '/admin/rutas' },
       { id: 'vehiculos', name: 'Vehículos', icon: Car, route: '/admin/vehiculos' },
       { id: 'asignaciones', name: 'Asignaciones', icon: UserCheck, route: '/admin/asignaciones' },

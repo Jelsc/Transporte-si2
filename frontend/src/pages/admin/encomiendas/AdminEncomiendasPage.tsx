@@ -58,6 +58,8 @@ export default function AdminEncomiendaPage() {
       ...(ciudadFilter !== "all" && { destino_ciudad: ciudadFilter }),
       ...(fechaDesdeFilter && { fecha_desde: fechaDesdeFilter }),
       ...(fechaHastaFilter && { fecha_hasta: fechaHastaFilter }),
+      ...(conductorFilter !== "all" && { conductor_asignado: parseInt(conductorFilter) }),
+      ...(metodoPagoFilter !== "all" && { metodo_pago: metodoPagoFilter }),
     };
     
     await loadData(filters);
@@ -323,13 +325,18 @@ export default function AdminEncomiendaPage() {
           ciudadFilter={ciudadFilter}
           fechaDesdeFilter={fechaDesdeFilter}
           fechaHastaFilter={fechaHastaFilter}
+          conductorFilter={conductorFilter}
+          metodoPagoFilter={metodoPagoFilter}
           onSearchChange={setSearch}
           onEstadoFilterChange={setEstadoFilter}
           onCiudadFilterChange={setCiudadFilter}
           onFechaDesdeFilterChange={setFechaDesdeFilter}
           onFechaHastaFilterChange={setFechaHastaFilter}
+          onConductorFilterChange={setConductorFilter}
+          onMetodoPagoFilterChange={setMetodoPagoFilter}
           onClearFilters={handleClearFilters}
           loading={loading}
+          conductoresDisponibles={conductoresDisponibles}
         />
 
         {/* Tabla */}
