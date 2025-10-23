@@ -44,5 +44,7 @@ urlpatterns = [
     path("api/notificaciones/", include("notificaciones.urls")),
     path("api/pagos/", include("pagos.urls")),  # AGREGAR AQUÍ
     
+  
+
     
 ]

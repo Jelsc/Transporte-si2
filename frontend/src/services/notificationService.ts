@@ -197,7 +197,7 @@ class NotificationService {
 
       const baseUrl = getApiBaseUrl();
       const response = await fetch(
-        `${baseUrl}/api/notificaciones/dispositivos/`,
+        `${baseUrl}/api/notificaciones/dispositivofcm/`,
         {
           method: "POST",
           headers: {
@@ -205,7 +205,7 @@ class NotificationService {
             Authorization: `Bearer ${authToken}`,
           },
           body: JSON.stringify({
-            token_fcm: token,
+            token: token,
             tipo_dispositivo: "web",
             nombre_dispositivo: `${
               navigator.userAgent.includes("Chrome") ? "Chrome" : "Browser"
@@ -321,11 +321,12 @@ class NotificationService {
   public async getNotifications(): Promise<NotificationData[]> {
     try {
       const authToken = localStorage.getItem("access_token");
-      console.log("🔔 [NotificationService] Token disponible:", !!authToken);
-
       if (!authToken) {
         console.warn(
           "🔔 [NotificationService] No hay token de autenticación disponible"
+        );
+        alert(
+          "No tienes sesión activa. Por favor, inicia sesión para ver tus notificaciones."
         );
         return [];
       }
@@ -346,8 +347,8 @@ class NotificationService {
 
       if (!response.ok) {
         if (response.status === 401) {
-          console.warn(
-            "🔔 [NotificationService] Token de autenticación inválido o expirado"
+          alert(
+            "Token de autenticación inválido o expirado. Por favor, inicia sesión nuevamente."
           );
           localStorage.removeItem("access_token");
         }

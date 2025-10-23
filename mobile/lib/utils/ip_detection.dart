@@ -1,10 +1,9 @@
 import 'dart:io';
 
 class IPDetection {
-
   // 🔧 CONFIGURACIÓN MANUAL - Cambia esta constante según necesites
   // Para desarrollo local:
-  static const String BACKEND_HOST = "http://192.168.0.5:8000";
+  static const String BACKEND_HOST = "http://10.0.2.2:8000";
 
   // Para producción en la nube (descomenta la línea de abajo y comenta la de arriba):
   // static const String BACKEND_HOST = "http://3.230.69.204:8000";
@@ -14,8 +13,6 @@ class IPDetection {
 
   // Para iOS localhost (si usas iOS):
   // static const String BACKEND_HOST = "http://localhost:8000";
-
-
 
   /// Obtiene la URL base configurada
 
@@ -37,44 +34,18 @@ class IPDetection {
   static String? _cachedBaseUrl;
 
   /// Obtiene la URL base configurada según el entorno
-  
+
   static Future<String> getBaseUrl() async {
     // Si ya tenemos una URL en caché, la usamos
     if (_cachedBaseUrl != null) {
-      print('🌐 Usando URL en caché: $_cachedBaseUrl');
+      print('🌐 Usando URL en caché: [32m$_cachedBaseUrl[0m');
       return _cachedBaseUrl!;
     }
 
-
     // Usar la constante configurada
     _cachedBaseUrl = BACKEND_HOST;
-    print('🔧 Usando URL configurada: $BACKEND_HOST');
+    print('🔧 Usando URL configurada: [32m$BACKEND_HOST[0m');
     return BACKEND_HOST;
-
-    // Seleccionar URL según entorno
-    String host;
-    switch (ENVIRONMENT) {
-      case 'production':
-        host = PROD_HOST;
-        break;
-      case 'staging':
-        host = STAGING_HOST;
-        break;
-      case 'development':
-      default:
-        // Detectar plataforma para desarrollo
-        if (Platform.isIOS) {
-          host = DEV_HOST_IOS;
-        } else {
-          host = DEV_HOST;
-        }
-        break;
-    }
-
-    _cachedBaseUrl = host;
-    print('🔧 Entorno: $ENVIRONMENT | URL: $host');
-    return host;
-
   }
 
   /// Obtiene información del entorno actual

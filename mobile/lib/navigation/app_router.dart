@@ -22,7 +22,6 @@ class AppRouter {
 
   static const String notificationHistory = '/notification-history';
 
-
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case onboarding:
@@ -49,7 +48,6 @@ class AppRouter {
           settings: settings,
         );
 
-
       case seleccionAsientos:
         final viaje = settings.arguments as Viaje;
         return MaterialPageRoute(
@@ -74,11 +72,12 @@ class AppRouter {
             reserva: args['reserva'] as Reserva,
             viaje: args['viaje'] as Viaje,
           ),
+          settings: settings,
+        );
 
       case notificationHistory:
         return MaterialPageRoute(
           builder: (_) => const NotificationHistoryScreen(),
-
           settings: settings,
         );
 

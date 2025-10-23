@@ -42,7 +42,7 @@ services:
       redis:
         condition: service_healthy
     # ✅ Sin volúmenes de montaje host - Los cambios requieren rebuild de la imagen
-    command: bash -lc "python detect_ip.py && python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py runserver 0.0.0.0:8000"
+    command: bash -lc "python manage.py migrate --noinput || true && python manage.py seed user rol --force && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
 

@@ -179,6 +179,7 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
   // Marcar notificación como leída
   const markAsRead = async (notificationId: string) => {
     try {
+      const token = localStorage.getItem("access_token");
       const response = await fetch(
         `${
           import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"
@@ -187,7 +188,7 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -200,9 +201,16 @@ export function NotificationBell({ className = "" }: NotificationBellProps) {
           )
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
+      } else if (response.status === 401) {
+        alert(
+          "Token de autenticación inválido o expirado. Por favor, inicia sesión nuevamente."
+        );
       }
     } catch (error) {
       console.error("Error al marcar como leída:", error);
+      alert(
+        "Error al marcar la notificación como leída. Revisa tu conexión o sesión."
+      );
     }
   };
 

@@ -6,6 +6,10 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import DispositivoFCM, Notificacion, TipoNotificacion, PreferenciaNotificacion
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -663,3 +667,22 @@ class NotificationFactory:
             },
             prioridad=prioridad
         )
+
+
+class RegistrarFCMTokenView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('token')
+        tipo_dispositivo = request.data.get('tipo_dispositivo', 'Android')
+        usuario = request.user
+
+        if not token:
+            return Response({'error': 'Token FCM requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        DispositivoFCM.objects.update_or_create(
+            usuario=usuario,
+            defaults={'token': token, 'tipo_dispositivo': tipo_dispositivo, 'activo': True}
+        )
+        return Response({'success': True})
+

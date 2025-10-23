@@ -65,11 +65,10 @@ class _NotificationHistoryScreenState extends State<NotificationHistoryScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
+        // Soporta tanto array directo como objeto paginado con 'results'
+        final notificaciones = data is List ? data : (data['results'] ?? []);
         setState(() {
-          _notifications = List<Map<String, dynamic>>.from(
-            data['results'] ?? data,
-          );
+          _notifications = List<Map<String, dynamic>>.from(notificaciones);
           _unreadCount = _notifications.where((n) => !n['fue_leida']).length;
           _isLoading = false;
         });

@@ -28,6 +28,154 @@ from .services import NotificationService
 
 User = get_user_model()
 
+class PreferenciaNotificacionViewSet(viewsets.ModelViewSet):
+    """ViewSet para gestionar preferencias de notificación del usuario"""
+    queryset = PreferenciaNotificacion.objects.all()
+    serializer_class = PreferenciaNotificacionSerializer
+    http_method_names = ["get", "put", "patch"]
+
+class NotificacionViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet para ver notificaciones del usuario"""
+    serializer_class = NotificacionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Devuelve solo el historial de notificaciones del usuario autenticado, ordenadas por fecha
+        return Notificacion.objects.filter(usuario=self.request.user).order_by('-fecha_creacion')
+
+    @action(detail=True, methods=["post"])
+    def marcar_leida(self, request, pk=None):
+        """Marcar una notificación como leída"""
+        notificacion = self.get_object()
+        notificacion.marcar_como_leida()
+        return Response(
+            {"message": "Notificación marcada como leída"}, status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=["post"])
+    def marcar_multiples(self, request):
+        """Marcar múltiples notificaciones con una acción"""
+        serializer = NotificacionEstadoSerializer(
+            data=request.data, context={"request": request}
+        )
+
+        if serializer.is_valid():
+            notificacion_ids = serializer.validated_data["notificacion_ids"]
+            accion = serializer.validated_data["accion"]
+            notificaciones = Notificacion.objects.filter(
+                id__in=notificacion_ids, usuario=request.user
+            )
+
+            count = 0
+            for notificacion in notificaciones:
+                if accion == "marcar_leida":
+                    notificacion.marcar_como_leida()
+                    count += 1
+                elif accion == "marcar_entregada":
+                    notificacion.marcar_como_entregada()
+                    count += 1
+
+            return Response(
+                {"message": f"{count} notificaciones actualizadas", "accion": accion},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["get"])
+    def estadisticas(self, request):
+        """Obtener estadísticas de notificaciones del usuario"""
+        stats = NotificationService.obtener_estadisticas_usuario(request.user)
+        serializer = EstadisticasNotificacionSerializer(stats)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def historial(self, request):
+        """Obtener historial completo de notificaciones con paginación"""
+        queryset = self.get_queryset()
+
+        # Aplicar paginación
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+from .models import DispositivoFCM
+
+# Vista para registrar el token FCM de un usuario autenticado
+
+class RegistrarFCMTokenView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        # Permitir tanto 'token' como 'token_fcm' en el payload
+        token = request.data.get('token') or request.data.get('token_fcm')
+        tipo_dispositivo = request.data.get('tipo_dispositivo', 'Android')
+        usuario_id = request.data.get('usuario_id')
+        from users.models import CustomUser
+        usuario = None
+        if usuario_id:
+            try:
+                usuario = CustomUser.objects.get(id=usuario_id)
+            except CustomUser.DoesNotExist:
+                return Response({'error': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({'error': 'usuario_id requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not token:
+            return Response({'error': 'Token FCM requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Si el token ya existe, reasignarlo al usuario actual
+        dispositivo_existente = DispositivoFCM.objects.filter(token_fcm=token).first()
+        if dispositivo_existente:
+            dispositivo_existente.usuario = usuario
+            dispositivo_existente.tipo_dispositivo = tipo_dispositivo
+            dispositivo_existente.activo = True
+            dispositivo_existente.save()
+            return Response({'success': True, 'message': 'Token reasignado al usuario.'})
+        else:
+            DispositivoFCM.objects.create(
+                usuario=usuario,
+                token_fcm=token,
+                tipo_dispositivo=tipo_dispositivo,
+                activo=True
+            )
+            return Response({'success': True, 'message': 'Token registrado para el usuario.'})
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+import json
+
+from .models import (
+    DispositivoFCM,
+    Notificacion,
+    PreferenciaNotificacion,
+    TipoNotificacion,
+)
+from .serializers import (
+    DispositivoFCMSerializer,
+    NotificacionSerializer,
+    NotificacionCreateSerializer,
+    PreferenciaNotificacionSerializer,
+    NotificacionEstadoSerializer,
+    EstadisticasNotificacionSerializer,
+    TipoNotificacionSerializer,
+)
+from .services import NotificationService
+
+User = get_user_model()
+
 
 class DispositivoFCMViewSet(viewsets.ModelViewSet):
     """ViewSet para gestionar dispositivos FCM del usuario"""
@@ -82,27 +230,17 @@ class DispositivoFCMViewSet(viewsets.ModelViewSet):
 
 
 class NotificacionViewSet(viewsets.ReadOnlyModelViewSet):
+    @action(detail=False, methods=["get"], url_path="test-viewset")
+    def test_viewset(self, request):
+        return Response({"viewset": "NotificacionViewSet", "usuario": str(request.user)})
     """ViewSet para ver notificaciones del usuario"""
 
     serializer_class = NotificacionSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Notificacion.objects.filter(usuario=self.request.user)
-
-        # Filtros opcionales
-        tipo = self.request.query_params.get("tipo", None)
-        estado = self.request.query_params.get("estado", None)
-        no_leidas = self.request.query_params.get("no_leidas", None)
-
-        if tipo:
-            queryset = queryset.filter(tipo__codigo=tipo)
-        if estado:
-            queryset = queryset.filter(estado=estado)
-        if no_leidas == "true":
-            queryset = queryset.exclude(estado="leida")
-
-        return queryset.order_by("-fecha_creacion")
+        # Devuelve solo el historial de notificaciones del usuario autenticado, ordenadas por fecha
+        return Notificacion.objects.filter(usuario=self.request.user).order_by('-fecha_creacion')
 
     @action(detail=True, methods=["post"])
     def marcar_leida(self, request, pk=None):
@@ -167,29 +305,40 @@ class NotificacionViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def no_leidas(self, request):
-        """Obtener solo notificaciones no leídas"""
-        queryset = self.get_queryset().exclude(estado="leida")
-        serializer = self.get_serializer(queryset, many=True)
-        return Response({"count": queryset.count(), "notificaciones": serializer.data})
+        data = request.data.copy()
+        token = data.get('token') or data.get('token_fcm')
+        usuario_id = data.get('usuario_id')
+        if not token or not usuario_id:
+            return Response({'error': 'Faltan campos requeridos: token/token_fcm y usuario_id'}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=["post"])
-    def marcar_todas_leidas(self, request):
-        """Marcar todas las notificaciones como leídas"""
-        count = (
-            Notificacion.objects.filter(usuario=request.user)
-            .exclude(estado="leida")
-            .update(estado="leida", fecha_lectura=timezone.now())
-        )
-
-        return Response(
-            {"message": f"{count} notificaciones marcadas como leídas", "count": count},
-            status=status.HTTP_200_OK,
-        )
-
-
-class PreferenciaNotificacionViewSet(viewsets.ModelViewSet):
-    """ViewSet para gestionar preferencias de notificación"""
-
+        dispositivo = DispositivoFCM.objects.filter(token_fcm=token).first()
+        if dispositivo:
+            # Reasignar el dispositivo al usuario actual y actualizar campos
+            dispositivo.usuario_id = usuario_id
+            dispositivo.activo = True
+            dispositivo.nombre_dispositivo = data.get('nombre_dispositivo', dispositivo.nombre_dispositivo)
+            dispositivo.tipo_dispositivo = data.get('tipo_dispositivo', dispositivo.tipo_dispositivo)
+            dispositivo.fecha_ultimo_uso = timezone.now()
+            dispositivo.save()
+            serializer = DispositivoFCMSerializer(dispositivo)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            # Crear nuevo dispositivo
+            data['token_fcm'] = token
+            serializer = DispositivoFCMSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Si el error es por unicidad, intentar reasignar
+            if 'token_fcm' in serializer.errors:
+                dispositivo = DispositivoFCM.objects.filter(token_fcm=token).first()
+                if dispositivo:
+                    dispositivo.activo = True
+                    dispositivo.nombre_dispositivo = data.get('nombre_dispositivo', dispositivo.nombre_dispositivo)
+                    dispositivo.save()
+                    serializer = DispositivoFCMSerializer(dispositivo)
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     serializer_class = PreferenciaNotificacionSerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ["get", "put", "patch"]  # Solo lectura y actualización
