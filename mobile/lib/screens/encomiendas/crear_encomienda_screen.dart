@@ -19,18 +19,138 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
   final TextEditingController _remitenteDireccionController = TextEditingController();
   final TextEditingController _destinatarioNombreController = TextEditingController();
   final TextEditingController _destinatarioTelefonoController = TextEditingController();
-  final TextEditingController _destinoCiudadController = TextEditingController();
   final TextEditingController _destinoDireccionController = TextEditingController();
   final TextEditingController _descripcionController = TextEditingController();
   final TextEditingController _pesoController = TextEditingController();
   
-  final double _precioCalculado = 0.0;
+  String _destinoCiudadSeleccionada = '';
+  double _precioCalculado = 0.0;
   bool _creando = false;
 
   final List<String> _ciudades = [
     'La Paz', 'Santa Cruz', 'Cochabamba', 'Oruro', 
     'Potosi', 'Tarija', 'Beni', 'Pando'
   ];
+
+  void _calcularPrecio() {
+    if (_pesoController.text.isEmpty || _destinoCiudadSeleccionada.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Complete peso y ciudad destino primero'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final peso = double.tryParse(_pesoController.text) ?? 0;
+    
+    // Misma lógica que el backend
+    final preciosBase = {
+      'La Paz': 20, 'Santa Cruz': 25, 'Cochabamba': 22, 'Oruro': 18,
+      'Potosi': 20, 'Tarija': 23, 'Beni': 30, 'Pando': 35,
+    };
+    
+    final base = preciosBase[_destinoCiudadSeleccionada] ?? 25;
+    final adicionalPeso = peso > 1 ? (peso - 1) * 5 : 0;
+    final precio = base + adicionalPeso;
+
+    setState(() {
+      _precioCalculado = precio.toDouble();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Precio calculado: Bs. ${_precioCalculado.toStringAsFixed(2)}'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _crearEncomienda() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _creando = true;
+      });
+
+      try {
+        // ✅ CALCULAR PRECIO ANTES DE CREAR
+        if (_precioCalculado == 0) {
+          _calcularPrecio(); // Asegurar que el precio esté calculado
+        }
+
+        // Crear el objeto request CON PRECIO
+        final request = CrearEncomiendaRequest(
+          remitenteNombre: _remitenteNombreController.text,
+          remitenteTelefono: _remitenteTelefonoController.text,
+          remitenteDireccion: _remitenteDireccionController.text.isEmpty ? null : _remitenteDireccionController.text,
+          destinatarioNombre: _destinatarioNombreController.text,
+          destinatarioTelefono: _destinatarioTelefonoController.text,
+          destinoCiudad: _destinoCiudadSeleccionada,
+          destinoDireccion: _destinoDireccionController.text,
+          descripcion: _descripcionController.text,
+          peso: double.parse(_pesoController.text),
+          precio: _precioCalculado, // ✅ ENVIAR EL PRECIO CALCULADO
+        );
+
+        // DEBUG: Verificar datos
+        print('📦 Datos a enviar: ${request.toJson()}');
+        print('📦 Precio enviado: $_precioCalculado');
+
+        // Validar el request
+        final error = request.validar();
+        if (error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(error),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _creando = false;
+          });
+          return;
+        }
+
+        final result = await _encomiendaService.crearEncomienda(request);
+
+        if (mounted) {
+          setState(() {
+            _creando = false;
+          });
+
+          if (result.success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result.message ?? 'Encomienda creada exitosamente'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.pop(context, result.data);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result.error ?? 'Error al crear encomienda'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _creando = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
 
   // MÉTODOS DE CONSTRUCCIÓN
   Widget _buildLoading() {
@@ -59,6 +179,7 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
     IconData? icon,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
+    void Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
@@ -70,12 +191,13 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
         prefixIcon: icon != null ? Icon(icon) : null,
       ),
       validator: validator,
+      onChanged: onChanged,
     );
   }
 
   Widget _buildDropdownCiudad() {
     return DropdownButtonFormField<String>(
-      value: _destinoCiudadController.text.isEmpty ? null : _destinoCiudadController.text,
+      value: _destinoCiudadSeleccionada.isEmpty ? null : _destinoCiudadSeleccionada,
       decoration: const InputDecoration(
         labelText: 'Ciudad de destino *',
         border: OutlineInputBorder(),
@@ -89,7 +211,8 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
       }).toList(),
       onChanged: (String? newValue) {
         setState(() {
-          _destinoCiudadController.text = newValue ?? '';
+          _destinoCiudadSeleccionada = newValue ?? '';
+          _precioCalculado = 0.0; // Resetear precio al cambiar ciudad
         });
       },
       validator: _validarRequerido,
@@ -140,19 +263,35 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
         ),
         const SizedBox(height: 12),
         ElevatedButton(
-          onPressed: _crearEncomienda,
+          onPressed: (_creando || _precioCalculado == 0) ? null : _crearEncomienda,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 50),
           ),
-          child: const Text('Crear Encomienda'),
+          child: _creando 
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('Crear Encomienda'),
         ),
+        if (_precioCalculado == 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Debe calcular el precio primero',
+            style: TextStyle(
+              color: Colors.red.shade700,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  // MÉTODOS DE LÓGICA
+  // VALIDACIONES
   String? _validarRequerido(String? value) {
     if (value == null || value.isEmpty) return 'Este campo es requerido';
     return null;
@@ -163,96 +302,6 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
     final peso = double.tryParse(value);
     if (peso == null || peso <= 0) return 'Ingrese un peso válido';
     return null;
-  }
-
-  void _calcularPrecio() {
-    if (_formKey.currentState!.validate()) {
-      // Lógica para calcular precio basado en peso y destino
-      final peso = double.tryParse(_pesoController.text) ?? 0;
-      final precioCalculado = 10.0 + (peso * 5.0);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Precio calculado: Bs. ${precioCalculado.toStringAsFixed(2)}'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-
-  void _crearEncomienda() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _creando = true;
-      });
-
-      try {
-        // Crear el objeto request usando el modelo
-        final request = CrearEncomiendaRequest(
-          remitenteNombre: _remitenteNombreController.text,
-          remitenteTelefono: _remitenteTelefonoController.text,
-          remitenteDireccion: _remitenteDireccionController.text.isEmpty ? null : _remitenteDireccionController.text,
-          destinatarioNombre: _destinatarioNombreController.text,
-          destinatarioTelefono: _destinatarioTelefonoController.text,
-          destinoCiudad: _destinoCiudadController.text,
-          destinoDireccion: _destinoDireccionController.text,
-          descripcion: _descripcionController.text,
-          peso: double.parse(_pesoController.text),
-        );
-
-        // Validar el request
-        final error = request.validar();
-        if (error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error),
-              backgroundColor: Colors.red,
-            ),
-          );
-          setState(() {
-            _creando = false;
-          });
-          return;
-        }
-
-        final result = await _encomiendaService.crearEncomienda(request);
-
-        if (mounted) {
-          setState(() {
-            _creando = false;
-          });
-
-          if (result.success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result.message ?? 'Encomienda creada exitosamente'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.pop(context);
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result.error ?? 'Error al crear encomienda'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _creando = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
   }
 
   @override
@@ -353,6 +402,14 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
                           icon: Icons.fitness_center,
                           keyboardType: TextInputType.number,
                           validator: _validarPeso,
+                          onChanged: (value)  {
+                            // Resetear precio cuando cambia el peso
+                            if (_precioCalculado > 0) {
+                              setState(() {
+                                _precioCalculado = 0.0;
+                              });
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -381,7 +438,6 @@ class _CrearEncomiendaScreenState extends State<CrearEncomiendaScreen> {
     _remitenteDireccionController.dispose();
     _destinatarioNombreController.dispose();
     _destinatarioTelefonoController.dispose();
-    _destinoCiudadController.dispose();
     _destinoDireccionController.dispose();
     _descripcionController.dispose();
     _pesoController.dispose();

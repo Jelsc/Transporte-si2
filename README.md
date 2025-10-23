@@ -47,44 +47,50 @@ copy frontend\.env.example frontend\.env
 ### 2) Levantar servicios
 
 ```bash
-docker compose up -d --build
+docker-compose up -d --build
 ```
 
 Nota: El superusuario y otros datos iniciales se crean automáticamente durante el arranque del contenedor usando el sistema de seeders. Las credenciales están definidas en el archivo `.env` (variables `DJANGO_SUPERUSER_*`).
 
 ### 3) Ejecución
-
-```bash
 # para iniciar los contenedores
-docker compose up -d
+```bash
+docker-compose up -d
+```
 
 # MIGRACIONES (importante seguir este orden):
 # 1. Primero generar archivos de migración (detecta cambios en modelos)
 #    Para todas las apps:
-docker compose exec backend python manage.py makemigrations
-
+```bash
+docker-compose exec backend python manage.py makemigrations
+```
 #    O para apps específicas:
-docker compose exec backend python manage.py makemigrations users
-docker compose exec backend python manage.py makemigrations account
+docker-compose exec backend python manage.py makemigrations users
+docker-compose exec backend python manage.py makemigrations account
 
 # 2. Luego aplicar migraciones a la base de datos
-docker compose exec backend python manage.py migrate
+```bash
+docker-compose exec backend python manage.py migrate
+```
 
 # SEEDERS:
 # Para ejecutar todos los seeders automáticamente:
-docker compose exec backend python manage.py seed
+```bash
+docker-compose exec backend python manage.py seed
+```
 
 # Para ejecutar seeders específicos (por nombre, sin el sufijo "_seeder"):
-docker compose exec backend python manage.py seed user rol
+docker-compose exec backend python manage.py seed user rol
 
 # Para ejecutar un nuevo seeder que acabas de crear (ejemplo: vehiculo_seeder.py):
-docker compose exec backend python manage.py seed vehiculo
+docker-compose exec backend python manage.py seed vehiculo
 
 # Para forzar la ejecución aunque should_run() devuelva False:
 docker compose exec backend python manage.py seed --force
 docker compose exec backend python manage.py seed vehiculo --force
 
-#para parar detener los contenedores
+# Para parar detener los contenedores
+```bash
 docker compose stop
 ```
 

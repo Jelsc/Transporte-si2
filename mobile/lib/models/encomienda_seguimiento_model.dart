@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class EncomiendaSeguimiento {
   final int id;
   final int encomiendaId;
@@ -5,7 +7,6 @@ class EncomiendaSeguimiento {
   final String descripcion;
   final DateTime fecha;
   final String? ubicacion;
-  final String? usuarioNombre;
 
   EncomiendaSeguimiento({
     required this.id,
@@ -14,19 +15,42 @@ class EncomiendaSeguimiento {
     required this.descripcion,
     required this.fecha,
     this.ubicacion,
-    this.usuarioNombre,
   });
 
   factory EncomiendaSeguimiento.fromJson(Map<String, dynamic> json) {
     return EncomiendaSeguimiento(
-      id: json['id'] ?? 0,
-      encomiendaId: json['encomienda'] ?? json['encomienda_id'] ?? 0,
-      evento: json['evento'] ?? '',
-      descripcion: json['descripcion'] ?? '',
-      fecha: DateTime.parse(json['fecha'] ?? DateTime.now().toIso8601String()),
-      ubicacion: json['ubicacion'],
-      usuarioNombre: json['usuario_nombre'],
+      id: _parseInt(json['id']),
+      encomiendaId: _parseInt(json['encomienda'] ?? json['encomienda_id']),
+      evento: _parseString(json['evento']),
+      descripcion: _parseString(json['descripcion']),
+      fecha: _parseDateTime(json['fecha']),
+      ubicacion: json['ubicacion']?.toString(),
     );
+  }
+
+  // ✅ MÉTODOS HELPER PARA PARSING SEGURO
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static String _parseString(dynamic value) {
+    if (value == null) return '';
+    return value.toString();
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    try {
+      if (value is String) {
+        return DateTime.parse(value);
+      }
+      return DateTime.now();
+    } catch (e) {
+      return DateTime.now();
+    }
   }
 
   Map<String, dynamic> toJson() {
@@ -37,24 +61,47 @@ class EncomiendaSeguimiento {
       'descripcion': descripcion,
       'fecha': fecha.toIso8601String(),
       'ubicacion': ubicacion,
-      'usuario_nombre': usuarioNombre,
     };
   }
 
-  // Propiedades calculadas para UI
+  // ... el resto de los métodos se mantienen igual
   String get fechaFormateada {
-    return '${fecha.day}/${fecha.month}/${fecha.year} ${fecha.hour}:${fecha.minute.toString().padLeft(2, '0')}';
+    return DateFormat('dd/MM/yyyy HH:mm').format(fecha);
   }
 
   String get fechaCorta {
-    return '${fecha.day}/${fecha.month}/${fecha.year}';
+    return DateFormat('dd/MM/yyyy').format(fecha);
   }
 
   String get hora {
-    return '${fecha.hour}:${fecha.minute.toString().padLeft(2, '0')}';
+    return DateFormat('HH:mm').format(fecha);
   }
 
-  // Métodos de utilidad
+  String get diaSemana {
+    return DateFormat('EEEE', 'es_ES').format(fecha);
+  }
+
   bool get tieneUbicacion => ubicacion != null && ubicacion!.isNotEmpty;
-  bool get tieneUsuario => usuarioNombre != null && usuarioNombre!.isNotEmpty;
+  
+  bool get esReciente {
+    final ahora = DateTime.now();
+    final diferencia = ahora.difference(fecha);
+    return diferencia.inHours < 24;
+  }
+
+  String get resumen {
+    if (tieneUbicacion) {
+      return '$evento - $ubicacion';
+    }
+    return evento;
+  }
+
+  String get tipoEvento {
+    final eventoLower = evento.toLowerCase();
+    if (eventoLower.contains('entreg')) return 'entrega';
+    if (eventoLower.contains('ruta')) return 'transito';
+    if (eventoLower.contains('registr')) return 'registro';
+    if (eventoLower.contains('cancel')) return 'cancelacion';
+    return 'general';
+  }
 }

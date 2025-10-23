@@ -19,7 +19,8 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  CreditCard
 } from 'lucide-react';
 import { 
   Select, 
@@ -30,18 +31,18 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
-import { encomiendaService } from '@/services/encomiendaService';
+import { useEncomiendas } from '@/hooks/useEncomiendas';
 import type { Encomienda, CreateEncomiendaRequest } from '@/types/encomienda';
 import { toast } from 'sonner';
+import { PagoModal } from '../admin/encomiendas/components/PagoModal';
 
 export function ClienteEncomienda() {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'nueva' | 'seguimiento' | 'historial'>('nueva');
-  const [loading, setLoading] = useState(false);
-  const [encomiendas, setEncomiendas] = useState<Encomienda[]>([]);
   const [codigoSeguimiento, setCodigoSeguimiento] = useState('');
   const [encomiendaSeguimiento, setEncomiendaSeguimiento] = useState<Encomienda | null>(null);
-  const [seguimientos, setSeguimientos] = useState<any[]>([]);
+  const [showPagoModal, setShowPagoModal] = useState(false);
+  const [encomiendaParaPagar, setEncomiendaParaPagar] = useState<Encomienda | null>(null);
 
   // Estado para nueva encomienda
   const [nuevaEncomienda, setNuevaEncomienda] = useState<CreateEncomiendaRequest>({
@@ -55,14 +56,29 @@ export function ClienteEncomienda() {
     descripcion: '',
     peso: 0,
     notas: '',
-    metodo_pago: 'efectivo' // Campo requerido por el backend
+    metodo_pago: 'efectivo'
   });
+
+  // Usar el hook de encomiendas
+  const {
+    data,
+    loading,
+    error,
+    loadMyEncomiendas,
+    createItem,
+    buscarPorCodigo,
+    calcularPrecio,
+    clearError,
+    crearPagoStripe,
+    marcarPagoEfectivo,
+  } = useEncomiendas();
 
   const ciudades = [
     'La Paz', 'Santa Cruz', 'Cochabamba', 'Oruro', 
     'Potosi', 'Tarija', 'Beni', 'Pando'
   ];
 
+  // Estados
   const estados = {
     pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
     en_ruta: { label: 'En Ruta', color: 'bg-blue-100 text-blue-800 border-blue-200' },
@@ -71,34 +87,48 @@ export function ClienteEncomienda() {
   };
 
   const estadosPago = {
-    pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
-    completado: { label: 'Completado', color: 'bg-green-100 text-green-800' },
-    fallido: { label: 'Fallido', color: 'bg-red-100 text-red-800' },
-    procesando: { label: 'Procesando', color: 'bg-blue-100 text-blue-800' }
+    pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', puedePagar: true },
+    completado: { label: 'Completado', color: 'bg-green-100 text-green-800', puedePagar: false },
+    fallido: { label: 'Fallido', color: 'bg-red-100 text-red-800', puedePagar: true },
+    procesando: { label: 'Procesando', color: 'bg-blue-100 text-blue-800', puedePagar: false }
   };
 
+  // Función segura para obtener estado
+  const getEstadoConfig = (estado: string) => {
+    return estados[estado as keyof typeof estados] || { 
+      label: estado, 
+      color: 'bg-gray-100 text-gray-800 border-gray-200' 
+    };
+  };
+
+  // Función segura para obtener estado de pago
+  const getEstadoPagoConfig = (estadoPago: string) => {
+    return estadosPago[estadoPago as keyof typeof estadosPago] || { 
+      label: estadoPago, 
+      color: 'bg-gray-100 text-gray-800' 
+    };
+  };
+
+  // Cargar encomiendas del usuario cuando cambie la pestaña
   useEffect(() => {
     if (isAuthenticated && activeTab === 'historial') {
-      cargarHistorialEncomiendas();
+      loadMyEncomiendas();
     }
   }, [isAuthenticated, activeTab]);
 
-  const cargarHistorialEncomiendas = async () => {
-    setLoading(true);
-    try {
-      const response = await encomiendaService.getMyEncomiendas();
-      if (response.success && response.data) {
-        setEncomiendas(response.data);
-      } else {
-        toast.error(response.error || 'Error al cargar historial');
-      }
-    } catch (error: any) {
-      toast.error('Error al cargar historial de encomiendas');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
+  // Limpiar errores cuando cambien las pestañas
+  useEffect(() => {
+    if (error) {
+      clearError();
     }
-  };
+  }, [activeTab]);
+
+  // Mostrar errores con toast
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -115,18 +145,6 @@ export function ClienteEncomienda() {
     }));
   };
 
-  const calcularPrecio = (peso: number, destino: string): number => {
-    const preciosBase: Record<string, number> = {
-      'La Paz': 20, 'Santa Cruz': 25, 'Cochabamba': 22, 'Oruro': 18,
-      'Potosi': 20, 'Tarija': 23, 'Beni': 30, 'Pando': 35
-    };
-    
-    const base = preciosBase[destino] || 25;
-    const adicionalPeso = peso > 1 ? (peso - 1) * 5 : 0;
-    
-    return base + adicionalPeso;
-  };
-
   const handleSubmitEncomienda = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -135,9 +153,14 @@ export function ClienteEncomienda() {
       return;
     }
 
-    // Validaciones básicas
-    if (!nuevaEncomienda.destinatario_nombre.trim()) {
+    // Validaciones
+    if (!nuevaEncomienda.destinatario_nombre?.trim()) {
       toast.error('El nombre del destinatario es requerido');
+      return;
+    }
+
+    if (!nuevaEncomienda.destinatario_telefono?.trim()) {
+      toast.error('El teléfono del destinatario es requerido');
       return;
     }
 
@@ -146,17 +169,36 @@ export function ClienteEncomienda() {
       return;
     }
 
+    if (!nuevaEncomienda.destino_direccion?.trim()) {
+      toast.error('La dirección de destino es requerida');
+      return;
+    }
+
+    if (!nuevaEncomienda.descripcion?.trim()) {
+      toast.error('La descripción del paquete es requerida');
+      return;
+    }
+
     if (nuevaEncomienda.peso <= 0) {
       toast.error('El peso debe ser mayor a 0');
       return;
     }
 
-    setLoading(true);
     try {
-      const response = await encomiendaService.create(nuevaEncomienda);
+      // Calcular precio automáticamente
+      const precioCalculado = calcularPrecio(nuevaEncomienda.peso, nuevaEncomienda.destino_ciudad);
       
-      if (response.success && response.data) {
-        toast.success(`¡Encomienda registrada exitosamente! Código de seguimiento: ${response.data.codigo_seguimiento}`);
+      const encomiendaConPrecio = {
+        ...nuevaEncomienda,
+        precio: precioCalculado,
+      };
+
+      console.log('📦 Creando encomienda:', encomiendaConPrecio);
+
+      const result = await createItem(encomiendaConPrecio);
+      
+      if (result.success) {
+        toast.success('¡Encomienda registrada exitosamente! Lleva tu paquete a nuestras instalaciones para completar el proceso.');
         
         // Reset form
         setNuevaEncomienda({
@@ -174,14 +216,12 @@ export function ClienteEncomienda() {
         });
 
         setActiveTab('historial');
-        cargarHistorialEncomiendas();
       } else {
-        toast.error(response.error || 'Error al registrar encomienda');
+        console.error('Error al crear encomienda:', result.error);
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Error al registrar encomienda');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error inesperado:', error);
+      toast.error('Error inesperado al crear encomienda');
     }
   };
 
@@ -192,48 +232,68 @@ export function ClienteEncomienda() {
       return;
     }
 
-    setLoading(true);
     try {
-      const response = await encomiendaService.getByTrackingCode(codigoSeguimiento);
-      if (response.success && response.data) {
-        setEncomiendaSeguimiento(response.data);
-        // Nota: Los seguimientos se cargarían desde un endpoint separado si existe
-        // Por ahora, limpiamos el array ya que no viene en la respuesta
-        setSeguimientos([]);
-      } else {
-        toast.error(response.error || 'Encomienda no encontrada');
-        setEncomiendaSeguimiento(null);
-        setSeguimientos([]);
+      const encomienda = await buscarPorCodigo(codigoSeguimiento);
+      if (encomienda) {
+        setEncomiendaSeguimiento(encomienda);
+        toast.success('Encomienda encontrada');
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Error al buscar encomienda');
-      setEncomiendaSeguimiento(null);
-      setSeguimientos([]);
-    } finally {
-      setLoading(false);
+    } catch {
+      // El error ya se maneja en el hook
     }
+  };
+
+  // Función para manejar pagos
+  const handleProcesarPago = async (metodoPago: 'efectivo' | 'tarjeta') => {
+    if (!encomiendaParaPagar) return;
+
+    try {
+      if (metodoPago === 'efectivo') {
+        // Para pago en efectivo, mostrar mensaje informativo
+        toast.info('Has seleccionado pago en efectivo. Puedes pagar al momento de entregar o recibir el paquete en nuestras instalaciones.');
+        setShowPagoModal(false);
+      } else if (metodoPago === 'tarjeta') {
+        // Para pago con tarjeta, procesar con Stripe
+        toast.info('Iniciando proceso de pago con tarjeta...');
+        const result = await crearPagoStripe(encomiendaParaPagar.id);
+        
+        if (result.success) {
+          toast.success('Pago procesado exitosamente');
+          setShowPagoModal(false);
+          await loadMyEncomiendas(); // Recargar datos
+        } else {
+          toast.error(result.error || 'Error al procesar pago');
+        }
+      }
+    } catch (error) {
+      console.error('Error procesando pago:', error);
+      toast.error('Error al procesar el pago');
+    }
+  };
+
+  const handlePagarEncomienda = (encomienda: Encomienda) => {
+    setEncomiendaParaPagar(encomienda);
+    setShowPagoModal(true);
   };
 
   const precioCalculado = calcularPrecio(nuevaEncomienda.peso, nuevaEncomienda.destino_ciudad);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-BO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('es-BO', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return 'Fecha inválida';
+    }
   };
-
+  
   const getEstadoPago = (encomienda: Encomienda) => {
-    if (encomienda.estado_pago) {
-      return encomienda.estado_pago;
-    }
-    if (encomienda.pago_info) {
-      return encomienda.pago_info.estado;
-    }
-    return 'pendiente';
+    return encomienda.estado_pago || 'pendiente';
   };
 
   return (
@@ -400,7 +460,7 @@ export function ClienteEncomienda() {
                   {/* Detalles de la Encomienda */}
                   <div>
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Package className="w-5 h-5 text-purple-600" />
+                      <Package className="w-5 w-5 text-purple-600" />
                       Detalles de la Encomienda
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -458,14 +518,22 @@ export function ClienteEncomienda() {
                     </div>
                   </div>
 
+                  {/* Información de Pago Mejorada */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertCircle className="h-5 w-5 text-blue-600" />
-                      <span className="font-semibold text-blue-800">Información de Pago</span>
+                      <span className="font-semibold text-blue-800">Proceso de Pago</span>
                     </div>
-                    <p className="text-sm text-blue-700">
-                      El pago se realizará al momento de la entrega. Precio calculado: <strong>{precioCalculado.toFixed(2)} BOB</strong>
-                    </p>
+                    <div className="text-sm text-blue-700 space-y-2">
+                      <p><strong>Precio calculado: {precioCalculado.toFixed(2)} BOB</strong></p>
+                      <p>Después de registrar la encomienda:</p>
+                      <ol className="list-decimal list-inside ml-2 space-y-1">
+                        <li>Lleva tu paquete a nuestras instalaciones</li>
+                        <li>Puedes pagar en efectivo al entregar el paquete</li>
+                        <li>O el destinatario puede pagar al recibirlo</li>
+                        <li>También puedes pagar online desde tu historial</li>
+                      </ol>
+                    </div>
                   </div>
 
                   <Button 
@@ -490,7 +558,7 @@ export function ClienteEncomienda() {
             </Card>
           </TabsContent>
 
-          {/* Seguimiento */}
+          {/* Seguimiento - SIN BOTÓN DE PAGO */}
           <TabsContent value="seguimiento">
             <Card>
               <CardHeader>
@@ -540,8 +608,8 @@ export function ClienteEncomienda() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <strong>Estado:</strong> 
-                                  <Badge className={`${estados[encomiendaSeguimiento.estado].color} border`}>
-                                    {estados[encomiendaSeguimiento.estado].label}
+                                  <Badge className={`${getEstadoConfig(encomiendaSeguimiento.estado).color} border`}>
+                                    {getEstadoConfig(encomiendaSeguimiento.estado).label}
                                   </Badge>
                                 </div>
                                 <div>
@@ -550,14 +618,13 @@ export function ClienteEncomienda() {
                                     {formatDate(encomiendaSeguimiento.fecha_creacion)}
                                   </div>
                                 </div>
-                                {encomiendaSeguimiento.pago_info && (
-                                  <div className="flex items-center gap-2">
-                                    <strong>Estado Pago:</strong>
-                                    <Badge className={estadosPago[getEstadoPago(encomiendaSeguimiento) as keyof typeof estadosPago]?.color || 'bg-gray-100 text-gray-800'}>
-                                      {estadosPago[getEstadoPago(encomiendaSeguimiento) as keyof typeof estadosPago]?.label || getEstadoPago(encomiendaSeguimiento)}
-                                    </Badge>
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  <strong>Estado Pago:</strong>
+                                  <Badge className={getEstadoPagoConfig(getEstadoPago(encomiendaSeguimiento)).color}>
+                                    {getEstadoPagoConfig(getEstadoPago(encomiendaSeguimiento)).label}
+                                  </Badge>
+                                </div>
+                                {/* ✅ BOTÓN DE PAGO ELIMINADO DEL SEGUIMIENTO */}
                               </div>
                             </div>
                             <div>
@@ -587,7 +654,7 @@ export function ClienteEncomienda() {
                       </Card>
 
                       {/* Historial de Seguimiento */}
-                      {seguimientos.length > 0 && (
+                      {encomiendaSeguimiento.seguimientos && encomiendaSeguimiento.seguimientos.length > 0 && (
                         <Card>
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -597,8 +664,8 @@ export function ClienteEncomienda() {
                           </CardHeader>
                           <CardContent>
                             <div className="space-y-4">
-                              {seguimientos.map((seguimiento, index) => (
-                                <div key={seguimiento.id} className="flex gap-4 border-l-2 border-blue-200 pl-4">
+                              {encomiendaSeguimiento.seguimientos.map((seguimiento: any, index: number) => (
+                                <div key={seguimiento.id || index} className="flex gap-4 border-l-2 border-blue-200 pl-4">
                                   <div className="flex-shrink-0 w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
                                   <div className="flex-1">
                                     <div className="flex justify-between items-start">
@@ -628,7 +695,7 @@ export function ClienteEncomienda() {
             </Card>
           </TabsContent>
 
-          {/* Historial */}
+          {/* Historial - CON BOTÓN DE PAGO */}
           <TabsContent value="historial">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -639,7 +706,7 @@ export function ClienteEncomienda() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  onClick={cargarHistorialEncomiendas}
+                  onClick={loadMyEncomiendas}
                   disabled={loading}
                 >
                   <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -652,7 +719,7 @@ export function ClienteEncomienda() {
                     <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" />
                     <p>Cargando encomiendas...</p>
                   </div>
-                ) : encomiendas.length === 0 ? (
+                ) : data.results.length === 0 ? (
                   <div className="text-center py-8">
                     <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No tienes encomiendas registradas</h3>
@@ -666,63 +733,89 @@ export function ClienteEncomienda() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {encomiendas.map((encomienda) => (
-                      <Card key={encomienda.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="bg-blue-100 p-2 rounded-lg">
-                                <Package className="h-6 w-6 text-blue-600" />
+                    {data.results.map((encomienda) => {
+                      const estadoConfig = getEstadoConfig(encomienda.estado);
+                      const estadoPagoConfig = getEstadoPagoConfig(getEstadoPago(encomienda));
+                      const puedePagar = estadoPagoConfig.puedePagar;
+                      
+                      return (
+                        <Card key={encomienda.id} className="hover:shadow-md transition-shadow">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className="bg-blue-100 p-2 rounded-lg">
+                                  <Package className="h-6 w-6 text-blue-600" />
+                                </div>
+                                <div>
+                                  <p className="font-mono font-semibold text-lg">
+                                    {encomienda.codigo_seguimiento}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {encomienda.destinatario_nombre} - {encomienda.destino_ciudad}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge className={estadoConfig.color}>
+                                      {estadoConfig.label}
+                                    </Badge>
+                                    <Badge variant="outline" className={estadoPagoConfig.color}>
+                                      Pago: {estadoPagoConfig.label}
+                                    </Badge>
+                                  </div>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-mono font-semibold text-lg">
-                                  {encomienda.codigo_seguimiento}
+                              <div className="text-right">
+                                <p className="font-semibold text-green-600 text-lg">
+                                  {encomienda.precio?.toFixed(2)} BOB
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                  {encomienda.destinatario_nombre} - {encomienda.destino_ciudad}
+                                  {formatDate(encomienda.fecha_creacion)}
                                 </p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge className={estados[encomienda.estado].color}>
-                                    {estados[encomienda.estado].label}
-                                  </Badge>
-                                  {encomienda.pago_info && (
-                                    <Badge variant="outline" className={estadosPago[getEstadoPago(encomienda) as keyof typeof estadosPago]?.color}>
-                                      Pago: {estadosPago[getEstadoPago(encomienda) as keyof typeof estadosPago]?.label}
-                                    </Badge>
+                                <div className="flex gap-2 mt-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setCodigoSeguimiento(encomienda.codigo_seguimiento);
+                                      setActiveTab('seguimiento');
+                                    }}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Ver Detalles
+                                  </Button>
+                                  {/* ✅ BOTÓN DE PAGO SOLO EN HISTORIAL */}
+                                  {puedePagar && (
+                                    <Button 
+                                      size="sm"
+                                      onClick={() => handlePagarEncomienda(encomienda)}
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      <CreditCard className="w-4 h-4 mr-1" />
+                                      Pagar
+                                    </Button>
                                   )}
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-semibold text-green-600 text-lg">
-                                {encomienda.precio.toFixed(2)} BOB
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {formatDate(encomienda.fecha_creacion)}
-                              </p>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="mt-2"
-                                onClick={() => {
-                                  setCodigoSeguimiento(encomienda.codigo_seguimiento);
-                                  setActiveTab('seguimiento');
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Ver Detalles
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Modal de Pago */}
+        <PagoModal
+          isOpen={showPagoModal}
+          onClose={() => setShowPagoModal(false)}
+          encomienda={encomiendaParaPagar}
+          onProcesarPago={handleProcesarPago}
+          loading={loading}
+          esAdmin={false}
+        />
       </div>
     </div>
   );

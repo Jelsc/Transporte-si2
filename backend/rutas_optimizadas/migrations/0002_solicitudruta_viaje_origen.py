@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('rutas_optimizadas', '0001_initial'),
-        ('viajes', '0005_cleanup_old_fields'),
+        ('viajes', '0004_migrate_viajes_to_ubicaciones'),
     ]
 
     operations = [

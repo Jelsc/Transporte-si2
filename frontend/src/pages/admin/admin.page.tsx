@@ -13,7 +13,7 @@ import {
   Route,
   Car,
   Bus,
-  UserCheck,
+  CalendarCheck,
   ShieldCheck,
   BookOpen,
 } from "lucide-react";
@@ -104,6 +104,18 @@ const sidebarModules: SidebarModule[] = [
         label: "Viajes",
         route: "/admin/viajes",
         icon: Bus,
+      },
+      {
+        id: "reservas",
+        label: "Reservas",
+        route: "/admin/reservas",
+        icon: CalendarCheck,
+      },
+      {
+        id: "pagos",
+        label: "Pagos",
+        route: "/admin/pagos",
+        icon: CalendarCheck,
       },
     ],
   },

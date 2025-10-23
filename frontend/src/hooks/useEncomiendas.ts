@@ -1,118 +1,407 @@
-import { useState, useCallback } from "react";
-import { conductoresApi } from "@/services/conductoresService";
-import type { ConductorOption } from "@/types/conductor";
-import { encomiendaService } from "@/services/encomiendaService";
-import type { Encomienda, EncomiendaFilters } from "@/types/encomienda";
+import { useState, useCallback } from 'react';
+import { encomiendaService } from '@/services/encomiendaService';
+import { conductoresApi } from '@/services/conductoresService';
+import type { Encomienda, EncomiendaFilters, CreateEncomiendaRequest } from '@/types/encomienda';
+import type { ConductorOption } from '@/types/conductor';
 
-interface UseEncomiendasState {
-  data: { results: Encomienda[]; count: number } | null;
-  loading: boolean;
-  error: string | null;
-  selectedItem: Encomienda | null;
-  isStoreModalOpen: boolean;
-  isDeleteModalOpen: boolean;
-  conductoresDisponibles: ConductorOption[];
-}
-
-interface UseEncomiendasActions {
-  loadData: (filters?: EncomiendaFilters) => Promise<void>;
-  createItem: (data: any) => Promise<void>;
-  updateItem: (id: number, data: any) => Promise<void>;
-  deleteItem: (id: number) => Promise<void>;
-  openStoreModal: (item?: Encomienda) => void;
-  closeStoreModal: () => void;
-  openDeleteModal: (item: Encomienda) => void;
-  closeDeleteModal: () => void;
-  clearError: () => void;
-  loadConductoresDisponibles: () => Promise<void>;
-}
-
-export function useEncomiendas(): UseEncomiendasState & UseEncomiendasActions {
-  const [data, setData] = useState<{ results: Encomienda[]; count: number } | null>(null);
+export function useEncomiendas() {
+  const [data, setData] = useState<{ results: Encomienda[]; count: number }>({ results: [], count: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Encomienda | null>(null);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [conductoresDisponibles, setConductoresDisponibles] = useState<ConductorOption[]>([]);
+  const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
+  
 
+  /** 🔹 Cargar todas las encomiendas (para Admin) */
   const loadData = useCallback(async (filters?: EncomiendaFilters) => {
     setLoading(true);
     setError(null);
     try {
       const response = await encomiendaService.list(filters);
-
       if (response.success && response.data) {
         setData({
           results: response.data.results || [],
-          count: response.data.count || 0
+          count: response.data.count || 0,
         });
       } else {
-        setError(response.error || "Error al cargar encomiendas");
+        setError(response.error ?? 'Error al cargar encomiendas');
       }
     } catch (err: any) {
-      setError(err.message || "Error de conexión");
+      setError(err.message ?? 'Error de conexión');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const createItem = useCallback(async (item: any) => {
+  /** 🔹 Cargar solo las encomiendas del cliente autenticado */
+  const loadMyEncomiendas = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
+      const response = await encomiendaService.getMyEncomiendas();
+      if (response.success && response.data) {
+        setData({
+          results: response.data || [],
+          count: response.data.length || 0,
+        });
+      } else {
+        setError(response.error ?? 'Error al cargar mis encomiendas');
+      }
+    } catch (err: any) {
+      setError(err.message ?? 'Error de conexión');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Crear una encomienda nueva - ACTUALIZADO */
+  const createItem = useCallback(async (item: CreateEncomiendaRequest) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('📦 Hook: Creando encomienda', item);
+      
       const response = await encomiendaService.create(item);
-      if (response.success) {
-        await loadData();
+      
+      if (response.success && response.data) {
+        setData(prev => ({
+          results: [response.data!, ...(prev?.results || [])],
+          count: (prev?.count ?? 0) + 1,
+        }));
         setIsStoreModalOpen(false);
+        return { success: true, data: response.data, message: response.message };
       } else {
-        setError(response.error || "Error al crear encomienda");
+        const errorMsg = response.error ?? 'Error al crear encomienda';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
     } catch (err: any) {
-      setError(err.message || "Error de conexión");
+      const errorMsg = err.message ?? 'Error de conexión';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     } finally {
       setLoading(false);
     }
-  }, [loadData]);
+  }, []);
 
-  const updateItem = useCallback(async (id: number, item: any) => {
+  /** 🔹 Actualizar una encomienda existente - ACTUALIZADO */
+  const updateItem = useCallback(async (id: number, item: Partial<Encomienda>) => {
     setLoading(true);
     setError(null);
     try {
+      console.log('📦 Hook: Actualizando encomienda', id, item);
+      
       const response = await encomiendaService.update(id, item);
-      if (response.success) {
-        await loadData();
+      
+      if (response.success && response.data) {
+        setData(prev => {
+          if (!prev) return prev;
+          const updated = prev.results.map(r => (r.id === id ? response.data! : r));
+          return { ...prev, results: updated };
+        });
         setIsStoreModalOpen(false);
+        return { success: true, data: response.data };
       } else {
-        setError(response.error || "Error al actualizar encomienda");
+        const errorMsg = response.error ?? 'Error al actualizar encomienda';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
     } catch (err: any) {
-      setError(err.message || "Error de conexión");
+      const errorMsg = err.message ?? 'Error de conexión';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     } finally {
       setLoading(false);
     }
-  }, [loadData]);
+  }, []);
 
+  /** 🔹 Eliminar una encomienda - ACTUALIZADO */
   const deleteItem = useCallback(async (id: number) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await encomiendaService.delete(id);
+      console.log('📦 Hook: Eliminando encomienda', id);
+      
+      const response = await encomiendaService.remove(id);
+      
       if (response.success) {
-        await loadData();
+        setData(prev => {
+          const filtered = prev.results.filter(r => r.id !== id);
+          return { results: filtered, count: Math.max(0, prev.count - 1) };
+        });
         setIsDeleteModalOpen(false);
+        return { success: true };
       } else {
-        setError(response.error || "Error al eliminar encomienda");
+        const errorMsg = response.error ?? 'Error al eliminar encomienda';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
       }
     } catch (err: any) {
-      setError(err.message || "Error de conexión");
+      const errorMsg = err.message ?? 'Error de conexión';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
     } finally {
       setLoading(false);
     }
-  }, [loadData]);
+  }, []);
 
+  /** 🔹 Buscar encomienda por código - ACTUALIZADO */
+  const buscarPorCodigo = useCallback(async (codigo: string) => {
+    if (!codigo.trim()) {
+      setError('Debes ingresar un código de seguimiento');
+      return null;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('📦 Hook: Buscando encomienda por código', codigo);
+      
+      const response = await encomiendaService.getByTrackingCode(codigo);
+      
+      if (response.success && response.data) {
+        return response.data;
+      } else {
+        const errorMsg = response.error ?? 'Encomienda no encontrada';
+        setError(errorMsg);
+        return null;
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error al buscar encomienda';
+      setError(errorMsg);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Calcular precio estimado - ACTUALIZADO */
+  const calcularPrecio = useCallback((peso: number, destino: string): number => {
+    return encomiendaService.calcularPrecio(peso, destino);
+  }, []);
+
+  /** 🔹 Asignar conductor a encomienda - NUEVO */
+  const asignarConductor = useCallback(async (encomiendaId: number, conductorId: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('📦 Hook: Asignando conductor', encomiendaId, conductorId);
+      
+      const response = await encomiendaService.asignarConductor(encomiendaId, conductorId);
+      
+      if (response.success && response.data) {
+        setData(prev => {
+          if (!prev) return prev;
+          const updated = prev.results.map(r => 
+            r.id === encomiendaId ? response.data! : r
+          );
+          return { ...prev, results: updated };
+        });
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al asignar conductor';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Actualizar estado de entrega - NUEVO */
+  const actualizarEstadoEntrega = useCallback(async (encomiendaId: number, estado: string, notas?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('📦 Hook: Actualizando estado', encomiendaId, estado);
+      
+      const response = await encomiendaService.actualizarEstadoEntrega(encomiendaId, estado, notas);
+      
+      if (response.success && response.data) {
+        setData(prev => {
+          if (!prev) return prev;
+          const updated = prev.results.map(r => 
+            r.id === encomiendaId ? response.data! : r
+          );
+          return { ...prev, results: updated };
+        });
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al actualizar estado';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Obtener estadísticas - NUEVO */
+  const getEstadisticas = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await encomiendaService.getStats();
+      
+      if (response.success && response.data) {
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al cargar estadísticas';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Obtener encomiendas asignadas (para conductores) - NUEVO */
+  const getEncomiendasAsignadas = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await encomiendaService.getAssignedEncomiendas();
+      
+      if (response.success && response.data) {
+        setData({
+          results: response.data || [],
+          count: response.data.length || 0,
+        });
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al cargar encomiendas asignadas';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  /** 🔹 Crear pago con Stripe - NUEVO */
+  const crearPagoStripe = useCallback(async (encomiendaId: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('💳 Hook: Creando pago Stripe para encomienda', encomiendaId);
+      
+      const response = await encomiendaService.crearPagoStripe(encomiendaId);
+      
+      if (response.success && response.data) {
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al crear pago Stripe';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión al crear pago';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Confirmar pago de Stripe - NUEVO */
+  const confirmarPago = useCallback(async (encomiendaId: number, paymentIntentId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('💳 Hook: Confirmando pago', encomiendaId, paymentIntentId);
+      
+      const response = await encomiendaService.confirmarPago(encomiendaId, paymentIntentId);
+      
+      if (response.success && response.data) {
+        // Actualizar la encomienda en el estado local
+        setData(prev => {
+          if (!prev) return prev;
+          const updated = prev.results.map(r => 
+            r.id === encomiendaId ? response.data! : r
+          );
+          return { ...prev, results: updated };
+        });
+        setIsPagoModalOpen(false);
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al confirmar pago';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión al confirmar pago';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Marcar pago en efectivo como completado - NUEVO */
+  const marcarPagoEfectivo = useCallback(async (encomiendaId: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('💳 Hook: Marcando pago en efectivo', encomiendaId);
+      
+      const response = await encomiendaService.marcarPagoEfectivo(encomiendaId);
+      
+      if (response.success && response.data) {
+        // Actualizar la encomienda en el estado local
+        setData(prev => {
+          if (!prev) return prev;
+          const updated = prev.results.map(r => 
+            r.id === encomiendaId ? response.data! : r
+          );
+          return { ...prev, results: updated };
+        });
+        setIsPagoModalOpen(false);
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al marcar pago en efectivo';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión al marcar pago';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Modales de pago - NUEVO */
+  const openPagoModal = useCallback((item: Encomienda) => {
+    setSelectedItem(item);
+    setIsPagoModalOpen(true);
+  }, []);
+
+  const closePagoModal = useCallback(() => {
+    setSelectedItem(null);
+    setIsPagoModalOpen(false);
+  }, []);
+
+  /** 🔹 Modales */
   const openStoreModal = useCallback((item?: Encomienda) => {
-    setSelectedItem(item || null);
+    setSelectedItem(item ?? null);
     setIsStoreModalOpen(true);
   }, []);
 
@@ -131,10 +420,10 @@ export function useEncomiendas(): UseEncomiendasState & UseEncomiendasActions {
     setIsDeleteModalOpen(false);
   }, []);
 
-  const clearError = useCallback(() => {
-    setError(null);
-  }, []);
+  /** 🔹 Limpiar error */
+  const clearError = useCallback(() => setError(null), []);
 
+  /** 🔹 Cargar conductores disponibles (para admin) */
   const loadConductoresDisponibles = useCallback(async () => {
     try {
       const response = await conductoresApi.getAvailable();
@@ -147,21 +436,47 @@ export function useEncomiendas(): UseEncomiendasState & UseEncomiendasActions {
   }, []);
 
   return {
+    // Estado
     data,
     loading,
     error,
     selectedItem,
     isStoreModalOpen,
     isDeleteModalOpen,
+    isPagoModalOpen,
     conductoresDisponibles,
+    
+    // Métodos CRUD
     loadData,
+    loadMyEncomiendas,
     createItem,
     updateItem,
     deleteItem,
+    
+    // Métodos de búsqueda y cálculo
+    buscarPorCodigo,
+    calcularPrecio,
+    
+    // Nuevos métodos
+    asignarConductor,
+    actualizarEstadoEntrega,
+    getEstadisticas,
+    getEncomiendasAsignadas,
+
+    //
+    crearPagoStripe,
+    confirmarPago,
+    marcarPagoEfectivo,
+    
+    // Manejo de modales
     openStoreModal,
     closeStoreModal,
     openDeleteModal,
     closeDeleteModal,
+    openPagoModal, // 
+    closePagoModal, //
+    
+    // Utilidades
     clearError,
     loadConductoresDisponibles,
   };

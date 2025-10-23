@@ -1,21 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, AlertCircle, MapIcon, List, Filter, Calendar, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, AlertCircle, MapIcon, List, Filter, Calendar, TrendingUp, Plus } from 'lucide-react';
 import AdminLayout from '@/app/layout/admin-layout';
 import MapaRutasOptimizadas from './components/MapaRutasOptimizadas';
 import type { RutaOptimizada, SolicitudRuta } from '@/types';
 import { api } from '@/lib/api';
 
+// Helper para obtener el color del badge según el estado
+const getEstadoBadge = (estado: SolicitudRuta['estado']) => {
+  const badges = {
+    pendiente: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    procesando: 'bg-blue-100 text-blue-800 border-blue-200',
+    completado: 'bg-green-100 text-green-800 border-green-200',
+    fallido: 'bg-red-100 text-red-800 border-red-200',
+    cancelado: 'bg-gray-100 text-gray-800 border-gray-200',
+  };
+  return badges[estado] || badges.pendiente;
+};
+
 export default function RutasOptimizadasPage() {
+  const navigate = useNavigate();
   const [solicitudes, setSolicitudes] = useState<SolicitudRuta[]>([]);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState<SolicitudRuta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [vistaActual, setVistaActual] = useState<'mapa' | 'lista'>('mapa');
+  const [optimizando, setOptimizando] = useState(false);
+  const [mensajeOptimizacion, setMensajeOptimizacion] = useState<string | null>(null);
 
   // Cargar solicitudes de optimización
   useEffect(() => {
     cargarSolicitudes();
   }, []);
+
+  // Auto-refresh cuando la solicitud está procesando
+  useEffect(() => {
+    if (solicitudSeleccionada?.estado === 'procesando') {
+      console.log('⏳ Solicitud en estado procesando, configurando auto-refresh...');
+      const interval = setInterval(() => {
+        console.log('🔄 Auto-refresh: Recargando solicitudes...');
+        cargarSolicitudes();
+      }, 5000); // Recargar cada 5 segundos
+
+      return () => {
+        console.log('🛑 Deteniendo auto-refresh');
+        clearInterval(interval);
+      };
+    }
+  }, [solicitudSeleccionada?.estado]);
 
   const cargarSolicitudes = async () => {
     try {
@@ -24,17 +56,30 @@ export default function RutasOptimizadasPage() {
       const response = await api.get('/api/rutas-optimizadas/solicitudes/');
       const data = response.data;
       
-      console.log('📦 Datos recibidos:', data); // Debug
+      console.log('📦 Datos recibidos del backend:', data);
+      console.log('📦 Solicitudes:', data.results || data);
       
-      setSolicitudes(data.results || data);
+      const solicitudesData = data.results || data;
+      setSolicitudes(solicitudesData);
       
-      // Seleccionar automáticamente la última solicitud
-      if (data.results?.length > 0) {
-        console.log('✅ Solicitud seleccionada:', data.results[0]); // Debug
-        setSolicitudSeleccionada(data.results[0]);
-      } else if (data.length > 0) {
-        console.log('✅ Solicitud seleccionada:', data[0]); // Debug
-        setSolicitudSeleccionada(data[0]);
+      // Mantener la solicitud seleccionada o seleccionar la primera
+      if (solicitudSeleccionada) {
+        // Buscar la solicitud actual actualizada
+        const solicitudActualizada = solicitudesData.find(
+          (s: SolicitudRuta) => s.id === solicitudSeleccionada.id
+        );
+        if (solicitudActualizada) {
+          console.log('📍 Solicitud actualizada:', solicitudActualizada);
+          console.log('📍 Rutas optimizadas:', solicitudActualizada.rutas_optimizadas);
+          setSolicitudSeleccionada(solicitudActualizada);
+        }
+      } else {
+        // Seleccionar automáticamente la primera solicitud
+        if (solicitudesData.length > 0) {
+          console.log('📍 Solicitud seleccionada:', solicitudesData[0]);
+          console.log('📍 Rutas optimizadas:', solicitudesData[0].rutas_optimizadas);
+          setSolicitudSeleccionada(solicitudesData[0]);
+        }
       }
     } catch (err: any) {
       console.error('Error al cargar solicitudes:', err);
@@ -47,6 +92,48 @@ export default function RutasOptimizadasPage() {
   const handleRutaClick = (ruta: RutaOptimizada) => {
     console.log('Ruta seleccionada:', ruta);
     // Aquí puedes mostrar un modal o panel con detalles de la ruta
+  };
+
+  const optimizarSolicitud = async () => {
+    if (!solicitudSeleccionada) return;
+
+    try {
+      setOptimizando(true);
+      setMensajeOptimizacion(null);
+      setError(null);
+
+      console.log(`🚀 Iniciando optimización de solicitud ${solicitudSeleccionada.id}...`);
+
+      const response = await api.post(
+        `/api/rutas-optimizadas/solicitudes/${solicitudSeleccionada.id}/optimizar/`
+      );
+
+      console.log('✅ Respuesta de optimización:', response.data);
+
+      setMensajeOptimizacion(
+        response.data.detail || 'Optimización iniciada exitosamente'
+      );
+
+      // Actualizar el estado de la solicitud
+      setSolicitudSeleccionada({
+        ...solicitudSeleccionada,
+        estado: 'procesando'
+      });
+
+      // Recargar las solicitudes después de un breve delay
+      setTimeout(() => {
+        cargarSolicitudes();
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('❌ Error al optimizar:', err);
+      const errorMsg = err.response?.data?.detail || 
+                      err.response?.data?.message || 
+                      'Error al iniciar la optimización';
+      setError(errorMsg);
+    } finally {
+      setOptimizando(false);
+    }
   };
 
   const calcularEstadisticas = () => {
@@ -147,10 +234,11 @@ export default function RutasOptimizadasPage() {
               para comenzar.
             </p>
             <button
-              onClick={cargarSolicitudes}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => navigate('/admin/rutas-optimizadas/crear')}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
             >
-              Actualizar
+              <Plus className="w-4 h-4" />
+              <span>Crear Solicitud</span>
             </button>
           </div>
         </div>
@@ -163,14 +251,16 @@ export default function RutasOptimizadasPage() {
       <div className="flex flex-col h-full bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Rutas Optimizadas</h1>
               <p className="text-sm text-gray-600 mt-1">
                 Visualización y análisis de rutas optimizadas
               </p>
             </div>
-            <div className="flex items-center space-x-3">
+            
+            {/* Controles principales */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {/* Selector de vista */}
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
@@ -197,35 +287,96 @@ export default function RutasOptimizadasPage() {
                 </button>
               </div>
 
-              {/* Selector de solicitud */}
-              <select
-                value={solicitudSeleccionada?.id || ''}
-                onChange={(e) => {
-                  const solicitud = solicitudes.find(
-                    (s) => s.id === parseInt(e.target.value)
-                  );
-                  setSolicitudSeleccionada(solicitud || null);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {solicitudes.map((solicitud) => (
-                  <option key={solicitud.id} value={solicitud.id}>
-                    Solicitud #{solicitud.id} - {new Date(solicitud.fecha_creacion).toLocaleDateString()}
-                  </option>
-                ))}
-              </select>
+              {/* Botones de acción */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate('/admin/rutas-optimizadas/crear')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Nueva Solicitud</span>
+                </button>
 
-              <button
-                onClick={cargarSolicitudes}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Actualizar
-              </button>
+                <button
+                  onClick={cargarSolicitudes}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Actualizar
+                </button>
+              </div>
             </div>
           </div>
 
+          {/* Selector de solicitud */}
+          {solicitudes.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <label className="text-sm font-medium text-gray-700">
+                  Solicitud:
+                </label>
+                <div className="flex items-center gap-2 flex-1">
+                  <select
+                    value={solicitudSeleccionada?.id || ''}
+                    onChange={(e) => {
+                      const solicitud = solicitudes.find(
+                        (s) => s.id === parseInt(e.target.value)
+                      );
+                      setSolicitudSeleccionada(solicitud || null);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-0 flex-1 sm:max-w-xs"
+                  >
+                    {solicitudes.map((solicitud) => (
+                      <option key={solicitud.id} value={solicitud.id}>
+                        Solicitud #{solicitud.id} - {new Date(solicitud.fecha_creacion).toLocaleDateString()}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  {/* Badge de estado */}
+                  {solicitudSeleccionada && (
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getEstadoBadge(solicitudSeleccionada.estado)} whitespace-nowrap`}>
+                      {solicitudSeleccionada.estado === 'procesando' && (
+                        <Loader2 className="w-3 h-3 inline mr-1 animate-spin" />
+                      )}
+                      {solicitudSeleccionada.estado}
+                    </span>
+                  )}
+                </div>
+
+                {/* Botón de optimizar */}
+                {solicitudSeleccionada && solicitudSeleccionada.estado === 'pendiente' && (
+                  <button
+                    onClick={optimizarSolicitud}
+                    disabled={optimizando}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    {optimizando ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Optimizando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="w-4 h-4" />
+                        <span>Optimizar Ruta</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Mensaje de optimización */}
+              {mensajeOptimizacion && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm text-blue-700">{mensajeOptimizacion}</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Estadísticas */}
-          <div className="grid grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
             <div className="bg-blue-50 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-blue-600 font-medium">Total Rutas</span>
@@ -282,14 +433,79 @@ export default function RutasOptimizadasPage() {
         <div className="flex-1 overflow-hidden">
           {vistaActual === 'mapa' && solicitudSeleccionada && (
             <div className="h-full p-6">
-              <MapaRutasOptimizadas
-                rutas={solicitudSeleccionada.rutas_optimizadas || []}
-                altura="calc(100vh - 280px)"
-                mostrarControles={true}
-                mostrarLeyenda={true}
-                onRutaClick={handleRutaClick}
-                className="shadow-lg"
-              />
+              {solicitudSeleccionada.rutas_optimizadas && solicitudSeleccionada.rutas_optimizadas.length > 0 ? (
+                <MapaRutasOptimizadas
+                  rutas={solicitudSeleccionada.rutas_optimizadas || []}
+                  altura="calc(100vh - 280px)"
+                  mostrarControles={true}
+                  mostrarLeyenda={true}
+                  onRutaClick={handleRutaClick}
+                  className="shadow-lg"
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="text-center p-8 max-w-md">
+                    <MapIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      No hay rutas optimizadas
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      Esta solicitud está en estado: <span className="font-semibold capitalize">{solicitudSeleccionada.estado}</span>
+                    </p>
+                    
+                    {solicitudSeleccionada.estado === 'pendiente' && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <p className="text-sm text-blue-800 mb-3">
+                          Esta solicitud tiene {solicitudSeleccionada.numero_entregas || solicitudSeleccionada.entregas?.length || 0} entregas 
+                          y {solicitudSeleccionada.vehiculos_disponibles?.length || 0} vehículos disponibles.
+                        </p>
+                        <button
+                          onClick={optimizarSolicitud}
+                          disabled={optimizando}
+                          className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {optimizando ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Optimizando...</span>
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="w-4 h-4" />
+                              <span>Optimizar Ruta Ahora</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                    
+                    {solicitudSeleccionada.estado === 'procesando' && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="flex items-center justify-center space-x-2 text-yellow-800">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Las rutas se están generando...</span>
+                        </div>
+                        <p className="text-xs text-yellow-700 mt-2">
+                          Esto puede tomar algunos segundos. La página se actualizará automáticamente.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {solicitudSeleccionada.estado === 'fallido' && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-sm text-red-800 mb-2">
+                          Hubo un error al generar las rutas.
+                        </p>
+                        {solicitudSeleccionada.mensaje_resultado && (
+                          <p className="text-xs text-red-700 bg-red-100 p-2 rounded">
+                            {solicitudSeleccionada.mensaje_resultado}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

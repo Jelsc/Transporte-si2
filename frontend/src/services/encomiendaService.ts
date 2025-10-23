@@ -11,6 +11,51 @@ import type {
   ConfirmPaymentRequest
 } from '../types/encomienda';
 
+// ✅ INTERFACE PARA LA RESPUESTA DEL BACKEND
+interface BackendEncomienda {
+  id: number;
+  codigo_seguimiento: string;
+  remitente_nombre: string;
+  remitente_telefono: string;
+  remitente_direccion?: string;
+  destinatario_nombre: string;
+  destinatario_telefono: string;
+  destino_ciudad: string;
+  destino_direccion: string;
+  descripcion: string;
+  peso: number | string;
+  precio: number | string;
+  estado: string;
+  fecha_creacion: string;
+  fecha_entrega_estimada?: string;
+  fecha_entrega_real?: string;
+  conductor_asignado?: number;
+  conductor_nombre?: string;
+  notas?: string;
+  creado_por?: number;
+  pago_info?: any;
+  estado_pago?: string;
+  metodo_pago?: string;
+  seguimientos?: any[];
+  pago?: number;
+  puede_ser_asignada?: boolean;
+  puede_ser_entregada?: boolean;
+  creado_por_nombre?: string;
+  conductor_info?: any;
+  pago_detalle?: any;
+}
+
+// ✅ FUNCIÓN PARA CALCULAR PRECIO AUTOMÁTICAMENTE
+const calcularPrecioAutomatico = (peso: number, destino: string): number => {
+  const preciosBase: Record<string, number> = {
+    'La Paz': 20, 'Santa Cruz': 25, 'Cochabamba': 22, 'Oruro': 18,
+    'Potosí': 20, 'Tarija': 23, 'Beni': 30, 'Pando': 35,
+  };
+  const base = preciosBase[destino] || 25;
+  const adicionalPeso = peso > 1 ? (peso - 1) * 5 : 0;
+  return base + adicionalPeso;
+};
+
 // Mappers para convertir entre formatos del frontend y backend
 const toDTO = (data: CreateEncomiendaRequest) => ({
   remitente_nombre: data.remitente_nombre,
@@ -22,11 +67,13 @@ const toDTO = (data: CreateEncomiendaRequest) => ({
   destino_direccion: data.destino_direccion,
   descripcion: data.descripcion,
   peso: data.peso,
+  // ✅ CORREGIDO: Incluir precio (calculado automáticamente si no viene)
+  precio: data.precio || calcularPrecioAutomatico(data.peso, data.destino_ciudad),
   notas: data.notas || '',
-  metodo_pago: data.metodo_pago, // NUEVO CAMPO
+  metodo_pago: data.metodo_pago,
 });
 
-const fromDTO = (data: any): Encomienda => ({
+const fromDTO = (data: BackendEncomienda): Encomienda => ({
   id: data.id,
   codigo_seguimiento: data.codigo_seguimiento,
   remitente_nombre: data.remitente_nombre,
@@ -37,8 +84,8 @@ const fromDTO = (data: any): Encomienda => ({
   destino_ciudad: data.destino_ciudad,
   destino_direccion: data.destino_direccion,
   descripcion: data.descripcion,
-  peso: parseFloat(data.peso),
-  precio: parseFloat(data.precio),
+  peso: typeof data.peso === 'string' ? parseFloat(data.peso) : data.peso,
+  precio: typeof data.precio === 'string' ? parseFloat(data.precio) : data.precio,
   estado: data.estado,
   fecha_creacion: data.fecha_creacion,
   fecha_entrega_estimada: data.fecha_entrega_estimada,
@@ -52,10 +99,18 @@ const fromDTO = (data: any): Encomienda => ({
   pago_info: data.pago_info,
   estado_pago: data.estado_pago,
   metodo_pago: data.metodo_pago,
+  seguimientos: data.seguimientos || [],
+  // ✅ NUEVOS CAMPOS DEL BACKEND ACTUALIZADO
+  pago: data.pago,
+  puede_ser_asignada: data.puede_ser_asignada,
+  puede_ser_entregada: data.puede_ser_entregada,
+  creado_por_nombre: data.creado_por_nombre,
+  conductor_info: data.conductor_info,
+  pago_detalle: data.pago_detalle,
 });
 
 export const encomiendaService = {
-  // Listar encomiendas con filtros y paginación
+  // Listar encomiendas con filtros y paginación (para admin)
   async list(filters?: EncomiendaFilters): Promise<ApiResponse<PaginatedResponse<Encomienda>>> {
     const params = new URLSearchParams();
     
@@ -70,18 +125,22 @@ export const encomiendaService = {
     const url = `/api/encomiendas/${query ? `?${query}` : ''}`;
     
     try {
-      const response = await apiRequest(url);
+      const response = await apiRequest<PaginatedResponse<BackendEncomienda>>(url);
       
       if (response.success && response.data) {
-        const data = response.data as any;
+        const data = response.data;
+        // CORREGIDO: Manejar diferentes formatos de respuesta
+        const results = Array.isArray(data.results) ? data.results : 
+                       Array.isArray(data) ? data : [];
+        const count = data.count || results.length;
+        
         return {
           success: true,
           data: {
-            count: data.count || data.results?.length || 0,
+            count: count,
             next: data.next,
             previous: data.previous,
-            results: Array.isArray(data.results) ? data.results.map(fromDTO) : 
-                     Array.isArray(data) ? data.map(fromDTO) : [],
+            results: results.map(fromDTO),
           },
         };
       }
@@ -98,7 +157,7 @@ export const encomiendaService = {
   // Obtener encomienda por ID
   async getById(id: number): Promise<ApiResponse<Encomienda>> {
     try {
-      const response = await apiRequest(`/api/encomiendas/${id}/`);
+      const response = await apiRequest<BackendEncomienda>(`/api/encomiendas/${id}/`);
       
       if (response.success && response.data) {
         return { success: true, data: fromDTO(response.data) };
@@ -116,7 +175,7 @@ export const encomiendaService = {
   // Obtener encomienda por código de seguimiento
   async getByTrackingCode(codigo: string): Promise<ApiResponse<Encomienda>> {
     try {
-      const response = await apiRequest(`/api/encomiendas/seguimiento/${codigo}/`);
+      const response = await apiRequest<BackendEncomienda>(`/api/encomiendas/seguimiento/${codigo}/`);
       
       if (response.success && response.data) {
         return { success: true, data: fromDTO(response.data) };
@@ -131,31 +190,53 @@ export const encomiendaService = {
     }
   },
 
-  // Crear nueva encomienda
+  // ✅ CORREGIDO: Crear nueva encomienda con mejor manejo de errores
   async create(data: CreateEncomiendaRequest): Promise<ApiResponse<Encomienda>> {
     try {
-      const response = await apiRequest('/api/encomiendas/', {
+      const dto = toDTO(data);
+      
+      console.log('🔍 DEBUG - DTO a enviar:', dto);
+      console.log('🔍 DEBUG - URL:', '/api/encomiendas/');
+
+      const response = await apiRequest<BackendEncomienda>('/api/encomiendas/', {
         method: 'POST',
-        body: JSON.stringify(toDTO(data)),
+        body: JSON.stringify(dto),
       });
+
+      console.log('🔍 DEBUG - Response status:', response);
       
       if (response.success && response.data) {
-        return { success: true, data: fromDTO(response.data) };
+        return { 
+          success: true, 
+          data: fromDTO(response.data),
+          message: 'Encomienda creada exitosamente'
+        };
+      } else {
+        // ✅ MEJOR MANEJO DE ERRORES DETALLADO
+        console.error('🔍 DEBUG - Error response:', response);
+        const errorData = response as any;
+        const errorMessage = errorData.error || 
+                           (response.data && (response.data.error || response.data.detail)) ||
+                           'Error desconocido al crear encomienda';
+        
+        return { 
+          success: false, 
+          error: errorMessage
+        };
       }
-      
-      return response as ApiResponse<Encomienda>;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('🔍 DEBUG - Catch error:', error);
       return {
         success: false,
-        error: 'Error de conexión al crear encomienda'
+        error: error.message || 'Error de conexión al crear encomienda'
       };
     }
   },
 
   // Actualizar encomienda
-  async update(id: number, data: UpdateEncomiendaRequest): Promise<ApiResponse<Encomienda>> {
+  async update(id: number, data: Partial<Encomienda>): Promise<ApiResponse<Encomienda>> {
     try {
-      const response = await apiRequest(`/api/encomiendas/${id}/`, {
+      const response = await apiRequest<BackendEncomienda>(`/api/encomiendas/${id}/`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       });
@@ -174,9 +255,17 @@ export const encomiendaService = {
   },
 
   // Eliminar encomienda
-  async delete(id: number): Promise<ApiResponse> {
+  async remove(id: number): Promise<ApiResponse<void>> {
     try {
-      return await apiRequest(`/api/encomiendas/${id}/`, { method: 'DELETE' });
+      const response = await apiRequest(`/api/encomiendas/${id}/`, { 
+        method: 'DELETE' 
+      });
+      
+      if (response.success) {
+        return { success: true };
+      }
+      
+      return response as ApiResponse<void>;
     } catch (error) {
       return {
         success: false,
@@ -188,9 +277,9 @@ export const encomiendaService = {
   // Obtener estadísticas de encomiendas
   async getStats(): Promise<ApiResponse<EncomiendaStats>> {
     try {
-      const response = await apiRequest('/api/encomiendas/estadisticas/');
+      const response = await apiRequest<EncomiendaStats>('/api/encomiendas/estadisticas/');
       if (response.success && response.data) {
-        const stats = response.data as Partial<EncomiendaStats>;
+        const stats = response.data;
         return {
           success: true,
           data: {
@@ -215,12 +304,27 @@ export const encomiendaService = {
   // Obtener mis encomiendas (para usuarios normales)
   async getMyEncomiendas(): Promise<ApiResponse<Encomienda[]>> {
     try {
-      const response = await apiRequest('/api/encomiendas/mis_encomiendas/');
+      const response = await apiRequest<BackendEncomienda[] | { results: BackendEncomienda[] }>('/api/encomiendas/mis_encomiendas/');
       if (response.success && response.data) {
-        const data = response.data as any;
-        const lista = Array.isArray(data) ? data : data.results ?? [];
-        return { success: true, data: lista.map(fromDTO) };
+        const data = response.data;
+        let lista: BackendEncomienda[] = [];
+        
+        if (Array.isArray(data)) {
+          lista = data;
+        } else if (data && 'results' in data && Array.isArray(data.results)) {
+          lista = data.results;
+        }
+        
+        return { 
+          success: true, 
+          data: lista.map(fromDTO) 
+        };
       }
+      
+      if (response.success) {
+        return { success: true, data: [] };
+      }
+      
       return response as ApiResponse<Encomienda[]>;
     } catch (error) {
       return {
@@ -233,10 +337,11 @@ export const encomiendaService = {
   // Obtener encomiendas asignadas al conductor autenticado
   async getAssignedEncomiendas(): Promise<ApiResponse<Encomienda[]>> {
     try {
-      const response = await apiRequest('/api/encomiendas/asignadas/');
+      const response = await apiRequest<BackendEncomienda[] | { results: BackendEncomienda[] }>('/api/encomiendas/asignadas/');
       if (response.success && response.data) {
-        const data = response.data as any;
-        const lista = Array.isArray(data) ? data : data.results ?? [];
+        const data = response.data;
+        const lista = Array.isArray(data) ? data : 
+                     (data && 'results' in data ? data.results : []);
         return { success: true, data: lista.map(fromDTO) };
       }
       return response as ApiResponse<Encomienda[]>;
@@ -251,7 +356,7 @@ export const encomiendaService = {
   // Asignar conductor a encomienda
   async asignarConductor(encomiendaId: number, conductorId: number): Promise<ApiResponse<Encomienda>> {
     try {
-      const response = await apiRequest(`/api/encomiendas/${encomiendaId}/asignar_conductor/`, {
+      const response = await apiRequest<BackendEncomienda>(`/api/encomiendas/${encomiendaId}/asignar_conductor/`, {
         method: 'POST',
         body: JSON.stringify({ conductor_id: conductorId }),
       });
@@ -270,7 +375,7 @@ export const encomiendaService = {
   // Actualizar estado de entrega
   async actualizarEstadoEntrega(encomiendaId: number, estado: string, notas?: string): Promise<ApiResponse<Encomienda>> {
     try {
-      const response = await apiRequest(`/api/encomiendas/${encomiendaId}/actualizar_estado/`, {
+      const response = await apiRequest<BackendEncomienda>(`/api/encomiendas/${encomiendaId}/actualizar_estado/`, {
         method: 'POST',
         body: JSON.stringify({ 
           estado, 
@@ -295,7 +400,7 @@ export const encomiendaService = {
   // Crear pago en Stripe
   async crearPagoStripe(encomiendaId: number): Promise<ApiResponse<StripePaymentIntent>> {
     try {
-      const response = await apiRequest(`/api/encomiendas/${encomiendaId}/crear-pago-stripe/`, {
+      const response = await apiRequest<StripePaymentIntent>(`/api/encomiendas/${encomiendaId}/crear_pago_stripe/`, {
         method: 'POST',
       });
       
@@ -318,13 +423,26 @@ export const encomiendaService = {
   // Confirmar pago de Stripe
   async confirmarPago(encomiendaId: number, paymentIntentId: string): Promise<ApiResponse<Encomienda>> {
     try {
-      const response = await apiRequest(`/api/encomiendas/${encomiendaId}/confirmar-pago/`, {
+      interface ConfirmPagoResponse {
+        encomienda?: BackendEncomienda;
+        success?: boolean;
+        message?: string;
+      }
+
+      const response = await apiRequest<ConfirmPagoResponse>(`/api/encomiendas/${encomiendaId}/confirmar_pago/`, {
         method: 'POST',
         body: JSON.stringify({ payment_intent_id: paymentIntentId }),
       });
       
       if (response.success && response.data) {
-        return { success: true, data: fromDTO(response.data.encomienda || response.data) };
+        const responseData = response.data;
+        // ✅ CORREGIDO: Manejar diferentes formatos de respuesta
+        if (responseData.encomienda) {
+          return { success: true, data: fromDTO(responseData.encomienda) };
+        } else if (responseData.success) {
+          // Si no viene la encomienda, obtenerla de nuevo
+          return this.getById(encomiendaId);
+        }
       }
       
       return response as ApiResponse<Encomienda>;
@@ -339,12 +457,23 @@ export const encomiendaService = {
   // Marcar pago en efectivo como completado (solo administradores)
   async marcarPagoEfectivo(encomiendaId: number): Promise<ApiResponse<Encomienda>> {
     try {
-      const response = await apiRequest(`/api/encomiendas/${encomiendaId}/marcar-pago-efectivo/`, {
+      interface PagoEfectivoResponse {
+        encomienda?: BackendEncomienda;
+        success?: boolean;
+        message?: string;
+      }
+
+      const response = await apiRequest<PagoEfectivoResponse>(`/api/encomiendas/${encomiendaId}/marcar_pago_efectivo/`, {
         method: 'POST',
       });
       
       if (response.success && response.data) {
-        return { success: true, data: fromDTO(response.data.encomienda || response.data) };
+        const responseData = response.data;
+        if (responseData.encomienda) {
+          return { success: true, data: fromDTO(responseData.encomienda) };
+        } else if (responseData.success) {
+          return this.getById(encomiendaId);
+        }
       }
       
       return response as ApiResponse<Encomienda>;
@@ -368,7 +497,7 @@ export const encomiendaService = {
       
       const query = params.toString();
       const url = `/api/encomiendas/generar_reporte/${query ? `?${query}` : ''}`;
-      const response = await apiRequest(url);
+      const response = await apiRequest<{ url: string }>(url);
       
       return response as ApiResponse<{ url: string }>;
     } catch (error) {
@@ -378,4 +507,14 @@ export const encomiendaService = {
       };
     }
   },
+
+  // CORREGIDO: Alias para 'delete' para mantener compatibilidad
+  async delete(id: number): Promise<ApiResponse<void>> {
+    return this.remove(id);
+  },
+
+  // ✅ NUEVO: Función para calcular precio (para usar en el frontend)
+  calcularPrecio(peso: number, destino: string): number {
+    return calcularPrecioAutomatico(peso, destino);
+  }
 };
