@@ -20,6 +20,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Bus, MapPin, Calendar, Clock, DollarSign } from 'lucide-react';
 import type { Viaje, ViajeFormData, VehiculoOption } from '@/types';
+import type { Ubicacion } from '@/types/ubicaciones';
+import { api } from '@/lib/api';
 
 interface ViajeStoreProps {
   isOpen: boolean;
@@ -45,8 +47,6 @@ export function ViajeStore({
     : 'Programa un nuevo viaje en el sistema';
 
   const [formData, setFormData] = useState<ViajeFormData>({
-    origen: '',
-    destino: '',
     fecha: '',
     hora: '',
     vehiculo_id: 0,
@@ -57,9 +57,42 @@ export function ViajeStore({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [loadingUbicaciones, setLoadingUbicaciones] = useState(false);
 
-  const ciudades = ["La Paz", "Santa Cruz", "Cochabamba", "Oruro", "Potosi", "Tarija", "Beni", "Pando"];
   const estados = ["programado", "en_curso", "completado", "cancelado"];
+
+  // Cargar ubicaciones cuando se abre el modal
+  useEffect(() => {
+    if (isOpen && ubicaciones.length === 0) {
+      cargarUbicaciones();
+    }
+  }, [isOpen]);
+
+  const cargarUbicaciones = async () => {
+    setLoadingUbicaciones(true);
+    try {
+      const response = await api.get('/api/ubicaciones/', {
+        params: {
+          tipo: 'TERMINAL', // Solo terminales para viajes
+          activo: true,
+          ordering: 'nombre'
+        }
+      });
+      console.log('Ubicaciones cargadas:', response.data);
+      setUbicaciones(response.data.results || response.data);
+    } catch (error: any) {
+      console.error('Error al cargar ubicaciones:', error);
+      console.error('Detalles del error:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        data: error.response?.data
+      });
+    } finally {
+      setLoadingUbicaciones(false);
+    }
+  };
 
   // Cargar datos iniciales cuando se abre el modal en modo edición
   useEffect(() => {
@@ -72,9 +105,13 @@ export function ViajeStore({
         vehiculoId = initialData.vehiculo.id;
       }
       
+      // Extraer IDs de origen y destino
+      const origenId = initialData.origen_detalle?.id;
+      const destinoId = initialData.destino_detalle?.id;
+      
       setFormData({
-        origen: initialData.origen || '',
-        destino: initialData.destino || '',
+        ...(origenId && { origen_id: origenId }),
+        ...(destinoId && { destino_id: destinoId }),
         fecha: initialData.fecha || '',
         hora: initialData.hora || '',
         vehiculo_id: vehiculoId,
@@ -86,8 +123,6 @@ export function ViajeStore({
     } else if (isOpen && !initialData) {
       // Resetear formulario para crear nuevo
       setFormData({
-        origen: '',
-        destino: '',
         fecha: '',
         hora: '',
         vehiculo_id: 0,
@@ -126,14 +161,14 @@ export function ViajeStore({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.origen.trim()) {
-      newErrors.origen = 'El origen es requerido';
+    if (!formData.origen_id) {
+      newErrors.origen_id = 'El origen es requerido';
     }
-    if (!formData.destino.trim()) {
-      newErrors.destino = 'El destino es requerido';
+    if (!formData.destino_id) {
+      newErrors.destino_id = 'El destino es requerido';
     }
-    if (formData.origen === formData.destino) {
-      newErrors.destino = 'El destino debe ser diferente al origen';
+    if (formData.origen_id === formData.destino_id) {
+      newErrors.destino_id = 'El destino debe ser diferente al origen';
     }
     if (!formData.fecha) {
       newErrors.fecha = 'La fecha es requerida';
@@ -162,8 +197,6 @@ export function ViajeStore({
     const success = await onSubmit(formData);
     if (success) {
       setFormData({
-        origen: '',
-        destino: '',
         fecha: '',
         hora: '',
         vehiculo_id: 0,
@@ -179,8 +212,6 @@ export function ViajeStore({
 
   const handleClose = () => {
     setFormData({
-      origen: '',
-      destino: '',
       fecha: '',
       hora: '',
       vehiculo_id: 0,
@@ -213,42 +244,58 @@ export function ViajeStore({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Origen */}
                   <div>
-                    <Label htmlFor="origen" className="mb-2 block">Ciudad Origen *</Label>
+                    <Label htmlFor="origen_id" className="mb-2 block">Terminal Origen *</Label>
                     <Select 
-                      value={formData.origen} 
-                      onValueChange={(value) => setFormData({ ...formData, origen: value })}
-                      disabled={loading}
+                      value={formData.origen_id?.toString() || ''} 
+                      onValueChange={(value) => setFormData({ ...formData, origen_id: parseInt(value) })}
+                      disabled={loading || loadingUbicaciones}
                     >
-                      <SelectTrigger className={errors.origen ? "border-red-500" : ""}>
-                        <SelectValue placeholder="Seleccionar origen" />
+                      <SelectTrigger className={errors.origen_id ? "border-red-500" : ""}>
+                        <SelectValue placeholder={loadingUbicaciones ? "Cargando terminales..." : "Seleccionar terminal de origen"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {ciudades.map((ciudad) => (
-                          <SelectItem key={ciudad} value={ciudad}>{ciudad}</SelectItem>
-                        ))}
+                        {ubicaciones.length > 0 ? (
+                          ubicaciones.map((ubicacion) => (
+                            <SelectItem key={ubicacion.id} value={ubicacion.id.toString()}>
+                              {ubicacion.nombre}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            No hay terminales disponibles
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
-                    {errors.origen && <p className="text-red-500 text-sm mt-1">{errors.origen}</p>}
+                    {errors.origen_id && <p className="text-red-500 text-sm mt-1">{errors.origen_id}</p>}
                   </div>
 
                   {/* Destino */}
                   <div>
-                    <Label htmlFor="destino" className="mb-2 block">Ciudad Destino *</Label>
+                    <Label htmlFor="destino_id" className="mb-2 block">Terminal Destino *</Label>
                     <Select 
-                      value={formData.destino} 
-                      onValueChange={(value) => setFormData({ ...formData, destino: value })}
-                      disabled={loading}
+                      value={formData.destino_id?.toString() || ''} 
+                      onValueChange={(value) => setFormData({ ...formData, destino_id: parseInt(value) })}
+                      disabled={loading || loadingUbicaciones}
                     >
-                      <SelectTrigger className={errors.destino ? "border-red-500" : ""}>
-                        <SelectValue placeholder="Seleccionar destino" />
+                      <SelectTrigger className={errors.destino_id ? "border-red-500" : ""}>
+                        <SelectValue placeholder={loadingUbicaciones ? "Cargando terminales..." : "Seleccionar terminal de destino"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {ciudades.map((ciudad) => (
-                          <SelectItem key={ciudad} value={ciudad}>{ciudad}</SelectItem>
-                        ))}
+                        {ubicaciones.length > 0 ? (
+                          ubicaciones.map((ubicacion) => (
+                            <SelectItem key={ubicacion.id} value={ubicacion.id.toString()}>
+                              {ubicacion.nombre}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            No hay terminales disponibles
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
-                    {errors.destino && <p className="text-red-500 text-sm mt-1">{errors.destino}</p>}
+                    {errors.destino_id && <p className="text-red-500 text-sm mt-1">{errors.destino_id}</p>}
                   </div>
                 </div>
               </div>
@@ -312,9 +359,9 @@ export function ViajeStore({
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="" disabled>
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
                             No hay vehículos disponibles
-                          </SelectItem>
+                          </div>
                         )}
                       </SelectContent>
                     </Select>
