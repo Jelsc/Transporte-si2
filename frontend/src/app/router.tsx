@@ -178,7 +178,7 @@ export default function AppRouter() {
           path="/admin/encomiendas"
           element={
             <ProtectedRoute requireAdmin={true}>
-              <AdminEncomienda />
+              <AdminEncomiendaPage />
             </ProtectedRoute>
           }
         />

@@ -85,18 +85,6 @@ temp/
 docker-compose.override.yml
 docker-compose.windows-fix.yml
 
-# === CREDENCIALES Y SECRETOS ===
-# Firebase credentials (NO SUBIR)
-backend/firebase-credentials.json
-mobile/android/app/google-services.json
-frontend/public/firebase-messaging-sw.js
-FIREBASE-CREDENTIALS.md
-SUPERPROMPT-CREDENCIALES.md
-
-# Archivos de configuración con credenciales
-**/firebase-credentials.json
-**/google-services.json
-**/firebase-messaging-sw.js
 
 # Claves y certificados
 *.key
