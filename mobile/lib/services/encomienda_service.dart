@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:mobile/services/auth_service.dart';
+import 'package:mobile/services/logger_service.dart'; 
 import '../models/encomienda_model.dart';
 import '../models/crear_encomienda_model.dart';
 import '../utils/ip_detection.dart';
@@ -22,7 +23,7 @@ class EncomiendaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final headers = await _getHeaders();
       
-      print('📦 Creando encomienda: ${request.toJson()}');
+      Logger.network('Creando encomienda: ${request.toJson()}', tag: 'ENCOMIENDA');
       
       final response = await http.post(
         Uri.parse('$baseUrl/api/encomiendas/'),
@@ -30,12 +31,15 @@ class EncomiendaService {
         body: json.encode(request.toJson()),
       );
 
-      print('📦 Response status: ${response.statusCode}');
-      print('📦 Response body: ${response.body}');
+      Logger.network('Response status: ${response.statusCode}', tag: 'ENCOMIENDA');
+      Logger.network('Response body: ${response.body}', tag: 'ENCOMIENDA');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final encomienda = Encomienda.fromJson(responseData);
+        
+        Logger.success('Encomienda creada exitosamente', tag: 'ENCOMIENDA');
+        
         return ApiResponse<Encomienda>(
           success: true,
           data: encomienda,
@@ -45,13 +49,15 @@ class EncomiendaService {
         final errorData = json.decode(response.body);
         final errorMessage = _parseError(errorData, response.statusCode);
         
+        Logger.error('Error al crear encomienda: $errorMessage', tag: 'ENCOMIENDA');
+        
         return ApiResponse<Encomienda>(
           success: false,
           error: errorMessage
         );
       }
     } catch (e) {
-      print('❌ Error en crearEncomienda: $e');
+      Logger.error('Error en crearEncomienda', tag: 'ENCOMIENDA', error: e);
       return ApiResponse<Encomienda>(
         success: false,
         error: 'Error de conexión: $e'
@@ -65,22 +71,27 @@ class EncomiendaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final headers = await _getHeaders();
       
-      print('📦 Obteniendo mis encomiendas...');
+      Logger.network('Obteniendo mis encomiendas...', tag: 'ENCOMIENDA');
       
       final response = await http.get(
         Uri.parse('$baseUrl/api/encomiendas/mis_encomiendas/'),
         headers: headers,
       );
 
-      print('📦 Mis encomiendas response: ${response.statusCode}');
-      print('📦 Mis encomiendas body: ${response.body}');
+      Logger.network('Mis encomiendas response: ${response.statusCode}', tag: 'ENCOMIENDA');
+      Logger.network('Mis encomiendas body: ${response.body}', tag: 'ENCOMIENDA');
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         
+        // ✅ DEBUG DETALLADO - Ver estructura real
+        Logger.debug('Estructura de respuesta: ${responseData.runtimeType}', tag: 'ENCOMIENDA');
+        if (responseData is Map) {
+          Logger.debug('Keys del mapa: ${responseData.keys}', tag: 'ENCOMIENDA');
+        }
+        
         List<dynamic> results = [];
         
-        // ✅ MEJOR MANEJO DE DIFERENTES FORMATOS
         if (responseData is Map) {
           if (responseData.containsKey('data')) {
             results = responseData['data'] ?? [];
@@ -89,7 +100,6 @@ class EncomiendaService {
           } else if (responseData.containsKey('encomiendas')) {
             results = responseData['encomiendas'] ?? [];
           } else {
-            // Si es un mapa sin estructura conocida, buscar lista directamente
             final possibleList = responseData.values.firstWhere(
               (value) => value is List,
               orElse: () => []
@@ -100,7 +110,29 @@ class EncomiendaService {
           results = responseData;
         }
         
-        final encomiendas = results.map((json) => Encomienda.fromJson(json)).toList();
+        Logger.debug('Resultados encontrados: ${results.length}', tag: 'ENCOMIENDA');
+        
+        if (results.isNotEmpty) {
+          Logger.debug('Primer elemento: ${results.first}', tag: 'ENCOMIENDA');
+        }
+        
+        // ✅ MANEJO DE ERRORES EN PARSEO
+        final encomiendas = <Encomienda>[];
+        for (var i = 0; i < results.length; i++) {
+          try {
+            final encomienda = Encomienda.fromJson(results[i]);
+            encomiendas.add(encomienda);
+          } catch (e) {
+            Logger.error(
+              'Error parseando encomienda $i', 
+              tag: 'ENCOMIENDA', 
+              error: e,
+            );
+            Logger.debug('Datos problemáticos: ${results[i]}', tag: 'ENCOMIENDA');
+          }
+        }
+        
+        Logger.success('Encomiendas cargadas: ${encomiendas.length}', tag: 'ENCOMIENDA');
         
         return ApiResponse<List<Encomienda>>(
           success: true,
@@ -108,6 +140,7 @@ class EncomiendaService {
           message: 'Encomiendas cargadas exitosamente'
         );
       } else if (response.statusCode == 404) {
+        Logger.info('No hay encomiendas registradas', tag: 'ENCOMIENDA');
         return ApiResponse<List<Encomienda>>(
           success: true,
           data: [],
@@ -115,20 +148,25 @@ class EncomiendaService {
         );
       } else {
         final errorData = json.decode(response.body);
+        final error = _parseError(errorData, response.statusCode);
+        
+        Logger.error('Error del servidor: $error', tag: 'ENCOMIENDA');
+        
         return ApiResponse<List<Encomienda>>(
           success: false,
-          error: _parseError(errorData, response.statusCode)
+          error: error
         );
       }
     } catch (e) {
-      print('❌ Error en getMisEncomiendas: $e');
+      Logger.error('Error en getMisEncomiendas', tag: 'ENCOMIENDA', error: e);
       return ApiResponse<List<Encomienda>>(
         success: false,
         error: 'Error de conexión: $e'
       );
     }
   }
-  // ✅ NUEVO: Método para parsear errores
+
+  // ✅ Método para parsear errores
   String _parseError(dynamic errorData, int statusCode) {
     if (errorData is Map) {
       return errorData['error'] ?? 
@@ -141,41 +179,50 @@ class EncomiendaService {
       return 'Error del servidor: $statusCode';
     }
   }
+
   Future<ApiResponse<Encomienda>> getSeguimiento(String codigo) async {
     try {
       final baseUrl = await IPDetection.getBaseUrl();
       
-      print('📦 Buscando seguimiento: $codigo');
+      Logger.network('Buscando seguimiento: $codigo', tag: 'SEGUIMIENTO');
       
       final response = await http.get(
         Uri.parse('$baseUrl/api/encomiendas/seguimiento/$codigo/'),
       );
 
-      print('📦 Seguimiento response: ${response.statusCode}');
-      print('📦 Seguimiento body: ${response.body}');
+      Logger.network('Seguimiento response: ${response.statusCode}', tag: 'SEGUIMIENTO');
+      Logger.network('Seguimiento body: ${response.body}', tag: 'SEGUIMIENTO');
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final encomienda = Encomienda.fromJson(responseData);
+        
+        Logger.success('Encomienda encontrada', tag: 'SEGUIMIENTO');
+        
         return ApiResponse<Encomienda>(
           success: true,
           data: encomienda,
           message: 'Encomienda encontrada'
         );
       } else if (response.statusCode == 404) {
+        Logger.warning('Encomienda no encontrada: $codigo', tag: 'SEGUIMIENTO');
         return ApiResponse<Encomienda>(
           success: false,
           error: 'Encomienda no encontrada'
         );
       } else {
         final errorData = json.decode(response.body);
+        final error = _parseError(errorData, response.statusCode);
+        
+        Logger.error('Error en seguimiento: $error', tag: 'SEGUIMIENTO');
+        
         return ApiResponse<Encomienda>(
           success: false,
-          error: _parseError(errorData, response.statusCode)
+          error: error
         );
       }
     } catch (e) {
-      print('❌ Error en getSeguimiento: $e');
+      Logger.error('Error en getSeguimiento', tag: 'SEGUIMIENTO', error: e);
       return ApiResponse<Encomienda>(
         success: false,
         error: 'Error de conexión: $e'
@@ -188,6 +235,8 @@ class EncomiendaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final headers = await _getHeaders();
       
+      Logger.network('Obteniendo estadísticas...', tag: 'ESTADISTICAS');
+      
       final response = await http.get(
         Uri.parse('$baseUrl/api/encomiendas/estadisticas/'),
         headers: headers,
@@ -195,6 +244,9 @@ class EncomiendaService {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+        
+        Logger.success('Estadísticas cargadas', tag: 'ESTADISTICAS');
+        
         return ApiResponse<Map<String, dynamic>>(
           success: true,
           data: responseData,
@@ -202,13 +254,17 @@ class EncomiendaService {
         );
       } else {
         final errorData = json.decode(response.body);
+        final error = _parseError(errorData, response.statusCode);
+        
+        Logger.error('Error al cargar estadísticas: $error', tag: 'ESTADISTICAS');
+        
         return ApiResponse<Map<String, dynamic>>(
           success: false,
-          error: _parseError(errorData, response.statusCode)
+          error: error
         );
       }
     } catch (e) {
-      print('❌ Error en getEstadisticas: $e');
+      Logger.error('Error en getEstadisticas', tag: 'ESTADISTICAS', error: e);
       return ApiResponse<Map<String, dynamic>>(
         success: false,
         error: 'Error de conexión: $e'
@@ -228,6 +284,8 @@ class EncomiendaService {
         if (ubicacion != null) 'ubicacion': ubicacion,
       };
       
+      Logger.network('Actualizando estado de encomienda $encomiendaId a $estado', tag: 'ESTADO');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/api/encomiendas/$encomiendaId/actualizar_estado/'),
         headers: headers,
@@ -237,6 +295,9 @@ class EncomiendaService {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final encomienda = Encomienda.fromJson(responseData);
+        
+        Logger.success('Estado actualizado exitosamente', tag: 'ESTADO');
+        
         return ApiResponse<Encomienda>(
           success: true,
           data: encomienda,
@@ -244,13 +305,17 @@ class EncomiendaService {
         );
       } else {
         final errorData = json.decode(response.body);
+        final error = errorData['error'] ?? 'Error al actualizar estado';
+        
+        Logger.error('Error al actualizar estado: $error', tag: 'ESTADO');
+        
         return ApiResponse<Encomienda>(
           success: false,
-          error: errorData['error'] ?? 'Error al actualizar estado'
+          error: error
         );
       }
     } catch (e) {
-      print('❌ Error en actualizarEstado: $e');
+      Logger.error('Error en actualizarEstado', tag: 'ESTADO', error: e);
       return ApiResponse<Encomienda>(
         success: false,
         error: 'Error de conexión: $e'
@@ -258,11 +323,13 @@ class EncomiendaService {
     }
   }
 
-  // ✅ MÉTODOS DE PAGO (mantienen igual)
+  // ✅ MÉTODOS DE PAGO
   Future<ApiResponse<Map<String, dynamic>>> crearPagoStripe(int encomiendaId) async {
     try {
       final baseUrl = await IPDetection.getBaseUrl();
       final headers = await _getHeaders();
+      
+      Logger.network('Creando pago Stripe para encomienda: $encomiendaId', tag: 'PAGO');
       
       final response = await http.post(
         Uri.parse('$baseUrl/api/encomiendas/$encomiendaId/crear_pago_stripe/'),
@@ -271,6 +338,9 @@ class EncomiendaService {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+        
+        Logger.success('Pago Stripe creado exitosamente', tag: 'PAGO');
+        
         return ApiResponse<Map<String, dynamic>>(
           success: true,
           data: responseData,
@@ -278,13 +348,17 @@ class EncomiendaService {
         );
       } else {
         final errorData = json.decode(response.body);
+        final error = errorData['error'] ?? 'Error al crear pago';
+        
+        Logger.error('Error al crear pago Stripe: $error', tag: 'PAGO');
+        
         return ApiResponse<Map<String, dynamic>>(
           success: false,
-          error: errorData['error'] ?? 'Error al crear pago'
+          error: error
         );
       }
     } catch (e) {
-      print('❌ Error en crearPagoStripe: $e');
+      Logger.error('Error en crearPagoStripe', tag: 'PAGO', error: e);
       return ApiResponse<Map<String, dynamic>>(
         success: false,
         error: 'Error de conexión: $e'
@@ -297,6 +371,8 @@ class EncomiendaService {
       final baseUrl = await IPDetection.getBaseUrl();
       final headers = await _getHeaders();
       
+      Logger.network('Confirmando pago para encomienda: $encomiendaId', tag: 'PAGO');
+      
       final response = await http.post(
         Uri.parse('$baseUrl/api/encomiendas/$encomiendaId/confirmar_pago/'),
         headers: headers,
@@ -306,6 +382,9 @@ class EncomiendaService {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final encomienda = Encomienda.fromJson(responseData);
+        
+        Logger.success('Pago confirmado exitosamente', tag: 'PAGO');
+        
         return ApiResponse<Encomienda>(
           success: true,
           data: encomienda,
@@ -313,13 +392,111 @@ class EncomiendaService {
         );
       } else {
         final errorData = json.decode(response.body);
+        final error = errorData['error'] ?? 'Error al confirmar pago';
+        
+        Logger.error('Error al confirmar pago: $error', tag: 'PAGO');
+        
         return ApiResponse<Encomienda>(
           success: false,
-          error: errorData['error'] ?? 'Error al confirmar pago'
+          error: error
         );
       }
     } catch (e) {
-      print('❌ Error en confirmarPago: $e');
+      Logger.error('Error en confirmarPago', tag: 'PAGO', error: e);
+      return ApiResponse<Encomienda>(
+        success: false,
+        error: 'Error de conexión: $e'
+      );
+    }
+  }
+   // ✅ NUEVOS MÉTODOS PARA PAGOS CON STRIPe
+  Future<ApiResponse<Encomienda>> confirmarPagoStripe(int encomiendaId, String paymentIntentId) async {
+    try {
+      final baseUrl = await IPDetection.getBaseUrl();
+      final headers = await _getHeaders();
+      
+      Logger.network('Confirmando pago Stripe para encomienda: $encomiendaId', tag: 'PAGO_STRIPE');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/encomiendas/$encomiendaId/confirmar_pago/'),
+        headers: headers,
+        body: json.encode({'payment_intent_id': paymentIntentId}),
+      );
+
+      Logger.network('Confirmar pago response: ${response.statusCode}', tag: 'PAGO_STRIPE');
+      Logger.network('Confirmar pago body: ${response.body}', tag: 'PAGO_STRIPE');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final encomienda = Encomienda.fromJson(responseData);
+        
+        Logger.success('Pago Stripe confirmado exitosamente', tag: 'PAGO_STRIPE');
+        
+        return ApiResponse<Encomienda>(
+          success: true,
+          data: encomienda,
+          message: 'Pago con tarjeta confirmado exitosamente'
+        );
+      } else {
+        final errorData = json.decode(response.body);
+        final errorMessage = _parseError(errorData, response.statusCode);
+        
+        Logger.error('Error al confirmar pago Stripe: $errorMessage', tag: 'PAGO_STRIPE');
+        
+        return ApiResponse<Encomienda>(
+          success: false,
+          error: errorMessage
+        );
+      }
+    } catch (e) {
+      Logger.error('Error en confirmarPagoStripe', tag: 'PAGO_STRIPE', error: e);
+      return ApiResponse<Encomienda>(
+        success: false,
+        error: 'Error de conexión: $e'
+      );
+    }
+  }
+
+
+  Future<ApiResponse<Encomienda>> marcarPagoEfectivo(int encomiendaId) async {
+    try {
+      final baseUrl = await IPDetection.getBaseUrl();
+      final headers = await _getHeaders();
+      
+      Logger.network('Marcando pago en efectivo para encomienda: $encomiendaId', tag: 'PAGO');
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/encomiendas/$encomiendaId/marcar_pago_efectivo/'),
+        headers: headers,
+      );
+
+      Logger.network('Pago efectivo response: ${response.statusCode}', tag: 'PAGO');
+      Logger.network('Pago efectivo body: ${response.body}', tag: 'PAGO');
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final encomienda = Encomienda.fromJson(responseData['data']);
+        
+        Logger.success('Pago en efectivo registrado exitosamente', tag: 'PAGO');
+        
+        return ApiResponse<Encomienda>(
+          success: true,
+          data: encomienda,
+          message: responseData['message'] ?? 'Pago en efectivo registrado exitosamente'
+        );
+      } else {
+        final errorData = json.decode(response.body);
+        final errorMessage = _parseError(errorData, response.statusCode);
+        
+        Logger.error('Error en pago efectivo: $errorMessage', tag: 'PAGO');
+        
+        return ApiResponse<Encomienda>(
+          success: false,
+          error: errorMessage
+        );
+      }
+    } catch (e) {
+      Logger.error('Error en marcarPagoEfectivo', tag: 'PAGO', error: e);
       return ApiResponse<Encomienda>(
         success: false,
         error: 'Error de conexión: $e'

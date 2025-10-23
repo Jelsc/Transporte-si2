@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert'; // ✅ AGREGAR ESTA IMPORTACIÓN
 
 class Encomienda {
+  // ✅ CONSTANTES PARA ESTADOS - RENOMBRADAS para evitar conflictos
+  static const String kEstadoPendiente = 'pendiente';
+  static const String kEstadoEnRuta = 'en_ruta';
+  static const String kEstadoEntregado = 'entregado';
+  static const String kEstadoCancelado = 'cancelado';
+  
+  static const String kPagoPendiente = 'pendiente';
+  static const String kPagoProcesando = 'procesando';
+  static const String kPagoCompletado = 'completado';
+  static const String kPagoFallido = 'fallido';
+  
+  static const String kMetodoPagoEfectivo = 'efectivo';
+  static const String kMetodoPagoStripe = 'stripe';
+
   final int id;
   final String codigoSeguimiento;
   final String estado;
@@ -56,45 +71,75 @@ class Encomienda {
     this.puedeSerEntregada,
   });
 
-  // ✅ FACTORY METHOD MEJORADO
+  // ✅ CONSTRUCTOR PARA CASOS DE ERROR
+  Encomienda._empty()
+    : id = 0,
+      codigoSeguimiento = 'ERROR',
+      estado = kEstadoPendiente,
+      remitenteNombre = '',
+      remitenteTelefono = '',
+      remitenteDireccion = null,
+      destinatarioNombre = '',
+      destinatarioTelefono = '',
+      destinoCiudad = '',
+      destinoDireccion = '',
+      descripcion = 'Error al cargar encomienda',
+      peso = 0.0,
+      precio = 0.0,
+      fechaCreacion = DateTime.now(),
+      fechaEntregaEstimada = null,
+      fechaEntregaReal = null,
+      conductorAsignado = null,
+      conductorNombre = null,
+      notas = null,
+      metodoPago = kMetodoPagoEfectivo,
+      estadoPago = kPagoPendiente,
+      pagoInfo = null,
+      seguimientos = [],
+      puedeSerAsignada = false,
+      puedeSerEntregada = false;
+
+  // ✅ FACTORY METHOD MEJORADO CON MANEJO DE ERRORES
   factory Encomienda.fromJson(Map<String, dynamic> json) {
-    return Encomienda(
-      id: json['id'] ?? 0,
-      codigoSeguimiento: json['codigo_seguimiento'] ?? '',
-      estado: json['estado'] ?? 'pendiente',
-      remitenteNombre: json['remitente_nombre'] ?? '',
-      remitenteTelefono: json['remitente_telefono'] ?? '',
-      remitenteDireccion: json['remitente_direccion'],
-      destinatarioNombre: json['destinatario_nombre'] ?? '',
-      destinatarioTelefono: json['destinatario_telefono'] ?? '',
-      destinoCiudad: json['destino_ciudad'] ?? '',
-      destinoDireccion: json['destino_direccion'] ?? '',
-      descripcion: json['descripcion'] ?? '',
-      peso: _convertToDouble(json['peso']),
-      precio: _convertToDouble(json['precio']),
-      fechaCreacion: _parseDateTime(json['fecha_creacion']) ?? DateTime.now(),
-      fechaEntregaEstimada: _parseDateTime(json['fecha_entrega_estimada']),
-      fechaEntregaReal: _parseDateTime(json['fecha_entrega_real']),
-      conductorAsignado: json['conductor_asignado'] ?? json['conductor_asignado_id'],
-      conductorNombre: json['conductor_nombre'] ?? _getConductorNombre(json),
-      notas: json['notas'],
-      metodoPago: json['metodo_pago'] ?? 'efectivo',
-      estadoPago: json['estado_pago'] ?? 'pendiente',
-      pagoInfo: json['pago_info'],
-      seguimientos: json['seguimientos'] ?? [],
-      puedeSerAsignada: json['puede_ser_asignada'] ?? false,
-      puedeSerEntregada: json['puede_ser_entregada'] ?? false,
-    );
+    try {
+      return Encomienda(
+        id: json['id'] as int? ?? 0,
+        codigoSeguimiento: (json['codigo_seguimiento'] ?? '') as String,
+        estado: (json['estado'] ?? kEstadoPendiente) as String,
+        remitenteNombre: (json['remitente_nombre'] ?? '') as String,
+        remitenteTelefono: (json['remitente_telefono'] ?? '') as String,
+        remitenteDireccion: json['remitente_direccion'] as String?,
+        destinatarioNombre: (json['destinatario_nombre'] ?? '') as String,
+        destinatarioTelefono: (json['destinatario_telefono'] ?? '') as String,
+        destinoCiudad: (json['destino_ciudad'] ?? '') as String,
+        destinoDireccion: (json['destino_direccion'] ?? '') as String,
+        descripcion: (json['descripcion'] ?? '') as String,
+        peso: _convertToDouble(json['peso']),
+        precio: _convertToDouble(json['precio']),
+        fechaCreacion: _parseDateTime(json['fecha_creacion']) ?? DateTime.now(),
+        fechaEntregaEstimada: _parseDateTime(json['fecha_entrega_estimada']),
+        fechaEntregaReal: _parseDateTime(json['fecha_entrega_real']),
+        conductorAsignado: json['conductor_asignado'] as int?,
+        conductorNombre: _getConductorNombre(json),
+        notas: json['notas'] as String?,
+        metodoPago: (json['metodo_pago'] ?? kMetodoPagoEfectivo) as String,
+        estadoPago: (json['estado_pago'] ?? kPagoPendiente) as String,
+        pagoInfo: json['pago_info'],
+        seguimientos: (json['seguimientos'] ?? []) as List<dynamic>,
+        puedeSerAsignada: json['puede_ser_asignada'] as bool? ?? false,
+        puedeSerEntregada: json['puede_ser_entregada'] as bool? ?? false,
+      );
+    } catch (e, stackTrace) {
+      // ✅ REEMPLAZADO: En lugar de print, puedes usar debugPrint o simplemente comentar
+      debugPrint('❌ Error en Encomienda.fromJson: $e');
+      debugPrint('❌ StackTrace: $stackTrace');
+      debugPrint('❌ JSON problemático: $json');
+      
+      return Encomienda._empty();
+    }
   }
 
-  // ✅ NUEVO: Método para obtener nombre del conductor
-  static String? _getConductorNombre(Map<String, dynamic> json) {
-    if (json['conductor_nombre'] != null) return json['conductor_nombre'];
-    if (json['conductor_info'] is Map) {
-      return json['conductor_info']['nombre_completo'];
-    }
-    return null;
-  }
+  // ✅ MÉTODOS HELPER PARA PARSING
   static double _convertToDouble(dynamic value) {
     if (value == null) return 0.0;
     if (value is String) return double.tryParse(value) ?? 0.0;
@@ -115,8 +160,15 @@ class Encomienda {
     }
   }
 
-  
+  static String? _getConductorNombre(Map<String, dynamic> json) {
+    if (json['conductor_nombre'] != null) return json['conductor_nombre'] as String?;
+    if (json['conductor_info'] is Map) {
+      return (json['conductor_info'] as Map)['nombre_completo'] as String?;
+    }
+    return null;
+  }
 
+  // ✅ TO JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -144,29 +196,43 @@ class Encomienda {
       'seguimientos': seguimientos,
     };
   }
-  // GETTERS
+
+  // ✅ GETTERS CON VALIDACIONES
   String get fechaCreacionFormateada {
-    return DateFormat('dd/MM/yyyy').format(fechaCreacion);
+    try {
+      return DateFormat('dd/MM/yyyy').format(fechaCreacion);
+    } catch (e) {
+      return 'Fecha inválida';
+    }
   }
 
   String get fechaCreacionCompleta {
-    return DateFormat('dd/MM/yyyy HH:mm').format(fechaCreacion);
+    try {
+      return DateFormat('dd/MM/yyyy HH:mm').format(fechaCreacion);
+    } catch (e) {
+      return 'Fecha inválida';
+    }
   }
 
   String get precioFormateado {
     return 'Bs. ${precio.toStringAsFixed(2)}';
   }
 
-  // ESTADOS
+  String get pesoFormateado {
+    return '${peso.toStringAsFixed(1)} kg';
+  }
+
+  // ✅ ESTADOS
   Color get estadoColor {
-    switch (estado.toLowerCase()) {
-      case 'pendiente':
+    final estadoLower = estado.toLowerCase();
+    switch (estadoLower) {
+      case kEstadoPendiente:
         return Colors.orange;
-      case 'en_ruta':
+      case kEstadoEnRuta:
         return Colors.blue;
-      case 'entregado':
+      case kEstadoEntregado:
         return Colors.green;
-      case 'cancelado':
+      case kEstadoCancelado:
         return Colors.red;
       default:
         return Colors.grey;
@@ -174,40 +240,43 @@ class Encomienda {
   }
 
   IconData get estadoIcon {
-    switch (estado.toLowerCase()) {
-      case 'pendiente':
+    final estadoLower = estado.toLowerCase();
+    switch (estadoLower) {
+      case kEstadoPendiente:
         return Icons.pending;
-      case 'en_ruta':
+      case kEstadoEnRuta:
         return Icons.local_shipping;
-      case 'entregado':
+      case kEstadoEntregado:
         return Icons.check_circle;
-      case 'cancelado':
+      case kEstadoCancelado:
         return Icons.cancel;
       default:
-        return Icons.help;
+        return Icons.help_outline;
     }
   }
 
   String get estadoTexto {
-    switch (estado.toLowerCase()) {
-      case 'pendiente': return 'Pendiente';
-      case 'en_ruta': return 'En Ruta';
-      case 'entregado': return 'Entregado';
-      case 'cancelado': return 'Cancelado';
-      default: return estado;
+    final estadoLower = estado.toLowerCase();
+    switch (estadoLower) {
+      case kEstadoPendiente: return 'Pendiente';
+      case kEstadoEnRuta: return 'En Ruta';
+      case kEstadoEntregado: return 'Entregado';
+      case kEstadoCancelado: return 'Cancelado';
+      default: return 'Desconocido';
     }
   }
 
-  // ESTADOS DE PAGO
+  // ✅ ESTADOS DE PAGO
   Color get estadoPagoColor {
-    switch (estadoPago.toLowerCase()) {
-      case 'completado':
+    final estadoPagoLower = estadoPago.toLowerCase();
+    switch (estadoPagoLower) {
+      case kPagoCompletado:
         return Colors.green;
-      case 'procesando':
+      case kPagoProcesando:
         return Colors.orange;
-      case 'pendiente':
+      case kPagoPendiente:
         return Colors.grey;
-      case 'fallido':
+      case kPagoFallido:
         return Colors.red;
       default:
         return Colors.grey;
@@ -215,30 +284,36 @@ class Encomienda {
   }
 
   String get estadoPagoTexto {
-    switch (estadoPago.toLowerCase()) {
-      case 'pendiente': return 'Pago Pendiente';
-      case 'procesando': return 'Procesando Pago';
-      case 'completado': return 'Pagado';
-      case 'fallido': return 'Pago Fallido';
+    final estadoPagoLower = estadoPago.toLowerCase();
+    switch (estadoPagoLower) {
+      case kPagoPendiente: return 'Pago Pendiente';
+      case kPagoProcesando: return 'Procesando Pago';
+      case kPagoCompletado: return 'Pagado';
+      case kPagoFallido: return 'Pago Fallido';
       default: return estadoPago;
     }
   }
 
-  // MÉTODOS DE UTILIDAD
-  bool get estaPendiente => estado == 'pendiente';
-  bool get estaEnRuta => estado == 'en_ruta';
-  bool get estaEntregado => estado == 'entregado';
-  bool get estaCancelado => estado == 'cancelado';
+  // ✅ MÉTODOS DE UTILIDAD - CORREGIDOS para usar constantes
+  bool get estaPendiente => estado == kEstadoPendiente;
+  bool get estaEnRuta => estado == kEstadoEnRuta;
+  bool get estaEntregado => estado == kEstadoEntregado;
+  bool get estaCancelado => estado == kEstadoCancelado;
 
-  bool get pagoCompletado => estadoPago == 'completado';
-  bool get pagoPendiente => estadoPago == 'pendiente';
-  bool get pagoProcesando => estadoPago == 'procesando';
-  bool get pagoFallido => estadoPago == 'fallido';
+  bool get pagoCompletadoBool => estadoPago == kPagoCompletado;
+  bool get pagoPendienteBool => estadoPago == kPagoPendiente;
+  bool get pagoProcesandoBool => estadoPago == kPagoProcesando;
+  bool get pagoFallidoBool => estadoPago == kPagoFallido;
 
-  bool get puedePagar => pagoPendiente || pagoFallido;
-  bool get puedeCancelar => estaPendiente && pagoPendiente;
+  // ✅ CORREGIDO: Usar los getters booleanos en lugar de comparar strings directamente
+  bool get puedePagar => pagoPendienteBool || pagoFallidoBool;
+  bool get puedeCancelar => estaPendiente && pagoPendienteBool;
 
-  // Información del conductor
+  // ✅ VALIDACIONES
+  bool get esValida => id > 0 && codigoSeguimiento.isNotEmpty;
+  bool get tieneError => codigoSeguimiento == 'ERROR';
+
+  // ✅ INFORMACIÓN DEL CONDUCTOR
   bool get tieneConductor => conductorNombre != null && conductorNombre!.isNotEmpty;
   
   String get conductorInfo {
@@ -246,5 +321,129 @@ class Encomienda {
       return conductorNombre!;
     }
     return 'Sin asignar';
+  }
+
+  // ✅ INFORMACIÓN DE SEGUIMIENTO
+  String get ultimoSeguimiento {
+    if (seguimientos.isEmpty) return 'Sin seguimiento disponible';
+    
+    final ultimo = seguimientos.last;
+    if (ultimo is Map<String, dynamic>) {
+      return ultimo['evento']?.toString() ?? 'Evento desconocido';
+    }
+    return ultimo.toString();
+  }
+
+  DateTime? get ultimaActualizacion {
+    if (seguimientos.isEmpty) return null;
+    
+    try {
+      final ultimo = seguimientos.last;
+      if (ultimo is Map<String, dynamic> && ultimo['fecha'] != null) {
+        return DateTime.parse(ultimo['fecha'] as String);
+      }
+    } catch (e) {
+      return null;
+    }
+    return null;
+  }
+
+  // ✅ INFORMACIÓN DE PAGO DETALLADA
+  Map<String, dynamic>? get informacionPago {
+    if (pagoInfo is Map) return pagoInfo as Map<String, dynamic>?;
+    if (pagoInfo is String) {
+      try {
+        return jsonDecode(pagoInfo as String) as Map<String, dynamic>?;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  String? get idPagoStripe {
+    final info = informacionPago;
+    return info?['payment_intent_id'] as String?;
+  }
+
+  // ✅ MÉTODO PARA CREAR COPIA (ÚTIL PARA UPDATES)
+  Encomienda copyWith({
+    int? id,
+    String? estado,
+    String? estadoPago,
+    String? conductorNombre,
+    DateTime? fechaEntregaReal,
+    List<dynamic>? seguimientos,
+    double? precio,
+  }) {
+    return Encomienda(
+      id: id ?? this.id,
+      codigoSeguimiento: codigoSeguimiento,
+      estado: estado ?? this.estado,
+      remitenteNombre: remitenteNombre,
+      remitenteTelefono: remitenteTelefono,
+      remitenteDireccion: remitenteDireccion,
+      destinatarioNombre: destinatarioNombre,
+      destinatarioTelefono: destinatarioTelefono,
+      destinoCiudad: destinoCiudad,
+      destinoDireccion: destinoDireccion,
+      descripcion: descripcion,
+      peso: peso,
+      precio: precio ?? this.precio,
+      fechaCreacion: fechaCreacion,
+      fechaEntregaEstimada: fechaEntregaEstimada,
+      fechaEntregaReal: fechaEntregaReal ?? this.fechaEntregaReal,
+      conductorAsignado: conductorAsignado,
+      conductorNombre: conductorNombre ?? this.conductorNombre,
+      notas: notas,
+      metodoPago: metodoPago,
+      estadoPago: estadoPago ?? this.estadoPago,
+      pagoInfo: pagoInfo,
+      seguimientos: seguimientos ?? this.seguimientos,
+      puedeSerAsignada: puedeSerAsignada,
+      puedeSerEntregada: puedeSerEntregada,
+    );
+  }
+
+  // ✅ MÉTODOS DE COMPARACIÓN (PARA LIST UPDATES)
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Encomienda &&
+        other.id == id &&
+        other.estado == estado &&
+        other.estadoPago == estadoPago;
+  }
+
+  @override
+  int get hashCode => id.hashCode ^ estado.hashCode ^ estadoPago.hashCode;
+
+  // ✅ MÉTODO PARA DEBUG
+  @override
+  String toString() {
+    return 'Encomienda{id: $id, codigo: $codigoSeguimiento, estado: $estado, precio: $precio}';
+  }
+}
+
+// ✅ CLASE HELPER PARA PARSING SEGURO
+class EncomiendaParser {
+  static List<Encomienda> fromList(List<dynamic> jsonList) {
+    final encomiendas = <Encomienda>[];
+    
+    for (var i = 0; i < jsonList.length; i++) {
+      try {
+        final item = jsonList[i];
+        if (item is Map<String, dynamic>) {
+          final encomienda = Encomienda.fromJson(item);
+          if (encomienda.esValida) {
+            encomiendas.add(encomienda);
+          }
+        }
+      } catch (e) {
+        debugPrint('❌ Error parseando encomienda en índice $i: $e');
+      }
+    }
+    
+    return encomiendas;
   }
 }

@@ -19,19 +19,35 @@ class EncomiendaSeguimiento {
 
   factory EncomiendaSeguimiento.fromJson(Map<String, dynamic> json) {
     return EncomiendaSeguimiento(
-      id: json['id'] ?? 0,
-      encomiendaId: json['encomienda'] ?? json['encomienda_id'] ?? 0,
-      evento: json['evento'] ?? '',
-      descripcion: json['descripcion'] ?? '',
+      id: _parseInt(json['id']),
+      encomiendaId: _parseInt(json['encomienda'] ?? json['encomienda_id']),
+      evento: _parseString(json['evento']),
+      descripcion: _parseString(json['descripcion']),
       fecha: _parseDateTime(json['fecha']),
-      ubicacion: json['ubicacion'],
+      ubicacion: json['ubicacion']?.toString(),
     );
+  }
+
+  // ✅ MÉTODOS HELPER PARA PARSING SEGURO
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static String _parseString(dynamic value) {
+    if (value == null) return '';
+    return value.toString();
   }
 
   static DateTime _parseDateTime(dynamic value) {
     if (value == null) return DateTime.now();
     try {
-      return DateTime.parse(value);
+      if (value is String) {
+        return DateTime.parse(value);
+      }
+      return DateTime.now();
     } catch (e) {
       return DateTime.now();
     }
@@ -48,7 +64,7 @@ class EncomiendaSeguimiento {
     };
   }
 
-  // Propiedades calculadas para UI
+  // ... el resto de los métodos se mantienen igual
   String get fechaFormateada {
     return DateFormat('dd/MM/yyyy HH:mm').format(fecha);
   }
@@ -65,7 +81,6 @@ class EncomiendaSeguimiento {
     return DateFormat('EEEE', 'es_ES').format(fecha);
   }
 
-  // Métodos de utilidad
   bool get tieneUbicacion => ubicacion != null && ubicacion!.isNotEmpty;
   
   bool get esReciente {
@@ -74,7 +89,6 @@ class EncomiendaSeguimiento {
     return diferencia.inHours < 24;
   }
 
-  // Método para mostrar información resumida
   String get resumen {
     if (tieneUbicacion) {
       return '$evento - $ubicacion';
@@ -82,12 +96,12 @@ class EncomiendaSeguimiento {
     return evento;
   }
 
-  // Método para obtener color según el tipo de evento
   String get tipoEvento {
-    if (evento.toLowerCase().contains('entreg')) return 'entrega';
-    if (evento.toLowerCase().contains('ruta')) return 'transito';
-    if (evento.toLowerCase().contains('registr')) return 'registro';
-    if (evento.toLowerCase().contains('cancel')) return 'cancelacion';
+    final eventoLower = evento.toLowerCase();
+    if (eventoLower.contains('entreg')) return 'entrega';
+    if (eventoLower.contains('ruta')) return 'transito';
+    if (eventoLower.contains('registr')) return 'registro';
+    if (eventoLower.contains('cancel')) return 'cancelacion';
     return 'general';
   }
 }
