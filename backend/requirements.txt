@@ -1,23 +1,26 @@
-﻿Django==5.0.7
+Django==5.0.7
 djangorestframework==3.15.2
 django-cors-headers==4.4.0
 django-filter==24.2
 psycopg2-binary==2.9.10
 python-dotenv==1.0.1
-django-allauth==0.57.0
-requests==2.31.0
-PyJWT==2.8.0
-cryptography==42.0.5
-djangorestframework-simplejwt==5.3.1
-dj-rest-auth==5.0.2
-pytest==7.4.4
-pytest-django==4.8.0
-pytest-cov==4.1.0
-factory-boy==3.3.1
-Pillow==10.3.0
-whitenoise==6.6.0
-celery==5.3.6
-redis==5.0.1
-stripe==8.0.0
-django-seed==0.3.1
-gunicorn==21.2.0
+django-allauth
+requests
+PyJWT
+cryptography
+djangorestframework-simplejwt[blacklist]
+dj-rest-auth[social]>=2.2.0
+# Dependencias para ubicaciones
+geohash2>=1.1
+# Dependencias para VRP y optimización
+ortools>=9.7.2996
+celery>=5.3.0
+redis>=5.0.0
+flower>=2.0.0
+# Dependencias para pagos
+stripe>=8.0.0
+# Testing
+pytest>=7.4.0
+pytest-django>=4.5.2
+pytest-cov>=4.1.0
+factory-boy>=3.3.0
