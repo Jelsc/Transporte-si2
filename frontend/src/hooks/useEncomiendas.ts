@@ -12,36 +12,8 @@ export function useEncomiendas() {
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [conductoresDisponibles, setConductoresDisponibles] = useState<ConductorOption[]>([]);
-  const handleStoreSubmit = async (formData: any): Promise<boolean> => {
-    try {
-      // ✅ CORREGIDO: Manejar correctamente el conductor_asignado
-      const encomiendaData = {
-        ...formData,
-        metodo_pago: formData.metodo_pago || 'efectivo',
-        conductor_asignado: formData.conductor_asignado === 0 ? null : formData.conductor_asignado,
-        // Si es nueva encomienda, calcular el precio automáticamente
-        ...(!selectedItem && {
-          precio: calcularPrecio(formData.peso, formData.destino_ciudad)
-        })
-      };
-
-      if (selectedItem) {
-        await updateItem(selectedItem.id, encomiendaData);
-        toast.success('Encomienda actualizada correctamente');
-      } else {
-        await createItem(encomiendaData);
-        toast.success('Encomienda creada correctamente');
-      }
-      
-      // Recargar datos después de modificar
-      await fetchEncomiendas();
-      return true;
-    } catch (err: any) {
-      toast.error(err.message || 'Error al guardar encomienda');
-      return false;
-    }
-  };
-
+  const [isPagoModalOpen, setIsPagoModalOpen] = useState(false);
+  
 
   /** 🔹 Cargar todas las encomiendas (para Admin) */
   const loadData = useCallback(async (filters?: EncomiendaFilters) => {
@@ -323,6 +295,109 @@ export function useEncomiendas() {
       setLoading(false);
     }
   }, []);
+  /** 🔹 Crear pago con Stripe - NUEVO */
+  const crearPagoStripe = useCallback(async (encomiendaId: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('💳 Hook: Creando pago Stripe para encomienda', encomiendaId);
+      
+      const response = await encomiendaService.crearPagoStripe(encomiendaId);
+      
+      if (response.success && response.data) {
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al crear pago Stripe';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión al crear pago';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Confirmar pago de Stripe - NUEVO */
+  const confirmarPago = useCallback(async (encomiendaId: number, paymentIntentId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('💳 Hook: Confirmando pago', encomiendaId, paymentIntentId);
+      
+      const response = await encomiendaService.confirmarPago(encomiendaId, paymentIntentId);
+      
+      if (response.success && response.data) {
+        // Actualizar la encomienda en el estado local
+        setData(prev => {
+          if (!prev) return prev;
+          const updated = prev.results.map(r => 
+            r.id === encomiendaId ? response.data! : r
+          );
+          return { ...prev, results: updated };
+        });
+        setIsPagoModalOpen(false);
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al confirmar pago';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión al confirmar pago';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Marcar pago en efectivo como completado - NUEVO */
+  const marcarPagoEfectivo = useCallback(async (encomiendaId: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      console.log('💳 Hook: Marcando pago en efectivo', encomiendaId);
+      
+      const response = await encomiendaService.marcarPagoEfectivo(encomiendaId);
+      
+      if (response.success && response.data) {
+        // Actualizar la encomienda en el estado local
+        setData(prev => {
+          if (!prev) return prev;
+          const updated = prev.results.map(r => 
+            r.id === encomiendaId ? response.data! : r
+          );
+          return { ...prev, results: updated };
+        });
+        setIsPagoModalOpen(false);
+        return { success: true, data: response.data };
+      } else {
+        const errorMsg = response.error ?? 'Error al marcar pago en efectivo';
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+    } catch (err: any) {
+      const errorMsg = err.message ?? 'Error de conexión al marcar pago';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /** 🔹 Modales de pago - NUEVO */
+  const openPagoModal = useCallback((item: Encomienda) => {
+    setSelectedItem(item);
+    setIsPagoModalOpen(true);
+  }, []);
+
+  const closePagoModal = useCallback(() => {
+    setSelectedItem(null);
+    setIsPagoModalOpen(false);
+  }, []);
 
   /** 🔹 Modales */
   const openStoreModal = useCallback((item?: Encomienda) => {
@@ -368,6 +443,7 @@ export function useEncomiendas() {
     selectedItem,
     isStoreModalOpen,
     isDeleteModalOpen,
+    isPagoModalOpen,
     conductoresDisponibles,
     
     // Métodos CRUD
@@ -386,12 +462,19 @@ export function useEncomiendas() {
     actualizarEstadoEntrega,
     getEstadisticas,
     getEncomiendasAsignadas,
+
+    //
+    crearPagoStripe,
+    confirmarPago,
+    marcarPagoEfectivo,
     
     // Manejo de modales
     openStoreModal,
     closeStoreModal,
     openDeleteModal,
     closeDeleteModal,
+    openPagoModal, // 
+    closePagoModal, //
     
     // Utilidades
     clearError,

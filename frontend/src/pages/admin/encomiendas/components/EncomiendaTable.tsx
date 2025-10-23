@@ -1,9 +1,10 @@
+// En EncomiendaTable.tsx - ACTUALIZAR LA INTERFAZ
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Eye, Edit, Trash2, Package, Truck, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Eye, Edit, Trash2, Package, Truck, CheckCircle, Clock, XCircle, CreditCard } from 'lucide-react';
 import type { Encomienda } from '@/types/encomienda';
 
 interface EncomiendaTableProps {
@@ -12,6 +13,7 @@ interface EncomiendaTableProps {
   onEdit: (encomienda: Encomienda) => void;
   onDelete: (encomienda: Encomienda) => void;
   onView: (encomienda: Encomienda) => void;
+  onPagar?: (encomienda: Encomienda) => void; // ✅ AGREGAR ESTA LÍNEA
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -37,6 +39,7 @@ export function EncomiendaTable({
   onEdit,
   onDelete,
   onView,
+  onPagar, // ✅ AGREGAR ESTE PARÁMETRO
   page,
   totalPages,
   onPageChange,
@@ -51,6 +54,12 @@ export function EncomiendaTable({
 
   const getEstadoPago = (encomienda: Encomienda) => {
     return encomienda.estado_pago || 'pendiente';
+  };
+
+  // ✅ FUNCIÓN PARA VERIFICAR SI SE PUEDE PAGAR
+  const puedePagar = (encomienda: Encomienda) => {
+    const estadoPago = getEstadoPago(encomienda);
+    return estadoPago === 'pendiente' || estadoPago === 'fallido';
   };
 
   if (loading) {
@@ -105,6 +114,7 @@ export function EncomiendaTable({
               const EstadoIcon = estadoConfig.icon;
               const estadoPago = getEstadoPago(encomienda);
               const pagoConfig = estadosPagoConfig[estadoPago as keyof typeof estadosPagoConfig] || estadosPagoConfig.pendiente;
+              const mostrarBotonPagar = puedePagar(encomienda) && onPagar; // ✅ VERIFICAR SI SE DEBE MOSTRAR EL BOTÓN
 
               return (
                 <TableRow key={encomienda.id}>
@@ -165,6 +175,20 @@ export function EncomiendaTable({
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+                      
+                      {/* ✅ BOTÓN DE PAGO - SOLO MOSTRAR SI ES NECESARIO */}
+                      {mostrarBotonPagar && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onPagar!(encomienda)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          title="Pagar encomienda"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
                       <Button
                         variant="outline"
                         size="sm"

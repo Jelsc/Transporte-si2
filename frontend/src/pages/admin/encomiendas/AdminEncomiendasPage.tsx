@@ -7,6 +7,7 @@ import { EncomiendaTable } from './components/EncomiendaTable';
 import { EncomiendaFiltersComponent } from './components/EncomiendaFilters';
 import { EncomiendaStore } from './components/EncomiendaStore';
 import { EncomiendaDelete } from './components/EncomiendaDelete';
+import { PagoModal } from './components/PagoModal';
 import AdminLayout from '@/app/layout/admin-layout';
 import type { EncomiendaFilters } from '@/types/encomienda';
 import type { Encomienda } from '@/types/encomienda';
@@ -30,6 +31,7 @@ export default function AdminEncomiendaPage() {
     selectedItem,
     isStoreModalOpen,
     isDeleteModalOpen,
+    isPagoModalOpen,
     conductoresDisponibles,
     loadData,
     createItem,
@@ -39,9 +41,13 @@ export default function AdminEncomiendaPage() {
     closeStoreModal,
     openDeleteModal,
     closeDeleteModal,
+    openPagoModal,
+    closePagoModal,
     clearError,
     loadConductoresDisponibles,
     calcularPrecio,
+     marcarPagoEfectivo,
+    crearPagoStripe,
   } = useEncomiendas();
 
   // Función para cargar datos con filtros y paginación
@@ -141,6 +147,35 @@ export default function AdminEncomiendaPage() {
       return false;
     }
   };
+   // ✅ NUEVA FUNCIÓN PARA MANEJAR PAGOS
+  const handleProcesarPago = async (metodoPago: 'efectivo' | 'tarjeta') => {
+    if (!selectedItem) return;
+
+    try {
+      if (metodoPago === 'efectivo') {
+        // Para admin, marcar directamente como pago completado
+        const result = await marcarPagoEfectivo(selectedItem.id);
+        if (result.success) {
+          toast.success('Pago en efectivo registrado correctamente');
+          await fetchEncomiendas(); // Recargar datos
+        } else {
+          toast.error(result.error || 'Error al registrar pago');
+        }
+      } else if (metodoPago === 'tarjeta') {
+        // Para admin, crear pago Stripe
+        const result = await crearPagoStripe(selectedItem.id);
+        if (result.success) {
+          toast.success('Pago con tarjeta procesado correctamente');
+          await fetchEncomiendas(); // Recargar datos
+        } else {
+          toast.error(result.error || 'Error al procesar pago con tarjeta');
+        }
+      }
+    } catch (error) {
+      console.error('Error procesando pago:', error);
+      toast.error('Error al procesar el pago');
+    }
+  };
 
   const handleClearFilters = () => {
     setSearch('');
@@ -150,6 +185,8 @@ export default function AdminEncomiendaPage() {
     setFechaHastaFilter('');
     setPage(1); // Resetear a primera página
   };
+  
+
 
   const handleRefresh = async () => {
     await fetchEncomiendas();
@@ -168,6 +205,10 @@ export default function AdminEncomiendaPage() {
   const ingresosTotales = data?.results?.reduce((total, encomienda) => {
     return total + (encomienda.precio || 0);
   }, 0) || 0;
+  
+   const handlePagarEncomienda = (encomienda: Encomienda) => {
+    openPagoModal(encomienda);
+  };
 
   return (
     <AdminLayout>
@@ -308,6 +349,7 @@ export default function AdminEncomiendaPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onView={handleView}
+              onPagar={handlePagarEncomienda}
               page={page}
               totalPages={totalPages}
               onPageChange={setPage}
@@ -332,6 +374,14 @@ export default function AdminEncomiendaPage() {
           onConfirm={handleDeleteConfirm}
           encomienda={selectedItem}
           loading={loading}
+        />
+        <PagoModal
+          isOpen={isPagoModalOpen}
+          onClose={closePagoModal}
+          encomienda={selectedItem}
+          onProcesarPago={handleProcesarPago}
+          loading={loading}
+          esAdmin={true}
         />
       </div>
     </AdminLayout>

@@ -19,7 +19,8 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  CreditCard
 } from 'lucide-react';
 import { 
   Select, 
@@ -33,12 +34,15 @@ import { useAuth } from '@/context/AuthContext';
 import { useEncomiendas } from '@/hooks/useEncomiendas';
 import type { Encomienda, CreateEncomiendaRequest } from '@/types/encomienda';
 import { toast } from 'sonner';
+import { PagoModal } from '../admin/encomiendas/components/PagoModal';
 
 export function ClienteEncomienda() {
   const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'nueva' | 'seguimiento' | 'historial'>('nueva');
   const [codigoSeguimiento, setCodigoSeguimiento] = useState('');
   const [encomiendaSeguimiento, setEncomiendaSeguimiento] = useState<Encomienda | null>(null);
+  const [showPagoModal, setShowPagoModal] = useState(false);
+  const [encomiendaParaPagar, setEncomiendaParaPagar] = useState<Encomienda | null>(null);
 
   // Estado para nueva encomienda
   const [nuevaEncomienda, setNuevaEncomienda] = useState<CreateEncomiendaRequest>({
@@ -64,7 +68,9 @@ export function ClienteEncomienda() {
     createItem,
     buscarPorCodigo,
     calcularPrecio,
-    clearError
+    clearError,
+    crearPagoStripe,
+    marcarPagoEfectivo,
   } = useEncomiendas();
 
   const ciudades = [
@@ -72,7 +78,7 @@ export function ClienteEncomienda() {
     'Potosi', 'Tarija', 'Beni', 'Pando'
   ];
 
-  // ✅ CORREGIDO: Estados con valores por defecto seguros
+  // Estados
   const estados = {
     pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
     en_ruta: { label: 'En Ruta', color: 'bg-blue-100 text-blue-800 border-blue-200' },
@@ -80,14 +86,15 @@ export function ClienteEncomienda() {
     cancelado: { label: 'Cancelado', color: 'bg-red-100 text-red-800 border-red-200' }
   };
 
+  // ✅ ACTUALIZADO: Estados de pago más específicos
   const estadosPago = {
-    pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
-    completado: { label: 'Completado', color: 'bg-green-100 text-green-800' },
-    fallido: { label: 'Fallido', color: 'bg-red-100 text-red-800' },
-    procesando: { label: 'Procesando', color: 'bg-blue-100 text-blue-800' }
+    pendiente: { label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800', puedePagar: true },
+    completado: { label: 'Pagado', color: 'bg-green-100 text-green-800', puedePagar: false },
+    fallido: { label: 'Fallido', color: 'bg-red-100 text-red-800', puedePagar: true },
+    procesando: { label: 'Procesando', color: 'bg-blue-100 text-blue-800', puedePagar: false }
   };
 
-  // ✅ FUNCIÓN SEGURA para obtener estado
+  // Función segura para obtener estado
   const getEstadoConfig = (estado: string) => {
     return estados[estado as keyof typeof estados] || { 
       label: estado, 
@@ -95,7 +102,7 @@ export function ClienteEncomienda() {
     };
   };
 
-  // ✅ FUNCIÓN SEGURA para obtener estado de pago
+  // Función segura para obtener estado de pago
   const getEstadoPagoConfig = (estadoPago: string) => {
     return estadosPago[estadoPago as keyof typeof estadosPago] || { 
       label: estadoPago, 
@@ -147,7 +154,7 @@ export function ClienteEncomienda() {
       return;
     }
 
-    // ✅ VALIDACIONES MEJORADAS
+    // Validaciones
     if (!nuevaEncomienda.destinatario_nombre?.trim()) {
       toast.error('El nombre del destinatario es requerido');
       return;
@@ -179,7 +186,7 @@ export function ClienteEncomienda() {
     }
 
     try {
-      // ✅ CALCULAR PRECIO automáticamente
+      // Calcular precio automáticamente
       const precioCalculado = calcularPrecio(nuevaEncomienda.peso, nuevaEncomienda.destino_ciudad);
       
       const encomiendaConPrecio = {
@@ -192,7 +199,7 @@ export function ClienteEncomienda() {
       const result = await createItem(encomiendaConPrecio);
       
       if (result.success) {
-        toast.success('¡Encomienda registrada exitosamente!');
+        toast.success('¡Encomienda registrada exitosamente! Lleva tu paquete a nuestras instalaciones para completar el proceso.');
         
         // Reset form
         setNuevaEncomienda({
@@ -237,6 +244,51 @@ export function ClienteEncomienda() {
     }
   };
 
+  // ✅ FUNCIÓN CORREGIDA PARA PAGO EN EFECTIVO
+  const handleProcesarPago = async (metodoPago: 'efectivo' | 'tarjeta') => {
+    if (!encomiendaParaPagar) return;
+
+    try {
+      if (metodoPago === 'efectivo') {
+        // ✅ CORREGIDO: Ahora sí marca el pago en efectivo como completado
+        toast.info('Procesando pago en efectivo...');
+        
+        const result = await marcarPagoEfectivo(encomiendaParaPagar.id);
+        
+        if (result.success) {
+          toast.success('✅ Pago en efectivo registrado exitosamente. Lleva tu paquete a nuestras instalaciones.');
+          setShowPagoModal(false);
+          
+          // Recargar el historial para actualizar el estado
+          await loadMyEncomiendas();
+        } else {
+          toast.error(result.error || 'Error al registrar el pago en efectivo');
+        }
+        
+      } else if (metodoPago === 'tarjeta') {
+        // Para pago con tarjeta, procesar con Stripe
+        toast.info('Iniciando proceso de pago con tarjeta...');
+        const result = await crearPagoStripe(encomiendaParaPagar.id);
+        
+        if (result.success) {
+          toast.success('Pago procesado exitosamente');
+          setShowPagoModal(false);
+          await loadMyEncomiendas(); // Recargar datos
+        } else {
+          toast.error(result.error || 'Error al procesar pago');
+        }
+      }
+    } catch (error) {
+      console.error('Error procesando pago:', error);
+      toast.error('Error al procesar el pago');
+    }
+  };
+
+  const handlePagarEncomienda = (encomienda: Encomienda) => {
+    setEncomiendaParaPagar(encomienda);
+    setShowPagoModal(true);
+  };
+
   const precioCalculado = calcularPrecio(nuevaEncomienda.peso, nuevaEncomienda.destino_ciudad);
 
   const formatDate = (dateString: string) => {
@@ -252,7 +304,7 @@ export function ClienteEncomienda() {
       return 'Fecha inválida';
     }
   };
-
+  
   const getEstadoPago = (encomienda: Encomienda) => {
     return encomienda.estado_pago || 'pendiente';
   };
@@ -479,14 +531,22 @@ export function ClienteEncomienda() {
                     </div>
                   </div>
 
+                  {/* Información de Pago Mejorada */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertCircle className="h-5 w-5 text-blue-600" />
-                      <span className="font-semibold text-blue-800">Información de Pago</span>
+                      <span className="font-semibold text-blue-800">Proceso de Pago</span>
                     </div>
-                    <p className="text-sm text-blue-700">
-                      El pago se realizará al momento de la entrega. Precio calculado: <strong>{precioCalculado.toFixed(2)} BOB</strong>
-                    </p>
+                    <div className="text-sm text-blue-700 space-y-2">
+                      <p><strong>Precio calculado: {precioCalculado.toFixed(2)} BOB</strong></p>
+                      <p>Después de registrar la encomienda:</p>
+                      <ol className="list-decimal list-inside ml-2 space-y-1">
+                        <li>Lleva tu paquete a nuestras instalaciones</li>
+                        <li>Puedes pagar en efectivo al entregar el paquete</li>
+                        <li>O el destinatario puede pagar al recibirlo</li>
+                        <li>También puedes pagar online desde tu historial</li>
+                      </ol>
+                    </div>
                   </div>
 
                   <Button 
@@ -511,7 +571,7 @@ export function ClienteEncomienda() {
             </Card>
           </TabsContent>
 
-          {/* Seguimiento */}
+          {/* Seguimiento - SIN BOTÓN DE PAGO */}
           <TabsContent value="seguimiento">
             <Card>
               <CardHeader>
@@ -561,7 +621,6 @@ export function ClienteEncomienda() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <strong>Estado:</strong> 
-                                  {/* ✅ CORREGIDO: Usar función segura */}
                                   <Badge className={`${getEstadoConfig(encomiendaSeguimiento.estado).color} border`}>
                                     {getEstadoConfig(encomiendaSeguimiento.estado).label}
                                   </Badge>
@@ -574,7 +633,6 @@ export function ClienteEncomienda() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <strong>Estado Pago:</strong>
-                                  {/* ✅ CORREGIDO: Usar función segura */}
                                   <Badge className={getEstadoPagoConfig(getEstadoPago(encomiendaSeguimiento)).color}>
                                     {getEstadoPagoConfig(getEstadoPago(encomiendaSeguimiento)).label}
                                   </Badge>
@@ -649,7 +707,7 @@ export function ClienteEncomienda() {
             </Card>
           </TabsContent>
 
-          {/* Historial */}
+          {/* Historial - CON BOTÓN DE PAGO */}
           <TabsContent value="historial">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -688,9 +746,9 @@ export function ClienteEncomienda() {
                 ) : (
                   <div className="space-y-4">
                     {data.results.map((encomienda) => {
-                      // ✅ CORREGIDO: Obtener configuraciones de forma segura
                       const estadoConfig = getEstadoConfig(encomienda.estado);
                       const estadoPagoConfig = getEstadoPagoConfig(getEstadoPago(encomienda));
+                      const puedePagar = estadoPagoConfig.puedePagar;
                       
                       return (
                         <Card key={encomienda.id} className="hover:shadow-md transition-shadow">
@@ -708,7 +766,6 @@ export function ClienteEncomienda() {
                                     {encomienda.destinatario_nombre} - {encomienda.destino_ciudad}
                                   </p>
                                   <div className="flex items-center gap-2 mt-1">
-                                    {/* ✅ CORREGIDO: Usar configuraciones seguras */}
                                     <Badge className={estadoConfig.color}>
                                       {estadoConfig.label}
                                     </Badge>
@@ -725,18 +782,30 @@ export function ClienteEncomienda() {
                                 <p className="text-sm text-gray-600">
                                   {formatDate(encomienda.fecha_creacion)}
                                 </p>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="mt-2"
-                                  onClick={() => {
-                                    setCodigoSeguimiento(encomienda.codigo_seguimiento);
-                                    setActiveTab('seguimiento');
-                                  }}
-                                >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  Ver Detalles
-                                </Button>
+                                <div className="flex gap-2 mt-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setCodigoSeguimiento(encomienda.codigo_seguimiento);
+                                      setActiveTab('seguimiento');
+                                    }}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Ver Detalles
+                                  </Button>
+                                  {/* ✅ BOTÓN DE PAGO SOLO EN HISTORIAL */}
+                                  {puedePagar && (
+                                    <Button 
+                                      size="sm"
+                                      onClick={() => handlePagarEncomienda(encomienda)}
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      <DollarSign className="w-4 h-4 mr-1" />
+                                      Pagar Encomienda
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </CardContent>
@@ -749,6 +818,16 @@ export function ClienteEncomienda() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Modal de Pago */}
+        <PagoModal
+          isOpen={showPagoModal}
+          onClose={() => setShowPagoModal(false)}
+          encomienda={encomiendaParaPagar}
+          onProcesarPago={handleProcesarPago}
+          loading={loading}
+          esAdmin={false}
+        />
       </div>
     </div>
   );
