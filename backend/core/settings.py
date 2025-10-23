@@ -35,6 +35,7 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me-dev")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
+
 # ========== CONFIGURACIÓN AUTOMÁTICA DE HOSTS ==========
 def get_allowed_hosts():
     """
@@ -44,19 +45,23 @@ def get_allowed_hosts():
     - Producción: cualquier host (*) - Django se encarga de la validación
     """
     env_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
-    
+
     if env_hosts and env_hosts.strip():
         # Si hay hosts específicos en la variable de entorno
         hosts = [host.strip() for host in env_hosts.split(",") if host.strip()]
         print(f"🔧 [Django] Hosts configurados por variable de entorno: {hosts}")
         return hosts
-    
+
     # Configuración automática por defecto para máxima compatibilidad
-    default_hosts = ["*"]  # Permitir cualquier host - más flexible para contenedores y nube
+    default_hosts = [
+        "*"
+    ]  # Permitir cualquier host - más flexible para contenedores y nube
     print(f"🌐 [Django] Hosts automáticos configurados: {default_hosts}")
     return default_hosts
 
+
 ALLOWED_HOSTS = get_allowed_hosts()
+
 
 # ========== CONFIGURACIÓN AUTOMÁTICA DE CORS ==========
 def configure_cors():
@@ -67,7 +72,7 @@ def configure_cors():
     """
     # Por defecto permitir todos los orígenes para máxima compatibilidad
     allow_all = os.getenv("CORS_ALLOW_ALL_ORIGINS", "True") == "True"
-    
+
     if allow_all:
         print("🌍 [Django] CORS configurado para permitir TODOS los orígenes")
         return True, []
@@ -75,26 +80,27 @@ def configure_cors():
         # URLs específicas si se desactiva allow_all
         frontend_urls = [
             "http://localhost:5173",
-            "http://127.0.0.1:5173", 
+            "http://127.0.0.1:5173",
             "http://localhost:3000",
             "http://127.0.0.1:3000",
             # Emulador Android
             "http://10.0.2.2:5173",
-            "http://10.0.2.2:8000"
+            "http://10.0.2.2:8000",
         ]
-        
+
         # Agregar URLs de variables de entorno si existen
         env_frontend = os.getenv("FRONTEND_URL")
         env_frontend_alt = os.getenv("FRONTEND_URL_ALT")
-        
+
         if env_frontend:
             frontend_urls.append(env_frontend)
         if env_frontend_alt:
             frontend_urls.append(env_frontend_alt)
-        
+
         # Intentar detectar IP pública para casos de EC2/nube
         try:
             from core.utils.ip_detection import get_public_ip
+
             ip = get_public_ip()
             if ip:
                 frontend_urls.append(f"http://{ip}:5173")
@@ -102,9 +108,12 @@ def configure_cors():
                 print(f"🌎 [Django] IP pública detectada y agregada a CORS: {ip}")
         except Exception as e:
             print(f"⚠️ [Django] No se pudo detectar IP pública: {e}")
-        
-        print(f"🎯 [Django] CORS configurado para orígenes específicos: {frontend_urls}")
+
+        print(
+            f"🎯 [Django] CORS configurado para orígenes específicos: {frontend_urls}"
+        )
         return False, frontend_urls
+
 
 CORS_ALLOW_ALL_ORIGINS, CORS_ALLOWED_ORIGINS = configure_cors()
 CORS_ALLOW_CREDENTIALS = True  # Habilitar cookies/sesión
@@ -144,8 +153,9 @@ INSTALLED_APPS = [
     # dj-rest-auth (REST endpoints de login/registro/password/social)
     "dj_rest_auth",
     "dj_rest_auth.registration",
-    # "dj_rest_auth.jwt_auth",
     "rest_framework_simplejwt.token_blacklist",
+    # Apps del proyecto
+    "notificaciones",
     "bitacora",
     "pagos",
     'vehiculos',
@@ -259,6 +269,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+
 # ========== CONFIGURACIÓN AUTOMÁTICA DE CSRF ==========
 def get_csrf_trusted_origins():
     """
@@ -271,10 +282,11 @@ def get_csrf_trusted_origins():
         "http://10.0.2.2:8000",
         "http://10.0.2.2:5173",
     ]
-    
+
     # Intentar detectar IP pública para casos de EC2/nube
     try:
         from core.utils.ip_detection import get_public_ip
+
         ip = get_public_ip()
         if ip:
             origins.append(f"http://{ip}:5173")
@@ -282,9 +294,10 @@ def get_csrf_trusted_origins():
             print(f"🔒 [Django] IP pública agregada a CSRF origins: {ip}")
     except Exception as e:
         print(f"⚠️ [Django] No se pudo agregar IP a CSRF origins: {e}")
-    
+
     print(f"🔐 [Django] CSRF orígenes de confianza: {origins}")
     return origins
+
 
 CSRF_TRUSTED_ORIGINS = get_csrf_trusted_origins()
 
@@ -302,7 +315,7 @@ ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = (
 )
 
 # Política de cuentas (ajústalo a tu gusto)
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = False
 ACCOUNT_USERNAME_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = "username_email"  # username o email
 ACCOUNT_EMAIL_VERIFICATION = os.getenv("ACCOUNT_EMAIL_VERIFICATION", "none")
@@ -394,7 +407,19 @@ SITE_ID = 1
 # ====== STRIPE CONFIGURATION ======
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
-SITE_ID = int(os.getenv("SITE_ID", "1"))
+
+# ====== FIREBASE CONFIGURATION ======
+FIREBASE_SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_PATH", "/app/firebase-credentials.json")
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "transporte-si2")
+FIREBASE_MESSAGING_SENDER_ID = os.getenv("FIREBASE_MESSAGING_SENDER_ID", "543273137943")
+
+# URLs de notificaciones
+NOTIFICATION_ICON_URL = os.getenv(
+    "NOTIFICATION_ICON_URL", "https://tu-dominio.com/static/img/icon-192x192.png"
+)
+NOTIFICATION_BADGE_URL = os.getenv(
+    "NOTIFICATION_BADGE_URL", "https://tu-dominio.com/static/img/badge-72x72.png"
+)
 
 # ========== CONFIGURACIÓN DE CELERY ==========
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')

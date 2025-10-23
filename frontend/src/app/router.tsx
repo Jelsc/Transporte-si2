@@ -10,7 +10,6 @@ import RolesPage from "@/pages/admin/roles/roles.page";
 import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
 import { VentasReserva } from "./layout/VentasReserva";
-
 import PersonalPage from "@/pages/admin/personal/personal.page";
 import ConductoresPage from "@/pages/admin/conductores/driver.page";
 import UsuariosPage from "@/pages/admin/users/users.page";
@@ -20,10 +19,15 @@ import ViajesPage from "@/pages/admin/viajes/viajes.page";
 import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
 import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
 import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
+import CrearSolicitudPage from "@/pages/admin/rutas-optimizadas/crear-solicitud.page";
 import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
-import ClienteEncomienda from "@/pages/clienpagt/ClientEncomiendasPage";
-import AdminEncomienda from "@/pages/admin/encomiendas/AdminEncomiendasPage";
+import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
+import AdminEncomiendaPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
+import ReservasPage from "@/pages/admin/reservas/reservas.page";
+
+import NotificationHistoryPage from "@/pages/client/notification-history.page";
+
 
 export default function AppRouter() {
   return (
@@ -35,13 +39,25 @@ export default function AppRouter() {
           <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
           <Route path="encomiendas" element={<ClienteEncomienda/>} />
         </Route>
-        
+
+        {/* Rutas protegidas del cliente */}
+        <Route path="/client" element={<ClientLayout />}>
+          <Route
+            path="notificaciones"
+            element={
+              <ProtectedRoute>
+                <NotificationHistoryPage />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
         {/* Rutas de autenticación sin layout */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/code-verification" element={<CodeVerificationPage />} />
         <Route path="/profile/edit" element={<AccountSettingsPage />} />
-        
+
         {/* Rutas de administración */}
         <Route path="/admin" element={<AdminLoginPage />} />
         {/* Rutas protegidas de administración */}
@@ -153,10 +169,36 @@ export default function AppRouter() {
               path="/admin/encomiendas"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <AdminEncomienda />
+                  <AdminEncomiendaPage />
                 </ProtectedRoute>
               }
             />
+        <Route
+          path="/admin/reservas"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+                
+              <ReservasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rutas-optimizadas/crear"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <CrearSolicitudPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/pagos"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+            
+              <VentasReserva />
+            </ProtectedRoute>
+          }
+        />
 
         {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
         <Route

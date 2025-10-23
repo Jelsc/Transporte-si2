@@ -156,7 +156,7 @@ export default function MisReservasPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
+            <CardTitle className="text-sm font-medium">Pagos</CardTitle>
             <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -166,7 +166,7 @@ export default function MisReservasPage() {
                 currency: 'BOB'
               }).format(ingresosTotales)}
             </div>
-            <p className="text-xs text-muted-foreground">Total pagado</p>
+            <p className="text-xs text-muted-foreground">Total pagos realizados</p>
           </CardContent>
         </Card>
       </div>

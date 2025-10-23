@@ -21,4 +21,7 @@ RUN pip install -r requirements.txt
 # Código
 COPY . /app/
 
+# Crear directorio de logs
+RUN mkdir -p /app/logs && chmod 755 /app/logs
+
 EXPOSE 8000

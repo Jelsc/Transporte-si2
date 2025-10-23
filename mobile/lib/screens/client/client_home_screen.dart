@@ -80,7 +80,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const ViajesDisponiblesScreen(),
+                                builder: (context) =>
+                                    const ViajesDisponiblesScreen(),
                               ),
                             ),
                           ),
@@ -159,15 +160,12 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               ),
               Text(
                 _currentUser?.firstName ?? 'Usuario',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
+                style: const TextStyle(fontSize: 16, color: Colors.black54),
               ),
             ],
           ),
           NeumorphicButton(
-            onTap: () => _showComingSoon('Notificaciones'),
+            onTap: () => Navigator.pushNamed(context, '/notification-history'),
             width: 50,
             height: 50,
             padding: const EdgeInsets.all(12),
@@ -203,11 +201,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 24,
-                color: color,
-              ),
+              child: Icon(icon, size: 24, color: color),
             ),
             const SizedBox(height: 8),
             Flexible(
@@ -227,10 +221,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             Flexible(
               child: Text(
                 subtitle,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

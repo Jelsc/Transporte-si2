@@ -17,27 +17,31 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+
+# Importaciones de testing movidas a notificaciones.urls
+from core.utils.api_status import api_status
+
 # Endpoints principales del sistema
 urlpatterns = [
     # Panel de administración de Django
     path("admin/", admin.site.urls),
-    
     # ENDPOINTS DE API (todos bajo /api/)
-    
+    # Status de la API
+    path("api/status/", api_status, name="api_status"),
     # Sistema de usuarios unificado
     path("api/", include("users.urls")),
-    
     # Conductores: gestión de conductores
     path("api/conductores/", include("conductores.urls")),
-    
     # Personal: gestión de personal de empresa
     path("api/personal/", include("personal.urls")),
     
     path("api/bitacora/", include("bitacora.urls")),
-
+  
     path("api/vehiculos/", include("vehiculos.urls")),
   
     path("api/viajes/", include("viajes.urls")),
+  
+    path("api/notificaciones/", include("notificaciones.urls")),
     
     # Encomiendas: gestión de paquetes y envíos
     path("api/encomiendas/", include("encomiendas.urls")),

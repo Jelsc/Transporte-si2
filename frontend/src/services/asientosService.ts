@@ -1,9 +1,8 @@
-// services/asientosService.ts - VERSIÓN ACTUALIZADA PARA MÚLTIPLES ASIENTOS
+
 import type { Asiento } from '@/types/asiento';
 import type { ApiResponse } from '@/types';
 import { apiRequest } from './authService';
 
-// Interface para la respuesta paginada de Django REST Framework
 interface PaginatedResponse<T> {
   count: number;
   next: string | null;
@@ -11,7 +10,6 @@ interface PaginatedResponse<T> {
   results: T[];
 }
 
-// Interface para la NUEVA estructura de Reserva
 interface Reserva {
   id: number;
   codigo_reserva: string;
@@ -21,6 +19,9 @@ interface Reserva {
   total: number;
   pagado: boolean;
   items: ItemReserva[];
+  fecha_expiracion?: string;
+  tiempo_restante?: number;
+  esta_expirada?: boolean;
 }
 
 interface ItemReserva {
@@ -29,16 +30,19 @@ interface ItemReserva {
   precio: number;
 }
 
+interface ReservaTemporalResponse {
+  success: boolean;
+  message?: string;
+  data?: Reserva;
+  expiracion?: string;
+  tiempo_restante?: number;
+  error?: string;
+}
+
 export const asientosApi = {
-  /**
-   * Obtiene todos los asientos de un viaje
-   */
   async list(viajeId: number): Promise<ApiResponse<Asiento[]>> {
     try {
-      console.log('🔍 Solicitando asientos para viaje:', viajeId);
-      
       const response = await apiRequest(`/api/asientos/?viaje=${viajeId}`);
-      console.log('📦 Respuesta de asientos:', response);
 
       if (response.success && response.data) {
         let asientosData: Asiento[] = [];
@@ -51,10 +55,7 @@ export const asientosApi = {
           asientosData = data;
         }
 
-        // Ordenar asientos por número
         asientosData.sort((a, b) => parseInt(a.numero) - parseInt(b.numero));
-        
-        console.log(`✅ ${asientosData.length} asientos cargados y ordenados`);
         
         return {
           success: true,
@@ -69,7 +70,7 @@ export const asientosApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al cargar asientos:', error);
+      console.error('Error al cargar asientos:', error);
       return {
         success: false,
         error: 'Error de conexión',
@@ -78,26 +79,68 @@ export const asientosApi = {
     }
   },
 
-  /**
-   * ✅ NUEVO: Realiza reserva de MÚLTIPLES asientos
-   */
-  async reservarMultiple(asientosIds: number[]): Promise<ApiResponse<Reserva>> {
+  async reservarMultiple(
+    asientosIds: number[], 
+    viajeId?: number, 
+    montoTotal?: number
+  ): Promise<ReservaTemporalResponse> {
     try {
-      console.log(`🪑 RESERVANDO MÚLTIPLES ASIENTOS:`, asientosIds);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
-        console.error('❌ No hay token de autenticación');
         return { success: false, error: 'No autenticado' };
       }
 
-      // ✅ NUEVO PAYLOAD: usar "asientos_ids" para múltiples asientos
+      if (viajeId && montoTotal !== undefined) {
+        const reservaTemporalPayload = {
+          viaje_id: viajeId,
+          asientos_ids: asientosIds,
+          monto_total: montoTotal
+        };
+
+        const response = await fetch('http://localhost:8000/api/reservas/crear-temporal/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(reservaTemporalPayload),
+        });
+
+        const responseText = await response.text();
+
+        if (!response.ok) {
+          try {
+            const errorData = JSON.parse(responseText);
+            return { 
+              success: false, 
+              error: errorData.error || errorData.detalles || JSON.stringify(errorData)
+            };
+          } catch (e) {
+            return { 
+              success: false, 
+              error: `Error ${response.status}: ${responseText}` 
+            };
+          }
+        }
+
+        try {
+          const data = JSON.parse(responseText);
+          return {
+            success: true,
+            data: data.data,
+            expiracion: data.expiracion,
+            tiempo_restante: data.tiempo_restante,
+            message: data.message
+          };
+        } catch (e) {
+          return { success: false, error: 'Error procesando respuesta del servidor' };
+        }
+      }
+
       const payload = {
-        asientos_ids: asientosIds,  // ✅ Ahora es un array
+        asientos_ids: asientosIds,
         pagado: false,
       };
-
-      console.log('📤 Payload para reserva múltiple:', payload);
 
       const response = await fetch('http://localhost:8000/api/reservas/', {
         method: 'POST',
@@ -108,14 +151,9 @@ export const asientosApi = {
         body: JSON.stringify(payload),
       });
 
-      console.log('📥 Status:', response.status);
-      
       const responseText = await response.text();
-      console.log('📥 RESPUESTA COMPLETA:', responseText);
 
       if (!response.ok) {
-        console.error('❌ ERROR HTTP:', response.status);
-        
         try {
           const errorData = JSON.parse(responseText);
           return { 
@@ -130,30 +168,21 @@ export const asientosApi = {
         }
       }
 
-      // ✅ Éxito
       try {
         const data = JSON.parse(responseText) as Reserva;
-        console.log('✅ RESERVA MÚLTIPLE EXITOSA:', data);
         return { success: true, data };
       } catch (e) {
-        console.error('❌ Error parseando respuesta exitosa:', e);
         return { success: true, data: null as any };
       }
       
     } catch (error) {
-      console.error('❌ Error de red:', error);
+      console.error('Error de red:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * ⚠️ MANTENIDO: Reserva simple (para compatibilidad)
-   * Usa el endpoint /api/reservas/simple/
-   */
   async reservarSimple(asientoId: number): Promise<ApiResponse<any>> {
     try {
-      console.log(`🪑 RESERVANDO ASIENTO SIMPLE: ${asientoId}`);
-      
       const token = localStorage.getItem('access_token');
       if (!token) {
         return { success: false, error: 'No autenticado' };
@@ -163,8 +192,6 @@ export const asientosApi = {
         asiento_id: asientoId,
         pagado: false,
       };
-
-      console.log('📤 Payload para reserva simple:', payload);
 
       const response = await fetch('http://localhost:8000/api/reservas/simple/', {
         method: 'POST',
@@ -176,7 +203,6 @@ export const asientosApi = {
       });
 
       const responseText = await response.text();
-      console.log('📥 Respuesta reserva simple:', responseText);
 
       if (!response.ok) {
         try {
@@ -195,21 +221,107 @@ export const asientosApi = {
 
       try {
         const data = JSON.parse(responseText);
-        console.log('✅ RESERVA SIMPLE EXITOSA:', data);
         return { success: true, data };
       } catch (e) {
         return { success: true, data: null };
       }
       
     } catch (error) {
-      console.error('❌ Error de red:', error);
+      console.error('Error de red:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },
 
-  /**
-   * Obtiene las reservas del usuario autenticado (ACTUALIZADO)
-   */
+  async confirmarPagoReserva(reservaId: number): Promise<ApiResponse<Reserva>> {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        return { success: false, error: 'No autenticado' };
+      }
+
+      const response = await fetch(`http://localhost:8000/api/reservas/${reservaId}/confirmar-pago/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        try {
+          const errorData = JSON.parse(responseText);
+          return { 
+            success: false, 
+            error: errorData.error || errorData.detalles || JSON.stringify(errorData)
+          };
+        } catch (e) {
+          return { 
+            success: false, 
+            error: `Error ${response.status}: ${responseText}` 
+          };
+        }
+      }
+
+      try {
+        const data = JSON.parse(responseText);
+        return { success: true, data: data.data };
+      } catch (e) {
+        return { success: false, error: 'Error procesando respuesta del servidor' };
+      }
+      
+    } catch (error) {
+      console.error('Error de red:', error);
+      return { success: false, error: 'Error de conexión' };
+    }
+  },
+
+  async cancelarReservaTemporal(reservaId: number): Promise<ApiResponse<null>> {
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        return { success: false, error: 'No autenticado' };
+      }
+
+      const response = await fetch(`http://localhost:8000/api/reservas/${reservaId}/cancelar-temporal/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        try {
+          const errorData = JSON.parse(responseText);
+          return { 
+            success: false, 
+            error: errorData.error || errorData.detalles || JSON.stringify(errorData)
+          };
+        } catch (e) {
+          return { 
+            success: false, 
+            error: `Error ${response.status}: ${responseText}` 
+          };
+        }
+      }
+
+      try {
+        const data = JSON.parse(responseText);
+        return { success: true, data: null };
+      } catch (e) {
+        return { success: false, error: 'Error procesando respuesta del servidor' };
+      }
+      
+    } catch (error) {
+      console.error('Error de red:', error);
+      return { success: false, error: 'Error de conexión' };
+    }
+  },
+
   async getMisReservas(): Promise<ApiResponse<Reserva[]>> {
     try {
       const response = await apiRequest(`/api/reservas/`);
@@ -228,7 +340,7 @@ export const asientosApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al obtener reservas:', error);
+      console.error('Error al obtener reservas:', error);
       return {
         success: false,
         error: 'Error al cargar las reservas',
@@ -237,9 +349,6 @@ export const asientosApi = {
     }
   },
 
-  /**
-   * Obtiene el detalle completo de una reserva
-   */
   async getDetalleReserva(reservaId: number): Promise<ApiResponse<Reserva>> {
     try {
       const response = await apiRequest(`/api/reservas/${reservaId}/detalle-completo/`);
@@ -257,7 +366,7 @@ export const asientosApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al obtener detalle de reserva:', error);
+      console.error('Error al obtener detalle de reserva:', error);
       return {
         success: false,
         error: 'Error al cargar el detalle de la reserva'
@@ -265,9 +374,6 @@ export const asientosApi = {
     }
   },
 
-  /**
-   * Cancela una reserva del usuario autenticado
-   */
   async cancelarReserva(reservaId: number): Promise<ApiResponse<null>> {
     try {
       const response = await apiRequest(`/api/reservas/${reservaId}/`, {
@@ -287,7 +393,7 @@ export const asientosApi = {
       };
 
     } catch (error) {
-      console.error('❌ Error al cancelar reserva:', error);
+      console.error('Error al cancelar reserva:', error);
       return {
         success: false,
         error: 'Error al cancelar la reserva'
@@ -295,9 +401,6 @@ export const asientosApi = {
     }
   },
 
-  /**
-   * ✅ NUEVO: Agrega asientos a una reserva existente
-   */
   async agregarAsientosReserva(reservaId: number, asientosIds: number[]): Promise<ApiResponse<Reserva>> {
     try {
       const token = localStorage.getItem('access_token');
@@ -339,7 +442,7 @@ export const asientosApi = {
       return { success: true, data: data.reserva };
 
     } catch (error) {
-      console.error('❌ Error al agregar asientos:', error);
+      console.error('Error al agregar asientos:', error);
       return { success: false, error: 'Error de conexión' };
     }
   },

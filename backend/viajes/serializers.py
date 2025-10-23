@@ -7,6 +7,7 @@ from users.models import CustomUser
 from ubicaciones.models import Ubicacion
 
 
+
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
@@ -81,6 +82,7 @@ class ViajeSerializer(serializers.ModelSerializer):
             validated_data['asientos_disponibles'] = vehiculo.capacidad_pasajeros
         return super().create(validated_data)
 
+
 class AsientoSerializer(serializers.ModelSerializer):
     viaje = ViajeSerializer(read_only=True)
     esta_disponible = serializers.SerializerMethodField()
@@ -92,9 +94,6 @@ class AsientoSerializer(serializers.ModelSerializer):
     def get_esta_disponible(self, obj):
         return obj.esta_disponible
 
-# ==========================
-# NUEVO SERIALIZER PARA ITEM_RESERVA
-# ==========================
 class ItemReservaSerializer(serializers.ModelSerializer):
     asiento = AsientoSerializer(read_only=True)
     asiento_id = serializers.PrimaryKeyRelatedField(
@@ -109,9 +108,7 @@ class ItemReservaSerializer(serializers.ModelSerializer):
         fields = ['id', 'asiento', 'asiento_id', 'precio']
         read_only_fields = ['precio']
 
-# ==========================
-# SERIALIZER DE RESERVA ACTUALIZADO (MÚLTIPLES ASIENTOS) - CORREGIDO
-# ==========================
+
 class ReservaSerializer(serializers.ModelSerializer):
     cliente = CustomUserSerializer(read_only=True)
     items = ItemReservaSerializer(many=True, read_only=True, source='items.all')
@@ -153,9 +150,6 @@ class ReservaSerializer(serializers.ModelSerializer):
         return obj.esta_expirada
 
     def validate_asientos_ids(self, value):
-        """
-        Valida que todos los asientos existan y estén libres
-        """
         if not value:
             raise serializers.ValidationError("Debe seleccionar al menos un asiento")
         
@@ -166,57 +160,40 @@ class ReservaSerializer(serializers.ModelSerializer):
         asientos_ocupados = asientos.filter(estado__in=['ocupado', 'reservado'])
         if asientos_ocupados.exists():
             numeros_ocupados = list(asientos_ocupados.values_list('numero', flat=True))
-            raise serializers.ValidationError(
-                f"Los asientos {numeros_ocupados} no están disponibles"
-            )
+            raise serializers.ValidationError(f"Los asientos {numeros_ocupados} no están disponibles")
         
         viajes_ids = asientos.values_list('viaje_id', flat=True).distinct()
         if len(viajes_ids) > 1:
-            raise serializers.ValidationError(
-                "Todos los asientos deben ser del mismo viaje"
-            )
+            raise serializers.ValidationError("Todos los asientos deben ser del mismo viaje")
         
         return value
 
     def create(self, validated_data):
-        """
-        Crea una reserva con múltiples asientos en una transacción atómica - CORREGIDO
-        """
         asientos_ids = validated_data.pop('asientos_ids')
         user = self.context['request'].user
         
         with transaction.atomic():
-            # CORRECCIÓN: Crear la reserva solo con el cliente
             reserva = Reserva.objects.create(cliente=user)
             
-            # Obtener los asientos y verificar nuevamente
             asientos = Asiento.objects.filter(id__in=asientos_ids)
             asientos_ocupados = asientos.filter(estado__in=['ocupado', 'reservado'])
             
             if asientos_ocupados.exists():
-                raise serializers.ValidationError(
-                    "Algunos asientos ya fueron ocupados durante el proceso de reserva"
-                )
+                raise serializers.ValidationError("Algunos asientos ya fueron ocupados durante el proceso de reserva")
             
-            # Obtener el precio del viaje
             viaje = asientos.first().viaje
             precio_viaje = viaje.precio
             
-            # ✅ CORRECCIÓN: Crear items UNO POR UNO (dispara señales)
             for asiento in asientos:
-                # Esto dispara la señal post_save automáticamente
                 ItemReserva.objects.create(
                     reserva=reserva,
                     asiento=asiento,
                     precio=precio_viaje
                 )
-                # ❌ NO actualizar el asiento manualmente - lo hace la señal
             
         return reserva
 
-# ==========================
-# SERIALIZER PARA COMPATIBILIDAD (RESERVA SIMPLE) - CORREGIDO
-# ==========================
+
 class ReservaSimpleSerializer(serializers.ModelSerializer):
     cliente = CustomUserSerializer(read_only=True)
     asiento = AsientoSerializer(read_only=True)

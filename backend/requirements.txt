@@ -24,3 +24,7 @@ pytest>=7.4.0
 pytest-django>=4.5.2
 pytest-cov>=4.1.0
 factory-boy>=3.3.0
+# Firebase para notificaciones push
+firebase-admin>=6.2.0
+# Servidor de producción
+gunicorn>=21.2.0
