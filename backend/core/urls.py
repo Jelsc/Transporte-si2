@@ -33,10 +33,10 @@ urlpatterns = [
     # Personal: gestión de personal de empresa
     path("api/personal/", include("personal.urls")),
     
-    
     path("api/bitacora/", include("bitacora.urls")),
 
     path("api/vehiculos/", include("vehiculos.urls")),
+  
     path("api/viajes/", include("viajes.urls")),
     
     # Encomiendas: gestión de paquetes y envíos
@@ -50,8 +50,5 @@ urlpatterns = [
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
 
-    path("api/bitacora/", include("bitacora.urls")),
     path("api/pagos/", include("pagos.urls")),  # AGREGAR AQUÍ
-    
-    
 ]

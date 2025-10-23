@@ -25,26 +25,39 @@ export interface Encomienda {
   descripcion: string;
   peso: number;
   precio: number;
+  notas?: string;
   estado: 'pendiente' | 'en_ruta' | 'entregado' | 'cancelado';
   fecha_creacion: string;
   fecha_entrega_estimada?: string;
   fecha_entrega_real?: string;
   conductor_asignado?: number;
   conductor_nombre?: string;
-  notas?: string;
   creado_por?: number;
+  metodo_pago: 'efectivo' | 'tarjeta';
+  estado_pago: 'pendiente' | 'procesando' | 'completado' | 'fallido';
+  pago_info?: any;
   
-  // NUEVOS CAMPOS PARA PAGOS
-  pago_info?: {
-    id: number;
-    monto: string;
-    estado: string;
-    metodo_pago: string;
-    fecha_creacion: string;
-    stripe_payment_intent_id?: string;
+
+  seguimientos?: EncomiendaSeguimiento[];
+  pago?: number;
+  puede_ser_asignada?: boolean;
+  puede_ser_entregada?: boolean;
+  creado_por_nombre?: string;
+  conductor_info?: {
+    id?: number;
+    nombre_completo?: string;
+    telefono?: string;
+    tipo_licencia?: string;
+    nro_licencia?: string;
+    estado?: string;
   };
-  estado_pago?: string;
-  metodo_pago?: string;
+  pago_detalle?: {
+    id?: number;
+    monto?: string;
+    estado?: string;
+    metodo_pago?: string;
+    fecha_creacion?: string;
+  };
 }
 
 export interface EncomiendaFilters {
@@ -66,15 +79,29 @@ export interface CreateEncomiendaRequest {
   destino_direccion: string;
   descripcion: string;
   peso: number;
+  precio?: number; 
   notas?: string;
-  metodo_pago: 'stripe' | 'efectivo' | 'transferencia'; // NUEVO CAMPO
+  metodo_pago: 'efectivo' | 'tarjeta'; 
 }
 
 export interface UpdateEncomiendaRequest {
-  estado?: string;
-  conductor_asignado?: number;
-  fecha_entrega_real?: string;
+  remitente_nombre?: string;
+  remitente_telefono?: string;
+  remitente_direccion?: string;
+  destinatario_nombre?: string;
+  destinatario_telefono?: string;
+  destino_ciudad?: string;
+  destino_direccion?: string;
+  descripcion?: string;
+  peso?: number;
+  precio?: number;
   notas?: string;
+  estado?: 'pendiente' | 'en_ruta' | 'entregado' | 'cancelado';
+  conductor_asignado?: number;
+  fecha_entrega_estimada?: string;
+  fecha_entrega_real?: string;
+  metodo_pago?: 'efectivo' | 'tarjeta';
+  estado_pago?: 'pendiente' | 'procesando' | 'completado' | 'fallido';
 }
 
 export interface EncomiendaStats {
@@ -88,22 +115,49 @@ export interface EncomiendaStats {
 
 export interface EncomiendaSeguimiento {
   id: number;
-  encomienda_id: number;
+  encomienda: number;
   evento: string;
   descripcion: string;
-  fecha: string;
   ubicacion?: string;
-  usuario?: string;
+  fecha: string;
 }
 
-// NUEVAS INTERFACES PARA PAGOS
+// ✅ INTERFACES PARA PAGOS ACTUALIZADAS
 export interface StripePaymentIntent {
   client_secret: string;
   payment_intent_id: string;
   monto: number;
-  encomienda_id: number;
+  estado: string;
+  success?: boolean;
+  message?: string;
+  pago_id?: number;
 }
 
 export interface ConfirmPaymentRequest {
   payment_intent_id: string;
+}
+
+// ✅ INTERFACES PARA ASIGNACIÓN Y ESTADOS
+export interface AsignarConductorRequest {
+  conductor_id: number;
+}
+
+export interface ActualizarEstadoRequest {
+  estado: 'pendiente' | 'en_ruta' | 'entregado' | 'cancelado';
+  notas?: string;
+  ubicacion?: string;
+  fecha_entrega_real?: string;
+}
+
+// ✅ INTERFACE PARA CONDUCTORES 
+export interface ConductorOption {
+  id: number;
+  nombre: string;
+  apellido: string;
+  nombre_completo: string;
+  telefono: string;
+  email: string;
+  nro_licencia: string;
+  tipo_licencia: string;
+  estado: 'disponible' | 'ocupado' | 'descanso' | 'inactivo';
 }
