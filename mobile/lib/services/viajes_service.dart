@@ -92,8 +92,11 @@ class ViajesService {
         };
       }
     } catch (e) {
-      print('💥 [ViajesService] Excepción: $e');
-      return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
+      return {
+        'success': false,
+        'data': null,
+        'error': 'Error de conexión: $e',
+      };
     }
   }
 

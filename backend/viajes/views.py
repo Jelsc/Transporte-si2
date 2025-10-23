@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from datetime import timedelta
@@ -19,11 +20,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from notificaciones.services import NotificationService
 
 class ViajeViewSet(viewsets.ModelViewSet):
-    permission_classes = [AllowAny]
     queryset = Viaje.objects.all().order_by('fecha', 'hora')
     serializer_class = ViajeSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    search_fields = ['origen', 'destino', 'vehiculo__nombre', 'vehiculo__placa']
+    search_fields = ['origen__nombre', 'destino__nombre', 'vehiculo__nombre', 'vehiculo__placa']
     filterset_fields = {
         'origen': ['exact'],
         'destino': ['exact'],
@@ -31,6 +31,40 @@ class ViajeViewSet(viewsets.ModelViewSet):
         'vehiculo': ['exact'],
         'estado': ['exact'],
     }
+    
+    def get_permissions(self):
+        """
+        Permite lectura pública, pero creación/edición/eliminación solo para usuarios autenticados con staff
+        """
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        # Para crear, actualizar o eliminar, solo requiere autenticación
+        # El check de is_staff se hace en perform_create/update/destroy si es necesario
+        return [IsAuthenticated()]
+    
+    def perform_create(self, serializer):
+        """
+        Valida que solo usuarios staff puedan crear viajes
+        """
+        if not self.request.user.is_staff:
+            raise PermissionDenied("Solo el personal administrativo puede crear viajes.")
+        serializer.save()
+    
+    def perform_update(self, serializer):
+        """
+        Valida que solo usuarios staff puedan actualizar viajes
+        """
+        if not self.request.user.is_staff:
+            raise PermissionDenied("Solo el personal administrativo puede modificar viajes.")
+        serializer.save()
+    
+    def perform_destroy(self, instance):
+        """
+        Valida que solo usuarios staff puedan eliminar viajes
+        """
+        if not self.request.user.is_staff:
+            raise PermissionDenied("Solo el personal administrativo puede eliminar viajes.")
+        instance.delete()
 
 class AsientoViewSet(viewsets.ModelViewSet):
     queryset = Asiento.objects.all()

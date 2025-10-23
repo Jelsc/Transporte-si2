@@ -22,12 +22,13 @@ import {
   Car,
   UserCheck,
   Bus,
+  Container,
 } from "lucide-react";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ModuleItem {
-  id: string;
+  id: string; 
   name: string;
   icon: React.ElementType;
   route?: string;
@@ -136,6 +137,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       icon: Route,
       submodules: [
         {
+          id: "ubicaciones",
+          name: "Ubicaciones",
+          icon: MapPin,
+          route: "/admin/ubicaciones",
+        },
+        {
           id: "vehiculos",
           name: "Vehículos",
           icon: Car,
@@ -146,6 +153,18 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           name: "Viajes",
           icon: Bus,
           route: "/admin/viajes",
+        },
+        {
+          id: "encomiendas",
+          name: "Encomiendas",
+          icon: Container, // Agregar el icono de Package
+          route: "/admin/encomiendas",
+      },
+        {
+          id: "rutas-optimizadas",
+          name: "Rutas Optimizadas",
+          icon: Route,
+          route: "/admin/rutas",
         },
       ],
     },

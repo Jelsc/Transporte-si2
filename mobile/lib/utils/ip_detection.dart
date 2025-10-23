@@ -38,13 +38,11 @@ class IPDetection {
   static Future<String> getBaseUrl() async {
     // Si ya tenemos una URL en caché, la usamos
     if (_cachedBaseUrl != null) {
-      print('🌐 Usando URL en caché: [32m$_cachedBaseUrl[0m');
       return _cachedBaseUrl!;
     }
 
     // Usar la constante configurada
     _cachedBaseUrl = BACKEND_HOST;
-    print('🔧 Usando URL configurada: [32m$BACKEND_HOST[0m');
     return BACKEND_HOST;
   }
 
@@ -68,6 +66,5 @@ class IPDetection {
   /// Limpia la caché (útil para forzar recarga)
   static void clearCache() {
     _cachedBaseUrl = null;
-    print('🗑️ Caché limpiada');
   }
 }

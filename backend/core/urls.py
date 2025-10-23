@@ -34,17 +34,25 @@ urlpatterns = [
     path("api/conductores/", include("conductores.urls")),
     # Personal: gestión de personal de empresa
     path("api/personal/", include("personal.urls")),
+    
     path("api/bitacora/", include("bitacora.urls")),
+  
     path("api/vehiculos/", include("vehiculos.urls")),
-
-    path("api/", include("viajes.urls")),
+  
+    path("api/viajes/", include("viajes.urls")),
+  
+    path("api/notificaciones/", include("notificaciones.urls")),
+    
+    # Encomiendas: gestión de paquetes y envíos
+    path("api/encomiendas/", include("encomiendas.urls")),
+    
+    # Ubicaciones: catálogo único para viajes y encomiendas
+    path("api/ubicaciones/", include("ubicaciones.urls")),
+    
+    # Rutas Optimizadas: VRP/PDPTW para encomiendas y entregas
+    path("api/rutas-optimizadas/", include("rutas_optimizadas.urls")),
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
 
-    path("api/notificaciones/", include("notificaciones.urls")),
     path("api/pagos/", include("pagos.urls")),  # AGREGAR AQUÍ
-    
-  
-
-    
 ]

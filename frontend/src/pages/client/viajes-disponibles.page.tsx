@@ -46,6 +46,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import type { Ubicacion } from '@/types/ubicaciones';
+import { api } from '@/lib/api';
 
 const ITEMS_PER_PAGE = 6;
 
@@ -67,20 +69,42 @@ export default function ViajesPage() {
   const [origenFilter, setOrigenFilter] = useState('all');
   const [destinoFilter, setDestinoFilter] = useState('all');
   const [fechaFilter, setFechaFilter] = useState('');
+  
+  // Estados para ubicaciones
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [loadingUbicaciones, setLoadingUbicaciones] = useState(false);
 
-  const [modalOpen, setModalOpen] = useState(false);
+  // Estados para modal y autenticación
   const [selectedViaje, setSelectedViaje] = useState<Viaje | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 
   const [reservasPendientes, setReservasPendientes] = useState<Reserva[]>([]);
   const [verificandoReservas, setVerificandoReservas] = useState(false);
 
   const verificacionEjecutada = useRef(false);
+  // Cargar ubicaciones al montar el componente
+  useEffect(() => {
+    cargarUbicaciones();
+  }, []);
 
-  const ciudades = [
-    'La Paz', 'Santa Cruz', 'Cochabamba', 'Oruro', 
-    'Potosi', 'Tarija', 'Beni', 'Pando'
-  ];
+  const cargarUbicaciones = async () => {
+    setLoadingUbicaciones(true);
+    try {
+      const response = await api.get('/api/ubicaciones/', {
+        params: {
+          tipo: 'TERMINAL', // Solo terminales
+          activo: true,
+          ordering: 'nombre'
+        }
+      });
+      setUbicaciones(response.data.results || response.data);
+    } catch (error) {
+      console.error('Error al cargar ubicaciones:', error);
+    } finally {
+      setLoadingUbicaciones(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -406,16 +430,18 @@ export default function ViajesPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  Ciudad Origen
+                  Terminal Origen
                 </label>
-                <Select value={origenFilter} onValueChange={setOrigenFilter}>
+                <Select value={origenFilter} onValueChange={setOrigenFilter} disabled={loadingUbicaciones}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona origen" />
+                    <SelectValue placeholder={loadingUbicaciones ? "Cargando..." : "Selecciona origen"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las ciudades</SelectItem>
-                    {ciudades.map((ciudad) => (
-                      <SelectItem key={ciudad} value={ciudad}>{ciudad}</SelectItem>
+                    <SelectItem value="all">Todas las terminales</SelectItem>
+                    {ubicaciones.map((ubicacion) => (
+                      <SelectItem key={ubicacion.id} value={ubicacion.nombre}>
+                        {ubicacion.nombre}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -424,16 +450,18 @@ export default function ViajesPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  Ciudad Destino
+                  Terminal Destino
                 </label>
-                <Select value={destinoFilter} onValueChange={setDestinoFilter}>
+                <Select value={destinoFilter} onValueChange={setDestinoFilter} disabled={loadingUbicaciones}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona destino" />
+                    <SelectValue placeholder={loadingUbicaciones ? "Cargando..." : "Selecciona destino"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las ciudades</SelectItem>
-                    {ciudades.map((ciudad) => (
-                      <SelectItem key={ciudad} value={ciudad}>{ciudad}</SelectItem>
+                    <SelectItem value="all">Todas las terminales</SelectItem>
+                    {ubicaciones.map((ubicacion) => (
+                      <SelectItem key={ubicacion.id} value={ubicacion.nombre}>
+                        {ubicacion.nombre}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

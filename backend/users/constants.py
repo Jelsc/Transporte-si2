@@ -61,6 +61,17 @@ STAFF_MANAGEMENT_PERMISSIONS = [
     "editar_personal",
     "eliminar_personal",
 ]
+# PERMISOS DE GESTIÓN DE ENCOMIENDAS
+ENCOMIENDA_MANAGEMENT_PERMISSIONS = [
+    "gestionar_encomiendas",
+    "ver_encomiendas",
+    "crear_encomiendas",
+    "editar_encomiendas",
+    "eliminar_encomiendas",
+    "asignar_conductores",
+    "actualizar_estados",
+    "ver_seguimiento",
+]
 
 # PERMISOS DE REPORTES
 REPORT_PERMISSIONS = [
@@ -81,6 +92,9 @@ CLIENT_PERMISSIONS = [
     "ver_historial_viajes",
     "cancelar_viaje",
     "calificar_viaje",
+    "crear_encomiendas",
+    "ver_encomiendas",
+    "ver_seguimiento",
 ]
 
 # PERMISOS DE BITÁCORA
@@ -96,6 +110,7 @@ ALL_PERMISSIONS = (
     ROLE_MANAGEMENT_PERMISSIONS +
     DRIVER_MANAGEMENT_PERMISSIONS +
     STAFF_MANAGEMENT_PERMISSIONS +
+    ENCOMIENDA_MANAGEMENT_PERMISSIONS +
     REPORT_PERMISSIONS +
     DASHBOARD_PERMISSIONS +
     CLIENT_PERMISSIONS +
@@ -112,6 +127,7 @@ PERMISSION_GROUPS = {
     "GESTION_ROLES": ROLE_MANAGEMENT_PERMISSIONS,
     "GESTION_CONDUCTORES": DRIVER_MANAGEMENT_PERMISSIONS,
     "GESTION_PERSONAL": STAFF_MANAGEMENT_PERMISSIONS,
+    "GESTION_ENCOMIENDAS": ENCOMIENDA_MANAGEMENT_PERMISSIONS,
     "REPORTES": REPORT_PERMISSIONS,
     "DASHBOARD": DASHBOARD_PERMISSIONS,
     "CLIENTE": CLIENT_PERMISSIONS,
@@ -138,6 +154,7 @@ ROLES_CONFIG = {
             USER_MANAGEMENT_PERMISSIONS +
             DRIVER_MANAGEMENT_PERMISSIONS +
             STAFF_MANAGEMENT_PERMISSIONS +
+            ENCOMIENDA_MANAGEMENT_PERMISSIONS +
             REPORT_PERMISSIONS +
             DASHBOARD_PERMISSIONS +
             AUDIT_PERMISSIONS
@@ -151,6 +168,7 @@ ROLES_CONFIG = {
         "permisos": (
             AUTH_PERMISSIONS +
             ["ver_conductores", "editar_conductores"] +
+            ["ver_encomiendas", "actualizar_estados", "ver_seguimiento"] +
             ["ver_reportes_basicos", "ver_dashboard_admin"]
         ),
         "is_staff": True,
@@ -172,6 +190,7 @@ ROLES_CONFIG = {
         "permisos": (
             AUTH_PERMISSIONS +
             ["ver_conductores", "ver_personal"] +
+            ENCOMIENDA_MANAGEMENT_PERMISSIONS +
             ["ver_reportes_basicos", "ver_dashboard_admin"]
         ),
         "is_staff": True,

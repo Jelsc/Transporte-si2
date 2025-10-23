@@ -4,6 +4,8 @@ from django.utils import timezone
 from .models import Viaje, Asiento, Reserva, ItemReserva
 from vehiculos.models import Vehiculo
 from users.models import CustomUser
+from ubicaciones.models import Ubicacion
+
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -18,21 +20,61 @@ class VehiculoSerializer(serializers.ModelSerializer):
         fields = ["id", "nombre", "placa", "tipo_vehiculo"]
 
 
+class UbicacionSerializer(serializers.ModelSerializer):
+    """Serializer simplificado para ubicaciones en viajes"""
+    class Meta:
+        model = Ubicacion
+        fields = ["id", "nombre", "tipo", "direccion_texto", "lat", "lng"]
+
+
 class ViajeSerializer(serializers.ModelSerializer):
-    vehiculo = VehiculoSerializer(read_only=True)   
+    # Campos de lectura con información completa
+    vehiculo = VehiculoSerializer(read_only=True)
+    origen_detalle = UbicacionSerializer(source='origen', read_only=True)
+    destino_detalle = UbicacionSerializer(source='destino', read_only=True)
+    
+    # Campos de escritura con solo IDs
     vehiculo_id = serializers.PrimaryKeyRelatedField(
         queryset=Vehiculo.objects.all(), 
         source="vehiculo", 
         write_only=True
     )
+    origen_id = serializers.PrimaryKeyRelatedField(
+        queryset=Ubicacion.objects.filter(activo=True),  # Solo ubicaciones activas
+        source="origen",
+        write_only=True
+    )
+    destino_id = serializers.PrimaryKeyRelatedField(
+        queryset=Ubicacion.objects.filter(activo=True),
+        source="destino",
+        write_only=True
+    )
+
+    # Propiedades calculadas
+    asientos_libres = serializers.IntegerField(read_only=True)
+    esta_lleno = serializers.BooleanField(read_only=True)
+    porcentaje_ocupacion = serializers.FloatField(read_only=True)
 
     class Meta:
         model = Viaje
         fields = [
-            "id", "origen", "destino", "fecha", "hora", 
-            "vehiculo", "vehiculo_id", "precio", "estado", 
-            "asientos_disponibles", "asientos_ocupados"
+            "id", 
+            # Ubicaciones (lectura)
+            "origen_detalle", "destino_detalle",
+            # Ubicaciones (escritura)
+            "origen_id", "destino_id",
+            # Información del viaje
+            "fecha", "hora", 
+            # Vehículo
+            "vehiculo", "vehiculo_id",
+            # Precio y estado
+            "precio", "estado", 
+            # Asientos
+            "asientos_disponibles", "asientos_ocupados",
+            # Propiedades calculadas
+            "asientos_libres", "esta_lleno", "porcentaje_ocupacion"
         ]
+        read_only_fields = ["asientos_libres", "esta_lleno", "porcentaje_ocupacion"]
     
     def create(self, validated_data):
         vehiculo = validated_data['vehiculo']
@@ -51,7 +93,6 @@ class AsientoSerializer(serializers.ModelSerializer):
     
     def get_esta_disponible(self, obj):
         return obj.esta_disponible
-
 
 class ItemReservaSerializer(serializers.ModelSerializer):
     asiento = AsientoSerializer(read_only=True)
@@ -94,8 +135,8 @@ class ReservaSerializer(serializers.ModelSerializer):
         if obj.viaje:
             return {
                 'id': obj.viaje.id,
-                'origen': obj.viaje.origen,
-                'destino': obj.viaje.destino,
+                'origen': obj.viaje.origen.nombre,
+                'destino': obj.viaje.destino.nombre,
                 'fecha': obj.viaje.fecha,
                 'hora': obj.viaje.hora,
                 'precio': obj.viaje.precio
@@ -322,8 +363,8 @@ class EstadoReservaTemporalSerializer(serializers.ModelSerializer):
     def get_viaje_info(self, obj):
         if obj.viaje:
             return {
-                'origen': obj.viaje.origen,
-                'destino': obj.viaje.destino,
+                'origen': obj.viaje.origen.nombre,
+                'destino': obj.viaje.destino.nombre,
                 'fecha': obj.viaje.fecha,
                 'hora': obj.viaje.hora,
                 'precio': obj.viaje.precio,
