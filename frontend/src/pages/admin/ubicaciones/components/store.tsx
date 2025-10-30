@@ -116,12 +116,16 @@ export function UbicacionStore({
 
   // Manejar selección de ubicación en el mapa
   const handleSelectLocation = useCallback((lat: number, lng: number) => {
+    // Redondear a 6 decimales para cumplir con DecimalField(max_digits=9, decimal_places=6)
+    const roundedLat = Number(lat.toFixed(6));
+    const roundedLng = Number(lng.toFixed(6));
+    
     setFormData(prev => ({
       ...prev,
-      lat,
-      lng
+      lat: roundedLat,
+      lng: roundedLng
     }));
-    toast.success(`Coordenadas seleccionadas: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`);
+    toast.success(`Coordenadas seleccionadas: Lat ${roundedLat.toFixed(4)}, Lng ${roundedLng.toFixed(4)}`);
   }, []);
 
   // Manejar geocodificación
@@ -134,10 +138,14 @@ export function UbicacionStore({
     setGeocodificando(true);
     try {
       const result = await UbicacionesService.geocodificar({ direccion_texto: formData.direccion_texto });
+      // Redondear a 6 decimales para cumplir con DecimalField(max_digits=9, decimal_places=6)
+      const roundedLat = Number(result.lat.toFixed(6));
+      const roundedLng = Number(result.lng.toFixed(6));
+      
       setFormData(prev => ({
         ...prev,
-        lat: result.lat,
-        lng: result.lng,
+        lat: roundedLat,
+        lng: roundedLng,
         source: result.source as SourceUbicacion
       }));
       toast.success('Dirección geocodificada exitosamente.');
@@ -166,7 +174,17 @@ export function UbicacionStore({
 
     setSubmitting(true);
     try {
-      const success = await onSubmit(formData);
+      // Redondear coordenadas a 6 decimales antes de enviar
+      const lat = typeof formData.lat === 'string' ? parseFloat(formData.lat) : formData.lat;
+      const lng = typeof formData.lng === 'string' ? parseFloat(formData.lng) : formData.lng;
+      
+      const dataToSubmit = {
+        ...formData,
+        lat: Number(lat.toFixed(6)),
+        lng: Number(lng.toFixed(6))
+      };
+      
+      const success = await onSubmit(dataToSubmit);
       if (success) {
         onClose();
       }

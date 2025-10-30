@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import SolicitudRuta, Entrega, RutaOptimizada, Parada
 from ubicaciones.serializers import UbicacionSerializer
 from vehiculos.serializers import VehiculoSerializer
+from vehiculos.models import Vehiculo
 
 
 class EntregaSerializer(serializers.ModelSerializer):
@@ -116,47 +117,151 @@ class SolicitudRutaSerializer(serializers.ModelSerializer):
 
 class SolicitudRutaCreateSerializer(serializers.ModelSerializer):
     """Serializer para crear solicitudes de ruta con entregas anidadas"""
-    entregas = EntregaCreateSerializer(many=True)
+    entregas = EntregaCreateSerializer(many=True, required=False)
+    viajes_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        write_only=True,
+        help_text="IDs de viajes a convertir en entregas"
+    )
+    
+    # Hacer campos opcionales cuando se usan viajes
+    fecha_viaje = serializers.DateField(required=False)
+    hora_inicio = serializers.TimeField(required=False)
+    vehiculos_disponibles = serializers.PrimaryKeyRelatedField(
+        queryset=Vehiculo.objects.all(),
+        many=True,
+        required=False
+    )
     
     class Meta:
         model = SolicitudRuta
         fields = [
             'fecha_viaje', 'hora_inicio', 'vehiculos_disponibles',
-            'depot', 'entregas'
+            'depot', 'entregas', 'viajes_ids'
         ]
     
+    def validate(self, data):
+        """Validaciones personalizadas"""
+        entregas = data.get('entregas', [])
+        viajes_ids = data.get('viajes_ids', [])
+        
+        # Debe haber entregas O viajes
+        if not entregas and not viajes_ids:
+            raise serializers.ValidationError({
+                "entregas": "Debe haber al menos una entrega o seleccionar viajes"
+            })
+        
+        # Si usa modo manual (entregas), validar campos requeridos
+        if entregas and not viajes_ids:
+            if not data.get('fecha_viaje'):
+                raise serializers.ValidationError({
+                    "fecha_viaje": "Este campo es requerido en modo manual"
+                })
+            if not data.get('hora_inicio'):
+                raise serializers.ValidationError({
+                    "hora_inicio": "Este campo es requerido en modo manual"
+                })
+            vehiculos = data.get('vehiculos_disponibles', [])
+            if not vehiculos or len(vehiculos) == 0:
+                raise serializers.ValidationError({
+                    "vehiculos_disponibles": "Debe haber al menos un vehículo disponible"
+                })
+        
+        # Validar entregas manuales si se proporcionan
+        if entregas:
+            for i, entrega in enumerate(entregas):
+                if not entrega.get('ubicacion'):
+                    raise serializers.ValidationError({
+                        "entregas": f"La entrega #{i+1} debe tener una ubicación asignada"
+                    })
+        
+        # Validar depot
+        if not data.get('depot'):
+            raise serializers.ValidationError({
+                "depot": "Debe seleccionar un depósito (punto de partida)"
+            })
+        
+        return data
+    
     def create(self, validated_data):
-        """Crear solicitud con entregas"""
-        entregas_data = validated_data.pop('entregas')
-        vehiculos = validated_data.pop('vehiculos_disponibles')
+        """Crear solicitud con entregas desde viajes o manual"""
+        entregas_data = validated_data.pop('entregas', [])
+        viajes_ids = validated_data.pop('viajes_ids', [])
+        vehiculos = validated_data.pop('vehiculos_disponibles', [])
+        
+        # Si hay viajes, extraer datos de ellos
+        if viajes_ids:
+            from viajes.models import Viaje
+            viajes = Viaje.objects.filter(id__in=viajes_ids, estado='programado')
+            
+            if not viajes.exists():
+                raise serializers.ValidationError({
+                    "viajes_ids": "No se encontraron viajes programados con los IDs proporcionados"
+                })
+            
+            # Tomar fecha y hora del primer viaje
+            primer_viaje = viajes.first()
+            validated_data['fecha_viaje'] = primer_viaje.fecha
+            validated_data['hora_inicio'] = primer_viaje.hora
+            
+            # Recopilar vehículos únicos de los viajes
+            vehiculos_viajes = set()
+            for viaje in viajes:
+                if viaje.vehiculo:
+                    vehiculos_viajes.add(viaje.vehiculo)
+            
+            if not vehiculos_viajes:
+                raise serializers.ValidationError({
+                    "viajes_ids": "Los viajes seleccionados no tienen vehículos asignados"
+                })
         
         # Crear solicitud
         solicitud = SolicitudRuta.objects.create(**validated_data)
         
         # Asignar vehículos
-        solicitud.vehiculos_disponibles.set(vehiculos)
+        if viajes_ids:
+            solicitud.vehiculos_disponibles.set(vehiculos_viajes)
+        else:
+            solicitud.vehiculos_disponibles.set(vehiculos)
         
-        # Crear entregas
+        # Si hay viajes, convertirlos en entregas
+        if viajes_ids:
+            from viajes.models import Viaje
+            viajes = Viaje.objects.filter(id__in=viajes_ids)
+            
+            for viaje in viajes:
+                # Crear entrega para origen (pickup)
+                Entrega.objects.create(
+                    solicitud=solicitud,
+                    ubicacion=viaje.origen,
+                    tipo='pickup',
+                    demanda_peso=viaje.asientos_ocupados * 70,  # Estimación: 70kg por persona
+                    tiempo_servicio_min=viaje.origen.service_min,
+                    prioridad=1,
+                    observaciones=f'Origen viaje #{viaje.id}'
+                )
+                
+                # Crear entrega para destino (delivery)
+                Entrega.objects.create(
+                    solicitud=solicitud,
+                    ubicacion=viaje.destino,
+                    tipo='delivery',
+                    demanda_peso=viaje.asientos_ocupados * 70,
+                    tiempo_servicio_min=viaje.destino.service_min,
+                    prioridad=1,
+                    observaciones=f'Destino viaje #{viaje.id}'
+                )
+                
+                # Vincular viaje con solicitud
+                solicitud.viaje_origen = viaje
+                solicitud.save()
+        
+        # Crear entregas manuales
         for entrega_data in entregas_data:
             Entrega.objects.create(solicitud=solicitud, **entrega_data)
         
         return solicitud
-    
-    def validate(self, data):
-        """Validaciones personalizadas"""
-        # Validar que haya al menos una entrega
-        if not data.get('entregas'):
-            raise serializers.ValidationError(
-                "Debe haber al menos una entrega en la solicitud"
-            )
-        
-        # Validar que haya al menos un vehículo
-        if not data.get('vehiculos_disponibles'):
-            raise serializers.ValidationError(
-                "Debe haber al menos un vehículo disponible"
-            )
-        
-        return data
 
 
 class OptimizarRutaSerializer(serializers.Serializer):

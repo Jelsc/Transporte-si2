@@ -164,7 +164,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           id: "rutas-optimizadas",
           name: "Rutas Optimizadas",
           icon: Route,
-          route: "/admin/rutas",
+          route: "/admin/rutas-optimizadas",
         },
       ],
     },

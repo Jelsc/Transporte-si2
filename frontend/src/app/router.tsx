@@ -126,10 +126,18 @@ export default function AppRouter() {
           }
         />
         <Route
-          path="/admin/rutas"
+          path="/admin/rutas-optimizadas"
           element={
             <ProtectedRoute requireAdmin={true}>
               <RutasOptimizadasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rutas-optimizadas/crear"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <CrearSolicitudPage />
             </ProtectedRoute>
           }
         />
@@ -179,14 +187,6 @@ export default function AppRouter() {
             <ProtectedRoute requireAdmin={true}>
                 
               <ReservasPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/rutas-optimizadas/crear"
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <CrearSolicitudPage />
             </ProtectedRoute>
           }
         />

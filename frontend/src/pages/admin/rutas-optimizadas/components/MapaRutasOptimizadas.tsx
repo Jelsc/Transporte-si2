@@ -26,6 +26,18 @@ const COLORES_VEHICULOS = [
   '#84CC16', // Lima
 ];
 
+// Helper para convertir minutos a formato "Xh Ym"
+const formatearTiempo = (minutos: number): string => {
+  const horas = Math.floor(minutos / 60);
+  const mins = Math.round(minutos % 60);
+  
+  if (horas === 0) {
+    return `${mins}m`;
+  }
+  
+  return `${horas}h ${mins}m`;
+};
+
 export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
   rutas = [],
   altura = '500px',
@@ -134,7 +146,7 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
     polylinesRef.current.clear();
 
     // Limpiar capas de rutas anteriores
-    const rutasLayerIds = ['rutas-layer', 'rutas-selected-layer'];
+    const rutasLayerIds = ['rutas-layer', 'rutas-selected-layer', 'rutas-alternativas-layer'];
     rutasLayerIds.forEach(layerId => {
       if (mapaInstance.current!.getLayer(layerId)) {
         mapaInstance.current!.removeLayer(layerId);
@@ -228,10 +240,10 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
 
     // Ejecutar la obtención de geometrías y luego dibujar
     obtenerGeometriasRutas().then(rutasConGeometria => {
-      // Crear GeoJSON con las geometrías obtenidas
-      const rutasGeoJSON = {
-        type: 'FeatureCollection' as const,
-        features: rutasConGeometria.map(({ ruta, index, coordenadas, esLineaRecta }) => {
+      // Separar rutas en dos conjuntos: directas (líneas rectas) y optimizadas (OSRM)
+      const rutasAlternativas = rutasConGeometria
+        .filter(({ esLineaRecta }) => esLineaRecta)
+        .map(({ ruta, index, coordenadas }) => {
           const vehiculo = ruta.vehiculo_detalle || ruta.vehiculo;
           const vehiculoId = typeof vehiculo === 'object' ? vehiculo.id : vehiculo;
 
@@ -245,27 +257,91 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
               distancia: ruta.distancia_total_km,
               tiempo: ruta.tiempo_total_min,
               numeroParadas: ruta.numero_paradas,
-              esLineaRecta
+              esAlternativa: true
             },
             geometry: {
               type: 'LineString' as const,
               coordinates: coordenadas
             }
           };
-        })
+        });
+
+      const rutasOptimizadas = rutasConGeometria
+        .filter(({ esLineaRecta }) => !esLineaRecta)
+        .map(({ ruta, index, coordenadas }) => {
+          const vehiculo = ruta.vehiculo_detalle || ruta.vehiculo;
+          const vehiculoId = typeof vehiculo === 'object' ? vehiculo.id : vehiculo;
+
+          return {
+            type: 'Feature' as const,
+            properties: {
+              rutaId: ruta.id,
+              vehiculoId: vehiculoId,
+              vehiculoNombre: obtenerNombreVehiculo(ruta.vehiculo),
+              color: COLORES_VEHICULOS[index % COLORES_VEHICULOS.length],
+              distancia: ruta.distancia_total_km,
+              tiempo: ruta.tiempo_total_min,
+              numeroParadas: ruta.numero_paradas,
+              esAlternativa: false
+            },
+            geometry: {
+              type: 'LineString' as const,
+              coordinates: coordenadas
+            }
+          };
+        });
+
+      // Crear GeoJSON para rutas alternativas (líneas rectas - color suave)
+      const rutasAlternativasGeoJSON = {
+        type: 'FeatureCollection' as const,
+        features: rutasAlternativas
       };
 
-      // Agregar fuente de datos para rutas
-      if (mapaInstance.current!.getSource('rutas-layer')) {
-        (mapaInstance.current!.getSource('rutas-layer') as maplibregl.GeoJSONSource).setData(rutasGeoJSON);
+      // Crear GeoJSON para rutas optimizadas (principal - color vibrante)
+      const rutasOptimizadasGeoJSON = {
+        type: 'FeatureCollection' as const,
+        features: rutasOptimizadas
+      };
+
+      // 1. Capa de rutas alternativas (líneas rectas - debajo, color suave)
+      if (mapaInstance.current!.getSource('rutas-alternativas-layer')) {
+        (mapaInstance.current!.getSource('rutas-alternativas-layer') as maplibregl.GeoJSONSource).setData(rutasAlternativasGeoJSON);
       } else {
-        mapaInstance.current!.addSource('rutas-layer', {
+        mapaInstance.current!.addSource('rutas-alternativas-layer', {
           type: 'geojson',
-          data: rutasGeoJSON
+          data: rutasAlternativasGeoJSON
         });
       }
 
-      // Agregar capa de rutas
+      if (!mapaInstance.current!.getLayer('rutas-alternativas-layer')) {
+        mapaInstance.current!.addLayer({
+          id: 'rutas-alternativas-layer',
+          type: 'line',
+          source: 'rutas-alternativas-layer',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': ['get', 'color'],
+            'line-width': 2,
+            'line-opacity': 0.3,
+            'line-dasharray': [4, 4] // Línea punteada
+          }
+        });
+      }
+
+      // 2. Capa de rutas optimizadas (principal - encima, color vibrante)
+      if (mapaInstance.current!.getSource('rutas-layer')) {
+        (mapaInstance.current!.getSource('rutas-layer') as maplibregl.GeoJSONSource).setData(rutasOptimizadasGeoJSON);
+      } else {
+        mapaInstance.current!.addSource('rutas-layer', {
+          type: 'geojson',
+          data: rutasOptimizadasGeoJSON
+        });
+      }
+
+      // Agregar capa de rutas optimizadas
       if (!mapaInstance.current!.getLayer('rutas-layer')) {
         mapaInstance.current!.addLayer({
           id: 'rutas-layer',
@@ -277,8 +353,8 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
           },
           paint: {
             'line-color': ['get', 'color'],
-            'line-width': 4,
-            'line-opacity': 0.8
+            'line-width': 5,
+            'line-opacity': 0.9
           }
         });
       }
@@ -392,7 +468,8 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
           
           const marker = new maplibregl.Marker({
             element: markerElement,
-            anchor: 'center' // Anclar el marcador en el centro
+            anchor: 'center',
+            offset: [0, 0]
           })
             .setLngLat([lng, lat])
             .addTo(mapaInstance.current!);
@@ -456,12 +533,20 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
     orden: number, 
     vehiculoNombre: string
   ): HTMLElement => {
+    const contenedor = document.createElement('div');
+    contenedor.className = 'marcador-parada-contenedor';
+    contenedor.style.cssText = `
+      position: relative;
+      width: 0;
+      height: 0;
+      transform: translate(-50%, -50%);
+    `;
+    
     const elemento = document.createElement('div');
     elemento.className = 'marcador-parada';
     
     const esDepot = parada.es_depot;
-    const icono = esDepot ? '🏢' : '📍';
-    const tamaño = esDepot ? 32 : 28;
+    const tamaño = esDepot ? 36 : 32;
     
     elemento.style.cssText = `
       width: ${tamaño}px;
@@ -473,30 +558,42 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      position: relative;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform: translate(-50%, -50%);
       transform-origin: center center;
     `;
 
+    // Usar números en círculos en lugar de emojis para mayor compatibilidad
     elemento.innerHTML = `
-      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%;">
-        <span style="font-size: ${esDepot ? '14px' : '12px'}; color: white; line-height: 1;">${icono}</span>
-        <span style="font-size: ${esDepot ? '10px' : '9px'}; color: white; font-weight: bold; margin-top: 1px; line-height: 1;">${orden + 1}</span>
+      <div style="
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+        width: 100%; 
+        height: 100%;
+      ">
+        ${esDepot 
+          ? `<span style="font-size: 16px; line-height: 1; color: white; font-weight: bold;">D</span>`
+          : `<span style="font-size: 14px; line-height: 1; color: white; font-weight: bold;">${orden + 1}</span>`
+        }
       </div>
     `;
 
     // Efectos hover - usar transform: scale para que se agrande desde el centro
     elemento.addEventListener('mouseenter', () => {
-      elemento.style.transform = 'scale(1.2)';
-      elemento.style.boxShadow = '0 4px 12px rgba(0,0,0,0.5)';
+      elemento.style.transform = 'translate(-50%, -50%) scale(1.3)';
+      elemento.style.boxShadow = '0 4px 12px rgba(0,0,0,0.6)';
       elemento.style.zIndex = '1000';
     });
 
     elemento.addEventListener('mouseleave', () => {
-      elemento.style.transform = 'scale(1)';
-      elemento.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+      elemento.style.transform = 'translate(-50%, -50%) scale(1)';
+      elemento.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
       elemento.style.zIndex = 'auto';
     });
 
@@ -506,7 +603,8 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
     const tooltip = esDepot ? 'Depot' : nombreUbicacion;
     elemento.title = `${tooltip} - ${vehiculoNombre} (Parada ${orden + 1})`;
 
-    return elemento;
+    contenedor.appendChild(elemento);
+    return contenedor;
   };
 
   return (
@@ -565,7 +663,7 @@ export const MapaRutasOptimizadas: React.FC<MapaRutasOptimizadasProps> = ({
                   </div>
                   <div className="flex items-center space-x-1">
                     <Clock className="w-3 h-3" />
-                    <span>{ruta.tiempo_total_min}min</span>
+                    <span>{formatearTiempo(Number(ruta.tiempo_total_min))}</span>
                   </div>
                 </div>
               </div>
