@@ -1,6 +1,7 @@
 
 import type { ApiResponse } from '@/types';
 import { apiRequest } from './authService';
+import { getApiBaseUrl } from '@/lib/api';
 
 export interface Pago {
   id: number;
@@ -131,7 +132,8 @@ export const pagosApi = {
         return { success: false, error: 'No autenticado' };
       }
 
-      const response = await fetch('http://localhost:8000/api/pagos/pagos/crear_pago/', {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/pagos/pagos/crear_pago/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,7 +182,8 @@ export const pagosApi = {
         return { success: false, error: 'No autenticado' };
       }
 
-      const response = await fetch(`http://localhost:8000/api/pagos/pagos/${pagoId}/confirmar/`, {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/pagos/pagos/${pagoId}/confirmar/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +225,8 @@ export const pagosApi = {
         return { success: false, error: 'No autenticado' };
       }
 
-      const response = await fetch(`http://localhost:8000/api/pagos/pagos/${pagoId}/cancelar/`, {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/pagos/pagos/${pagoId}/cancelar/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

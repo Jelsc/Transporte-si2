@@ -99,10 +99,29 @@ class Viaje {
       fecha = DateTime.now();
     }
 
+    // Extraer origen y destino de los objetos detallados
+    String origen = 'N/A';
+    String destino = 'N/A';
+    
+    // El backend envía origen_detalle y destino_detalle con info completa
+    if (json['origen_detalle'] != null && json['origen_detalle'] is Map) {
+      origen = json['origen_detalle']['nombre'] ?? 'N/A';
+    } else if (json['origen'] != null) {
+      // Fallback por si viene como string directo
+      origen = json['origen'].toString();
+    }
+    
+    if (json['destino_detalle'] != null && json['destino_detalle'] is Map) {
+      destino = json['destino_detalle']['nombre'] ?? 'N/A';
+    } else if (json['destino'] != null) {
+      // Fallback por si viene como string directo
+      destino = json['destino'].toString();
+    }
+
     return Viaje(
       id: id,
-      origen: json['origen'] ?? 'N/A',
-      destino: json['destino'] ?? 'N/A',
+      origen: origen,
+      destino: destino,
       fecha: fecha,
       hora: json['hora'] ?? '',
       precio: precio,
