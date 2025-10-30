@@ -204,7 +204,14 @@ export default function CheckoutModal({
             throw new Error('No se recibió client_secret para Stripe');
           }
         } else {
-          throw new Error(resultadoPago.error || 'Error al crear pago con Stripe');
+          const errorMessage = resultadoPago.error || 'Error al crear pago con Stripe';
+          
+          // Detectar si es un error de configuración de Stripe
+          if (errorMessage.includes('no está configurado') || errorMessage.includes('autenticación')) {
+            throw new Error('⚠️ Stripe no está configurado correctamente en el servidor. Por favor contacta al administrador.');
+          }
+          
+          throw new Error(errorMessage);
         }
       } else {
         console.log('💵 Procesando con método offline...');

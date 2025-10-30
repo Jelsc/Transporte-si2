@@ -95,73 +95,100 @@ class PagoViewSet(viewsets.ModelViewSet):
             # Si es pago con Stripe, crear Payment Intent
             if pago.metodo_pago == 'stripe':
                 # Validar que Stripe esté configurado
-                if not settings.STRIPE_SECRET_KEY:
+                if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.strip() == "":
+                    print(f"❌ ERROR: STRIPE_SECRET_KEY no está configurada")
                     pago.delete()
                     return Response({
                         'success': False,
-                        'error': 'Stripe no está configurado correctamente'
+                        'error': 'Stripe no está configurado en el servidor. Configure STRIPE_SECRET_KEY en el archivo .env'
                     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
-                # Crear Payment Intent en Stripe
-                intent = stripe.PaymentIntent.create(
-                    amount=int(pago.monto * 100),  # Stripe usa centavos
-                    currency='usd',
-                    automatic_payment_methods={
-                        'enabled': True,
-                    },
-                    metadata={
-                        'pago_id': pago.id,
-                        'reserva_id': reserva.id,
-                        'codigo_reserva': reserva.codigo_reserva,
-                        'usuario_id': request.user.id,
-                        'usuario_email': request.user.email
-                    }
-                )
-                
-                # Guardar el Payment Intent ID
-                pago.stripe_payment_intent_id = intent.id
-                pago.estado = 'procesando'
-                pago.save()
-                
-                # Registrar en bitácora
-                registrar_bitacora(
-                    request=request,
-                    usuario=request.user,
-                    accion="Crear Pago Stripe",
-                    descripcion=f"Pago #{pago.id} para reserva {reserva.codigo_reserva} - ${pago.monto}",
-                    modulo="PAGOS"
-                )
-                
-                return Response({
-                    'success': True,
-                    'message': 'Pago creado exitosamente',
-                    'pago_id': pago.id,
-                    'reserva_id': reserva.id,
-                    'codigo_reserva': reserva.codigo_reserva,
-                    'client_secret': intent.client_secret,
-                    'monto': float(pago.monto),
-                    'estado': pago.estado,
-                    'payment_intent_id': intent.id
-                }, status=status.HTTP_201_CREATED)
-                # Notificar al usuario que se creó un pago (Stripe)
                 try:
-                    NotificationService.enviar_notificacion(
-                        usuario_id=request.user.id,
-                        titulo='Pago creado',
-                        mensaje=f'Se creó el pago #{pago.id} para la reserva {reserva.codigo_reserva}.',
-                        tipo_codigo='pago_creado',
-                        data_extra={
+                    # Crear Payment Intent en Stripe
+                    intent = stripe.PaymentIntent.create(
+                        amount=int(pago.monto * 100),  # Stripe usa centavos
+                        currency='usd',
+                        automatic_payment_methods={
+                            'enabled': True,
+                        },
+                        metadata={
                             'pago_id': pago.id,
                             'reserva_id': reserva.id,
                             'codigo_reserva': reserva.codigo_reserva,
-                            'monto': str(pago.monto),
-                            'metodo_pago': pago.metodo_pago
-                        },
-                        prioridad='normal'
+                            'usuario_id': request.user.id,
+                            'usuario_email': request.user.email
+                        }
                     )
-                except Exception:
-                    # No bloquear el flujo si falla la notificación
-                    pass
+                except stripe.error.AuthenticationError as e:
+                    print(f"❌ ERROR de autenticación Stripe: {str(e)}")
+                    pago.delete()
+                    return Response({
+                        'success': False,
+                        'error': 'Error de autenticación con Stripe. Verifique las credenciales en el archivo .env'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except StripeError as e:
+                    print(f"❌ ERROR de Stripe: {str(e)}")
+                    pago.delete()
+                    return Response({
+                        'success': False,
+                        'error': f'Error de Stripe: {str(e)}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                
+                    # Guardar el Payment Intent ID
+                    pago.stripe_payment_intent_id = intent.id
+                    pago.estado = 'procesando'
+                    pago.save()
+                    
+                    print(f"✅ Payment Intent creado: {intent.id}")
+                    
+                    # Registrar en bitácora
+                    registrar_bitacora(
+                        request=request,
+                        usuario=request.user,
+                        accion="Crear Pago Stripe",
+                        descripcion=f"Pago #{pago.id} para reserva {reserva.codigo_reserva} - ${pago.monto}",
+                        modulo="PAGOS"
+                    )
+                    
+                    # Notificar al usuario que se creó un pago (Stripe)
+                    try:
+                        NotificationService.enviar_notificacion(
+                            usuario_id=request.user.id,
+                            titulo='Pago creado',
+                            mensaje=f'Se creó el pago #{pago.id} para la reserva {reserva.codigo_reserva}.',
+                            tipo_codigo='pago_creado',
+                            data_extra={
+                                'pago_id': pago.id,
+                                'reserva_id': reserva.id,
+                                'codigo_reserva': reserva.codigo_reserva,
+                                'monto': str(pago.monto),
+                                'metodo_pago': pago.metodo_pago
+                            },
+                            prioridad='normal'
+                        )
+                    except Exception:
+                        # No bloquear el flujo si falla la notificación
+                        pass
+                    
+                    return Response({
+                        'success': True,
+                        'message': 'Pago creado exitosamente',
+                        'pago_id': pago.id,
+                        'reserva_id': reserva.id,
+                        'codigo_reserva': reserva.codigo_reserva,
+                        'client_secret': intent.client_secret,
+                        'monto': float(pago.monto),
+                        'estado': pago.estado,
+                        'payment_intent_id': intent.id
+                    }, status=status.HTTP_201_CREATED)
+                    
+                except Exception as e:
+                    print(f"❌ ERROR inesperado al crear Payment Intent: {str(e)}")
+                    pago.delete()
+                    return Response({
+                        'success': False,
+                        'error': f'Error inesperado de Stripe: {str(e)}'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
             else:
                 # Para pagos manuales (efectivo/transferencia), marcar como completados inmediatamente
@@ -223,20 +250,15 @@ class PagoViewSet(viewsets.ModelViewSet):
                     'estado': pago.estado
                 }, status=status.HTTP_201_CREATED)
         
-        except StripeError as e:
-            if 'pago' in locals():
-                pago.delete()
-            
-            return Response({
-                'success': False,
-                'error': 'Error de Stripe',
-                'detalles': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
         except Exception as e:
+            # Capturar cualquier otro error no manejado
             if 'pago' in locals():
-                pago.delete()
+                try:
+                    pago.delete()
+                except:
+                    pass
             
+            print(f"❌ ERROR inesperado al crear pago: {str(e)}")
             return Response({
                 'success': False,
                 'error': 'Error al crear pago',
@@ -284,7 +306,29 @@ class PagoViewSet(viewsets.ModelViewSet):
         try:
             # Verificar el Payment Intent en Stripe
             payment_intent_id = serializer.validated_data['payment_intent_id']
-            intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+            
+            # Validar que Stripe esté configurado
+            if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.strip() == "":
+                print(f"❌ ERROR: STRIPE_SECRET_KEY no está configurada al confirmar pago")
+                return Response({
+                    'success': False,
+                    'error': 'Stripe no está configurado en el servidor'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            try:
+                intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+            except stripe.error.AuthenticationError as e:
+                print(f"❌ ERROR de autenticación Stripe al confirmar: {str(e)}")
+                return Response({
+                    'success': False,
+                    'error': 'Error de autenticación con Stripe'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except StripeError as e:
+                print(f"❌ ERROR de Stripe al confirmar: {str(e)}")
+                return Response({
+                    'success': False,
+                    'error': f'Error de Stripe: {str(e)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
             
             if intent.status == 'succeeded':
                 # ✅ USAR TRANSACCIÓN ATÓMICA PARA GARANTIZAR CONSISTENCIA
@@ -398,10 +442,19 @@ class PagoViewSet(viewsets.ModelViewSet):
             # ✅ USAR TRANSACCIÓN PARA CANCELACIÓN
             with transaction.atomic():
                 if pago.stripe_payment_intent_id:
-                    try:
-                        stripe.PaymentIntent.cancel(pago.stripe_payment_intent_id)
-                    except StripeError:
-                        pass  # El payment intent ya puede estar cancelado
+                    # Validar que Stripe esté configurado antes de intentar cancelar
+                    if settings.STRIPE_SECRET_KEY and settings.STRIPE_SECRET_KEY.strip() != "":
+                        try:
+                            stripe.PaymentIntent.cancel(pago.stripe_payment_intent_id)
+                            print(f"✅ Payment Intent {pago.stripe_payment_intent_id} cancelado en Stripe")
+                        except stripe.error.AuthenticationError as e:
+                            print(f"⚠️ Error de autenticación al cancelar en Stripe: {str(e)}")
+                            # Continuar con la cancelación local aunque falle en Stripe
+                        except StripeError as e:
+                            print(f"⚠️ Error al cancelar en Stripe: {str(e)}")
+                            # El payment intent ya puede estar cancelado o hay otro error
+                    else:
+                        print(f"⚠️ Stripe no configurado - cancelando solo localmente")
                 
                 pago.estado = 'cancelado'
                 pago.fecha_cancelado = timezone.now()
