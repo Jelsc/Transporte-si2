@@ -335,3 +335,4 @@ export function useReservas(): UseReservasReturn {
     loadStats: loadStatsForCompatibility, // ✅ Mantenemos la compatibilidad
   };
 }
+

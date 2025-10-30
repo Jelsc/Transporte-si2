@@ -1,9 +1,11 @@
 // types/asiento.ts
+import type { Viaje } from './viaje';
+
 export interface Asiento {
   id: number;
   numero: string;
   estado: 'libre' | 'ocupado' | 'reservado'; // ✅ Estados específicos
-  viaje: number; // ID del viaje (consistente con backend)
+  viaje: number | Viaje; // ✅ Puede ser ID o objeto completo (cuando viene expandido del backend)
   reserva_temporal?: number | null; // ✅ NUEVO: Para reservas temporales
 }
 

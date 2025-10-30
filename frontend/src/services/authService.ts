@@ -1,8 +1,7 @@
 import { tokenUtils } from "@/lib/tokenUtils";
 import { getApiBaseUrl } from "@/lib/api";
 
-// Configuración base de la API con detección automática
-const API_BASE_URL = getApiBaseUrl();
+// Nota: No definimos API_BASE_URL como constante global porque debe obtenerse dinámicamente
 
 // Tipos de datos para autenticación
 export interface ApiResponse<T = any> {
@@ -90,6 +89,8 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
+  // Obtener la URL base dinámicamente en cada petición
+  const API_BASE_URL = getApiBaseUrl();
   const url = `${API_BASE_URL}${endpoint}`;
 
   const defaultHeaders: HeadersInit = {

@@ -17,9 +17,20 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
 # Importaciones de testing movidas a notificaciones.urls
 from core.utils.api_status import api_status
+
+# Import viewsets para asientos y reservas
+from viajes.views import AsientoViewSet, ReservaViewSet
+from viajes.views_cliente import MisReservasViewSet
+
+# Router para asientos y reservas
+router = DefaultRouter()
+router.register(r'asientos', AsientoViewSet, basename='asientos')
+router.register(r'reservas', ReservaViewSet, basename='reservas')
+router.register(r'mis-reservas', MisReservasViewSet, basename='mis-reservas')
 
 # Endpoints principales del sistema
 urlpatterns = [
@@ -40,6 +51,9 @@ urlpatterns = [
     path("api/vehiculos/", include("vehiculos.urls")),
   
     path("api/viajes/", include("viajes.urls")),
+    
+    # Asientos y Reservas (desde viajes)
+    path("api/", include(router.urls)),
   
     path("api/notificaciones/", include("notificaciones.urls")),
     
