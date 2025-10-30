@@ -168,7 +168,7 @@ class PagoViewSet(viewsets.ModelViewSet):
                         'payment_intent_id': intent.id
                     }, status=status.HTTP_201_CREATED)
                     
-                except stripe.error.AuthenticationError as e:
+                except stripe.AuthenticationError as e:
                     print(f"❌ ERROR de autenticación Stripe: {str(e)}")
                     pago.delete()
                     return Response({
@@ -317,7 +317,7 @@ class PagoViewSet(viewsets.ModelViewSet):
             
             try:
                 intent = stripe.PaymentIntent.retrieve(payment_intent_id)
-            except stripe.error.AuthenticationError as e:
+            except stripe.AuthenticationError as e:
                 print(f"❌ ERROR de autenticación Stripe al confirmar: {str(e)}")
                 return Response({
                     'success': False,
@@ -447,7 +447,7 @@ class PagoViewSet(viewsets.ModelViewSet):
                         try:
                             stripe.PaymentIntent.cancel(pago.stripe_payment_intent_id)
                             print(f"✅ Payment Intent {pago.stripe_payment_intent_id} cancelado en Stripe")
-                        except stripe.error.AuthenticationError as e:
+                        except stripe.AuthenticationError as e:
                             print(f"⚠️ Error de autenticación al cancelar en Stripe: {str(e)}")
                             # Continuar con la cancelación local aunque falle en Stripe
                         except StripeError as e:
