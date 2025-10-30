@@ -119,21 +119,7 @@ class PagoViewSet(viewsets.ModelViewSet):
                             'usuario_email': request.user.email
                         }
                     )
-                except stripe.error.AuthenticationError as e:
-                    print(f"❌ ERROR de autenticación Stripe: {str(e)}")
-                    pago.delete()
-                    return Response({
-                        'success': False,
-                        'error': 'Error de autenticación con Stripe. Verifique las credenciales en el archivo .env'
-                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                except StripeError as e:
-                    print(f"❌ ERROR de Stripe: {str(e)}")
-                    pago.delete()
-                    return Response({
-                        'success': False,
-                        'error': f'Error de Stripe: {str(e)}'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-                
+                    
                     # Guardar el Payment Intent ID
                     pago.stripe_payment_intent_id = intent.id
                     pago.estado = 'procesando'
@@ -182,6 +168,20 @@ class PagoViewSet(viewsets.ModelViewSet):
                         'payment_intent_id': intent.id
                     }, status=status.HTTP_201_CREATED)
                     
+                except stripe.error.AuthenticationError as e:
+                    print(f"❌ ERROR de autenticación Stripe: {str(e)}")
+                    pago.delete()
+                    return Response({
+                        'success': False,
+                        'error': 'Error de autenticación con Stripe. Verifique las credenciales en el archivo .env'
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except StripeError as e:
+                    print(f"❌ ERROR de Stripe: {str(e)}")
+                    pago.delete()
+                    return Response({
+                        'success': False,
+                        'error': f'Error de Stripe: {str(e)}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
                 except Exception as e:
                     print(f"❌ ERROR inesperado al crear Payment Intent: {str(e)}")
                     pago.delete()
