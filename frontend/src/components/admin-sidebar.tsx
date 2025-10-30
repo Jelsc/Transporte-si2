@@ -185,7 +185,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   return (
     <aside
       className={`h-full bg-sky-100 relative border-r border-gray-200 transition-all duration-300 ${
-        collapsed ? "w-[64px]" : "w-[250px]"
+        collapsed ? "w-16" : "w-[250px]"
       }`}
     >
       <div

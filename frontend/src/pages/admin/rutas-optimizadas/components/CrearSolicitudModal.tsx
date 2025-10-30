@@ -124,7 +124,7 @@ export default function CrearSolicitudModal({ isOpen, onClose, onSuccess }: Crea
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto z-[9999]">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto z-9999">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5 text-blue-600" />
