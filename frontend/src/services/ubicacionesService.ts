@@ -15,7 +15,8 @@ const getApiClient = () => {
   const API_BASE_URL = getApiBaseUrl();
   
   const client = axios.create({
-    baseURL: `${API_BASE_URL}/ubicaciones`,
+    // Usar el prefijo /api/ para coincidir con las rutas del backend
+    baseURL: `${API_BASE_URL}/api/ubicaciones/`,
     headers: {
       'Content-Type': 'application/json',
     },
