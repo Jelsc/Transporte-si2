@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { DollarSign, Package, User, MapPin, Weight } from 'lucide-react';
-import type { Encomienda } from '@/types/encomienda';
+import type { Encomienda, CreateEncomiendaRequest } from '@/types/encomienda';
 import type { ConductorOption } from '@/types/conductor';
 
 // Tipo combinado para el formulario que incluye todos los campos posibles
@@ -374,7 +374,7 @@ export function EncomiendaStore({
                   value={formData.notas}
                   onChange={handleInputChange}
                   placeholder="Instrucciones especiales, observaciones..."
-                  className="min-h-[80px]"
+                  className="min-h-20"
                 />
               </div>
             </CardContent>
@@ -396,7 +396,7 @@ export function EncomiendaStore({
                   <SelectItem value="0">Sin asignar</SelectItem>
                   {conductoresDisponibles.map((conductor) => (
                     <SelectItem key={conductor.id} value={conductor.id.toString()}>
-                      {conductor.nombre} - {conductor.vehiculo}
+                      {conductor.nombre} {conductor.apellido} - Lic: {conductor.nro_licencia}
                     </SelectItem>
                   ))}
                 </SelectContent>

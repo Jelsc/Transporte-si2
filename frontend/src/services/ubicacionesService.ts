@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getApiBaseUrl } from '@/lib/api';
 import type {
   Ubicacion,
   UbicacionCreate,
@@ -9,44 +10,48 @@ import type {
   GeocodeResponse
 } from '../types';
 
-// Configuración base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Función para obtener la instancia de axios configurada
+const getApiClient = () => {
+  const API_BASE_URL = getApiBaseUrl();
+  
+  const client = axios.create({
+    // Usar el prefijo /api/ para coincidir con las rutas del backend
+    baseURL: `${API_BASE_URL}/api/ubicaciones/`,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-// Configurar axios con interceptores para autenticación
-const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/ubicaciones`,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Interceptor para agregar token de autenticación
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  // Interceptor para agregar token de autenticación
+  client.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  );
 
-// Interceptor para manejar errores de autenticación
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado o inválido
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      window.location.href = '/auth/login';
+  // Interceptor para manejar errores de autenticación
+  client.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        // Token expirado o inválido
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/auth/login';
+      }
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
-);
+  );
+
+  return client;
+};
 
 export class UbicacionesService {
   /**
@@ -54,6 +59,7 @@ export class UbicacionesService {
    */
   static async listarUbicaciones(filters: UbicacionFilters = {}): Promise<UbicacionListResponse> {
     try {
+      const apiClient = getApiClient();
       const params = new URLSearchParams();
       
       if (filters.tipo) params.append('tipo', filters.tipo);
@@ -75,6 +81,7 @@ export class UbicacionesService {
    */
   static async obtenerUbicacion(id: number): Promise<Ubicacion> {
     try {
+      const apiClient = getApiClient();
       const response = await apiClient.get<Ubicacion>(`/${id}/`);
       return response.data;
     } catch (error) {
@@ -88,6 +95,7 @@ export class UbicacionesService {
    */
   static async crearUbicacion(ubicacion: UbicacionCreate): Promise<Ubicacion> {
     try {
+      const apiClient = getApiClient();
       console.log('🚀 Enviando ubicación al backend:', ubicacion);
       const response = await apiClient.post<Ubicacion>('/', ubicacion);
       return response.data;
@@ -109,6 +117,7 @@ export class UbicacionesService {
    */
   static async actualizarUbicacion(id: number, ubicacion: UbicacionCreate): Promise<Ubicacion> {
     try {
+      const apiClient = getApiClient();
       const response = await apiClient.put<Ubicacion>(`/${id}/`, ubicacion);
       return response.data;
     } catch (error) {
@@ -122,6 +131,7 @@ export class UbicacionesService {
    */
   static async actualizarUbicacionParcial(id: number, ubicacion: UbicacionUpdate): Promise<Ubicacion> {
     try {
+      const apiClient = getApiClient();
       const response = await apiClient.patch<Ubicacion>(`/${id}/`, ubicacion);
       return response.data;
     } catch (error) {
@@ -135,6 +145,7 @@ export class UbicacionesService {
    */
   static async eliminarUbicacion(id: number): Promise<void> {
     try {
+      const apiClient = getApiClient();
       await apiClient.delete(`/${id}/`);
     } catch (error) {
       console.error(`Error al eliminar ubicación ${id}:`, error);
@@ -147,6 +158,7 @@ export class UbicacionesService {
    */
   static async geocodificar(direccion: GeocodeRequest): Promise<GeocodeResponse> {
     try {
+      const apiClient = getApiClient();
       const response = await apiClient.post<GeocodeResponse>('/geocode/', direccion);
       return response.data;
     } catch (error) {

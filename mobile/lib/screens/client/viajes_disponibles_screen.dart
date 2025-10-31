@@ -658,8 +658,18 @@ class _ViajesDisponiblesScreenState extends State<ViajesDisponiblesScreen> {
 
   Widget _buildViajeCard(Map<String, dynamic> viajeData) {
     // Extraer datos del viaje
-    final origen = viajeData['origen'] ?? 'N/A';
-    final destino = viajeData['destino'] ?? 'N/A';
+    // El backend envía origen_detalle y destino_detalle con la info completa
+    String origen = 'N/A';
+    String destino = 'N/A';
+    
+    if (viajeData['origen_detalle'] != null) {
+      origen = viajeData['origen_detalle']['nombre'] ?? 'N/A';
+    }
+    
+    if (viajeData['destino_detalle'] != null) {
+      destino = viajeData['destino_detalle']['nombre'] ?? 'N/A';
+    }
+    
     final fecha = viajeData['fecha'] ?? '';
     final hora = viajeData['hora'] ?? '';
 
@@ -754,28 +764,78 @@ class _ViajesDisponiblesScreenState extends State<ViajesDisponiblesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header del viaje
+            // Header del viaje - Ruta en 2 líneas
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: Colors.blue.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '$origen → $destino',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                // Ruta (origen → destino)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Origen
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.trip_origin,
+                            size: 14,
+                            color: Colors.blue.shade600,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              origen,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      // Flecha
+                      Padding(
+                        padding: const EdgeInsets.only(left: 20),
+                        child: Icon(
+                          Icons.arrow_downward,
+                          size: 12,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // Destino
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: Colors.red.shade600,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              destino,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 12),
+                // Badge de disponibilidad
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -926,12 +986,6 @@ class _ViajesDisponiblesScreenState extends State<ViajesDisponiblesScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje), backgroundColor: Colors.blue.shade600),
     );
   }
 }

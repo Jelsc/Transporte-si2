@@ -42,17 +42,28 @@ class ViajesService {
 
       // Construir parámetros de consulta
       final queryParams = <String, String>{};
+      
+      // Si hay búsqueda general, usarla
       if (search != null && search.isNotEmpty) {
         queryParams['search'] = search;
       }
+      
+      // Para origen y destino, usar search ya que el backend busca por nombre
+      // Combinar origen y destino con search si están presentes
+      String searchTerms = search ?? '';
       if (origen != null && origen.isNotEmpty && origen != 'all') {
-        queryParams['origen'] = origen;
+        searchTerms = searchTerms.isEmpty ? origen : '$searchTerms $origen';
       }
       if (destino != null && destino.isNotEmpty && destino != 'all') {
-        queryParams['destino'] = destino;
+        searchTerms = searchTerms.isEmpty ? destino : '$searchTerms $destino';
       }
+      
+      if (searchTerms.isNotEmpty) {
+        queryParams['search'] = searchTerms;
+      }
+      
       if (fechaDesde != null && fechaDesde.isNotEmpty) {
-        queryParams['fecha_desde'] = fechaDesde;
+        queryParams['fecha__gte'] = fechaDesde; // Usar el filtro correcto
       }
       if (estado != null && estado.isNotEmpty) {
         queryParams['estado'] = estado;

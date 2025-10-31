@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, AlertCircle, MapIcon, List, Filter, Calendar, TrendingUp, Plus } from 'lucide-react';
+import { Loader2, AlertCircle, MapIcon, List, Filter, Calendar, TrendingUp, Plus, Clock } from 'lucide-react';
 import AdminLayout from '@/app/layout/admin-layout';
 import MapaRutasOptimizadas from './components/MapaRutasOptimizadas';
 import type { RutaOptimizada, SolicitudRuta } from '@/types';
@@ -16,6 +16,18 @@ const getEstadoBadge = (estado: SolicitudRuta['estado']) => {
     cancelado: 'bg-gray-100 text-gray-800 border-gray-200',
   };
   return badges[estado] || badges.pendiente;
+};
+
+// Helper para convertir minutos a formato "Xh Ym"
+const formatearTiempo = (minutos: number): string => {
+  const horas = Math.floor(minutos / 60);
+  const mins = Math.round(minutos % 60);
+  
+  if (horas === 0) {
+    return `${mins}m`;
+  }
+  
+  return `${horas}h ${mins}m`;
 };
 
 export default function RutasOptimizadasPage() {
@@ -56,8 +68,6 @@ export default function RutasOptimizadasPage() {
       const response = await api.get('/api/rutas-optimizadas/solicitudes/');
       const data = response.data;
       
-      console.log('📦 Datos recibidos del backend:', data);
-      console.log('📦 Solicitudes:', data.results || data);
       
       const solicitudesData = data.results || data;
       setSolicitudes(solicitudesData);
@@ -69,15 +79,11 @@ export default function RutasOptimizadasPage() {
           (s: SolicitudRuta) => s.id === solicitudSeleccionada.id
         );
         if (solicitudActualizada) {
-          console.log('📍 Solicitud actualizada:', solicitudActualizada);
-          console.log('📍 Rutas optimizadas:', solicitudActualizada.rutas_optimizadas);
           setSolicitudSeleccionada(solicitudActualizada);
         }
       } else {
         // Seleccionar automáticamente la primera solicitud
         if (solicitudesData.length > 0) {
-          console.log('📍 Solicitud seleccionada:', solicitudesData[0]);
-          console.log('📍 Rutas optimizadas:', solicitudesData[0].rutas_optimizadas);
           setSolicitudSeleccionada(solicitudesData[0]);
         }
       }
@@ -142,7 +148,7 @@ export default function RutasOptimizadasPage() {
         totalRutas: 0,
         totalParadas: 0,
         distanciaTotal: '0.00',
-        tiempoTotal: 0,
+        tiempoTotal: '0h 0m',
         utilizacionPromedio: '0.0',
       };
     }
@@ -174,7 +180,7 @@ export default function RutasOptimizadasPage() {
       totalRutas,
       totalParadas,
       distanciaTotal: distanciaTotalNum.toFixed(2),
-      tiempoTotal: Math.round(tiempoTotalNum),
+      tiempoTotal: formatearTiempo(tiempoTotalNum),
       utilizacionPromedio: (utilizacionPromedioNum * 100).toFixed(1),
     };
 
@@ -410,10 +416,10 @@ export default function RutasOptimizadasPage() {
             <div className="bg-orange-50 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-orange-600 font-medium">Tiempo</span>
-                <Calendar className="w-4 h-4 text-orange-600" />
+                <Clock className="w-4 h-4 text-orange-600" />
               </div>
               <p className="text-2xl font-bold text-orange-900 mt-1">
-                {estadisticas.tiempoTotal} min
+                {estadisticas.tiempoTotal}
               </p>
             </div>
 
@@ -565,7 +571,7 @@ export default function RutasOptimizadasPage() {
                       <div>
                         <span className="text-gray-600">Tiempo:</span>
                         <span className="font-semibold text-gray-900 ml-2">
-                          {ruta.tiempo_total_min} min
+                          {formatearTiempo(Number(ruta.tiempo_total_min))}
                         </span>
                       </div>
                       <div>

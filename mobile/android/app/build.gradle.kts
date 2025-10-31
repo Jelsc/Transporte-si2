@@ -36,6 +36,11 @@ android {
 
     buildTypes {
         release {
+            // Minificación deshabilitada temporalmente para evitar problemas con R8
+            // eliminando clases necesarias de Stripe SDK y Google Play Core
+            isMinifyEnabled = false
+            isShrinkResources = false
+            
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")

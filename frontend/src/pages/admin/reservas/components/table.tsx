@@ -129,7 +129,11 @@ export function ReservaTable({
     
     if (typeof viaje === 'number') return "Viaje ID: " + viaje;
     
-    return `${viaje.origen} → ${viaje.destino}`;
+    // Usar origen_detalle/destino_detalle si existen, sino usar origen/destino
+    const origen = viaje.origen_detalle?.nombre || viaje.origen || 'N/A';
+    const destino = viaje.destino_detalle?.nombre || viaje.destino || 'N/A';
+    
+    return `${origen} → ${destino}`;
   };
 
   // Obtener fecha del viaje con validaciones seguras
@@ -156,14 +160,7 @@ export function ReservaTable({
     
     const numerosAsientos = reserva.items.map(item => {
       if (!item.asiento) return "N/A";
-      
-      // ✅ CORRECCIÓN: Asignar a variable primero para el type narrowing
-      const asiento = item.asiento;
-      if (typeof asiento === 'number') {
-        return asiento.toString();
-      }
-      
-      return asiento.numero || "N/A";
+      return item.asiento.numero || "N/A";
     });
     
     return numerosAsientos.join(', ');

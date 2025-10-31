@@ -21,7 +21,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Calendar, User, MapPin, CreditCard, Hash, X, Check, Users } from 'lucide-react';
-import type { Reserva, ReservaFormData, ViajeOption, Cliente, Asiento } from '@/types/reservas';
+import type { Reserva, ReservaFormData, ViajeOption, Cliente } from '@/types/reservas';
+import type { Asiento } from '@/types/asiento';
+import { getApiBaseUrl } from '@/lib/api';
 
 interface ReservaStoreProps {
   isOpen: boolean;
@@ -84,20 +86,19 @@ export function ReservaStore({
         if (primerItem && primerItem.asiento) {
           const primerAsiento = primerItem.asiento;
           if (typeof primerAsiento === 'object' && primerAsiento.viaje) {
-            const viaje = primerAsiento.viaje;
-            if (typeof viaje === 'object') {
-              setSelectedViaje(viaje.id.toString());
-              loadAsientosDisponibles(viaje.id, initialData.items.map(item => {
-                if (!item.asiento) return 0;
-                return typeof item.asiento === 'object' ? (item.asiento as Asiento).id : item.asiento;
-              }).filter(id => id !== 0));
-            } else if (typeof viaje === 'number') {
-              setSelectedViaje(viaje.toString());
-              loadAsientosDisponibles(viaje, initialData.items.map(item => {
-                if (!item.asiento) return 0;
-                return typeof item.asiento === 'object' ? (item.asiento as Asiento).id : item.asiento;
-              }).filter(id => id !== 0));
-            }
+            // Extraer el ID del viaje (puede ser number o objeto Viaje)
+            const viajeId = typeof primerAsiento.viaje === 'number' 
+              ? primerAsiento.viaje 
+              : primerAsiento.viaje.id;
+            
+            setSelectedViaje(viajeId.toString());
+            loadAsientosDisponibles(viajeId, initialData.items.map(item => {
+              if (!item.asiento) return 0;
+              return typeof item.asiento === 'object' ? (item.asiento as Asiento).id : item.asiento;
+            }).filter(id => id !== 0));
+          } else if (typeof primerAsiento === 'number') {
+            // Si primerAsiento es solo un ID, no podemos obtener el viaje
+            console.warn('Asiento es un ID, no un objeto completo');
           }
         }
       }
@@ -117,7 +118,8 @@ export function ReservaStore({
   // ✅ ACTUALIZADO: Cargar asientos marcando los seleccionados
   const loadAsientosDisponibles = async (viajeId: number, asientosSeleccionadosIds: number[] = []) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/asientos/?viaje=${viajeId}`);
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/asientos/?viaje=${viajeId}`);
       if (!response.ok) throw new Error('Error al cargar asientos');
       
       const result = await response.json();
@@ -581,3 +583,4 @@ export function ReservaStore({
     </Dialog>
   );
 }
+

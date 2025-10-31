@@ -45,8 +45,20 @@ class VRPSolver:
         num_nodos = len(matriz_distancias)
         num_vehiculos = len(capacidades_vehiculos)
         
-        if num_nodos < 2:
-            raise ValueError("Se necesitan al menos 2 nodos")
+        # Validar que hay suficientes nodos para crear una ruta
+        if num_nodos < 3:
+            raise ValueError(
+                f"Se necesitan al menos 3 ubicaciones (depot + 2 entregas) para optimizar rutas. "
+                f"Actualmente hay {num_nodos} ubicaciones (incluyendo depot)."
+            )
+        
+        # Para casos triviales (pocas entregas), generar solución simple
+        if num_nodos <= 3 and num_vehiculos > 0:
+            logger.info(f"Caso trivial detectado: {num_nodos} nodos, {num_vehiculos} vehículos")
+            return self._resolver_caso_trivial(
+                matriz_distancias, matriz_tiempos, demandas, 
+                capacidades_vehiculos, depot
+            )
         
         # Crear manager
         self.manager = pywrapcp.RoutingIndexManager(
@@ -78,8 +90,8 @@ class VRPSolver:
         # Agregar dimensión de tiempo
         self.routing.AddDimension(
             tiempo_callback_index,
-            0,  # Sin tiempo slack
-            30000,  # Tiempo máximo por vehículo (8.33 horas)
+            3600,  # Tiempo slack de 60 minutos (más flexible)
+            36000,  # Tiempo máximo por vehículo (10 horas - más generoso)
             False,  # No empezar acumulando
             'Tiempo'
         )
@@ -99,15 +111,26 @@ class VRPSolver:
             'Capacidad'
         )
         
-        # Configurar parámetros de búsqueda
+        # Parámetros de búsqueda
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+        
+        # Probar múltiples estrategias de primera solución
         search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+            routing_enums_pb2.FirstSolutionStrategy.AUTOMATIC
         )
+        
         search_parameters.local_search_metaheuristic = (
             routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
         )
         search_parameters.time_limit.seconds = 30  # 30 segundos de límite
+        
+        # Configuración adicional para mejorar probabilidad de encontrar solución
+        search_parameters.log_search = True
+        
+        # Permitir que algunos nodos queden sin visitar si no hay solución
+        penalty = 10000  # Penalidad por no visitar un nodo
+        for node in range(1, num_nodos):
+            self.routing.AddDisjunction([self.manager.NodeToIndex(node)], penalty)
         
         # Resolver
         self.solution = self.routing.SolveWithParameters(search_parameters)
@@ -148,6 +171,22 @@ class VRPSolver:
         num_nodos = len(matriz_distancias)
         num_vehiculos = len(capacidades_vehiculos)
         
+        # Validar que hay suficientes nodos para crear una ruta
+        if num_nodos < 3:
+            raise ValueError(
+                f"Se necesitan al menos 3 ubicaciones (depot + 2 entregas) para optimizar rutas. "
+                f"Actualmente hay {num_nodos} ubicaciones (incluyendo depot)."
+            )
+        
+        # Si hay pocos nodos (3 o menos entregas), usar resolver trivial
+        # para evitar problemas con OR-Tools
+        if num_nodos <= 3:
+            logger.info(f"Usando resolver trivial para {num_nodos} nodos (con ventanas de tiempo)")
+            return self._resolver_caso_trivial(
+                matriz_distancias, matriz_tiempos, demandas, 
+                capacidades_vehiculos, depot
+            )
+        
         # Crear manager
         self.manager = pywrapcp.RoutingIndexManager(
             num_nodos, num_vehiculos, depot
@@ -177,8 +216,8 @@ class VRPSolver:
         # Dimensión de tiempo con ventanas
         self.routing.AddDimension(
             tiempo_callback_index,
-            0,  # Sin tiempo slack
-            30000,  # Tiempo máximo
+            3600,  # Tiempo slack de 60 minutos (permite cierta flexibilidad)
+            36000,  # Tiempo máximo (10 horas)
             False,  # No empezar acumulando
             'Tiempo'
         )
@@ -190,13 +229,16 @@ class VRPSolver:
             if node_idx == depot:
                 # Depot: ventana amplia
                 time_dimension.CumulVar(self.manager.NodeToIndex(node_idx)).SetRange(
-                    0, 30000
+                    0, 36000
                 )
             else:
-                # Otros nodos: ventanas específicas
+                # Otros nodos: ventanas específicas (con algo de flexibilidad)
                 inicio, fin = ventanas_tiempo[node_idx]
+                # Ampliar ventanas ligeramente para mayor flexibilidad
+                inicio_flexible = max(0, int(inicio) - 30)  # 30 min antes
+                fin_flexible = min(36000, int(fin) + 30)  # 30 min después
                 time_dimension.CumulVar(self.manager.NodeToIndex(node_idx)).SetRange(
-                    int(inicio), int(fin)
+                    inicio_flexible, fin_flexible
                 )
         
         # Dimensión de capacidad
@@ -216,13 +258,24 @@ class VRPSolver:
         
         # Parámetros de búsqueda
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
+        
+        # Probar múltiples estrategias automáticamente
         search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+            routing_enums_pb2.FirstSolutionStrategy.AUTOMATIC
         )
+        
         search_parameters.local_search_metaheuristic = (
             routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
         )
         search_parameters.time_limit.seconds = 60  # 1 minuto para PDPTW
+        
+        # Configuración adicional para mejorar probabilidad de encontrar solución
+        search_parameters.log_search = True
+        
+        # Permitir que algunos nodos queden sin visitar si no hay solución
+        penalty = 10000  # Penalidad por no visitar un nodo
+        for node in range(1, num_nodos):
+            self.routing.AddDisjunction([self.manager.NodeToIndex(node)], penalty)
         
         # Resolver
         self.solution = self.routing.SolveWithParameters(search_parameters)
@@ -281,16 +334,21 @@ class VRPSolver:
             # Agregar nodo final (depot)
             ruta.append(depot)
             
+            # Convertir a unidades correctas
+            # OSRM devuelve distancias en METROS y tiempos en SEGUNDOS
+            distancia_km = distancia_vehiculo / 1000.0  # Metros a kilómetros
+            tiempo_min = tiempo_vehiculo / 60.0  # Segundos a minutos
+            
             rutas.append({
                 'vehiculo_id': vehiculo_id,
                 'ruta': ruta,
-                'distancia_total': distancia_vehiculo,
-                'tiempo_total': tiempo_vehiculo,
+                'distancia_total': distancia_km,
+                'tiempo_total': tiempo_min,
                 'numero_paradas': len(ruta) - 2  # Excluyendo depot inicio y fin
             })
             
-            tiempo_total += tiempo_vehiculo
-            distancia_total += distancia_vehiculo
+            tiempo_total += tiempo_min
+            distancia_total += distancia_km
         
         return {
             'rutas': rutas,
@@ -391,6 +449,74 @@ class VRPSolver:
         return self._procesar_solucion(
             num_vehiculos, depot, matriz_distancias, matriz_tiempos
         )
+    
+    def _resolver_caso_trivial(
+        self,
+        matriz_distancias: List[List[float]],
+        matriz_tiempos: List[List[float]],
+        demandas: List[int],
+        capacidades_vehiculos: List[int],
+        depot: int = 0
+    ) -> Dict:
+        """
+        Resolver casos triviales con pocos nodos (solución greedy simple)
+        
+        Para casos con 2-3 nodos, generar una solución simple:
+        - Depot -> Nodo 1 -> Nodo 2 -> ... -> Depot
+        """
+        num_nodos = len(matriz_distancias)
+        num_vehiculos = len(capacidades_vehiculos)
+        
+        logger.info(f"Generando solución trivial para {num_nodos} nodos")
+        
+        # Crear una ruta simple: visitar todos los nodos en orden
+        rutas = []
+        nodos_a_visitar = list(range(1, num_nodos))  # Excluir depot
+        
+        # Calcular demanda total
+        demanda_total = sum(demandas[1:])  # Excluir depot
+        
+        # Usar el primer vehículo que tenga capacidad suficiente
+        vehiculo_idx = 0
+        for i, capacidad in enumerate(capacidades_vehiculos):
+            if capacidad >= demanda_total:
+                vehiculo_idx = i
+                break
+        
+        # Construir ruta: depot -> todos los nodos -> depot
+        ruta = [depot] + nodos_a_visitar + [depot]
+        
+        # Calcular distancia y tiempo total
+        distancia_total = 0.0
+        tiempo_total = 0.0
+        
+        for i in range(len(ruta) - 1):
+            from_node = ruta[i]
+            to_node = ruta[i + 1]
+            distancia_total += matriz_distancias[from_node][to_node]
+            tiempo_total += matriz_tiempos[from_node][to_node]
+        
+        # Convertir a unidades correctas
+        # OSRM devuelve distancias en METROS y tiempos en SEGUNDOS
+        distancia_km = distancia_total / 1000.0  # Metros a kilómetros
+        tiempo_min = tiempo_total / 60.0  # Segundos a minutos
+        
+        # Crear solución en el formato esperado (lista de diccionarios)
+        solucion = {
+            'rutas': [{
+                'vehiculo_id': vehiculo_idx,
+                'ruta': ruta,
+                'distancia_total': distancia_km,
+                'tiempo_total': tiempo_min,
+                'numero_paradas': len(ruta) - 2  # Excluir depot inicio y fin
+            }],
+            'distancia_total': distancia_km,
+            'tiempo_total': tiempo_min
+        }
+        
+        logger.info(f"Solución trivial generada: ruta = {ruta}, distancia = {distancia_km:.2f} km, tiempo = {tiempo_min:.2f} min")
+        
+        return solucion
 
 
 # Instancia global del solver

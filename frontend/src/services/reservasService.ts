@@ -6,6 +6,7 @@ import type {
 } from '@/types/reservas';
 import type { ApiResponse } from '@/types';
 import { apiRequest } from './authService';
+import { getApiBaseUrl } from '@/lib/api';
 
 interface EstadoReservaTemporal {
   id: number;
@@ -31,7 +32,8 @@ export const reservasApi = {
         return { success: false, error: 'No autenticado' };
       }
 
-      const response = await fetch('http://localhost:8000/api/reservas/crear-temporal/', {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/reservas/crear-temporal/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,7 +85,8 @@ export const reservasApi = {
         return { success: false, error: 'No autenticado' };
       }
 
-      const response = await fetch(`http://localhost:8000/api/reservas/${reservaId}/confirmar-pago/`, {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/reservas/${reservaId}/confirmar-pago/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +131,8 @@ export const reservasApi = {
         return { success: false, error: 'No autenticado' };
       }
 
-      const response = await fetch(`http://localhost:8000/api/reservas/${reservaId}/cancelar-temporal/`, {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/reservas/${reservaId}/cancelar-temporal/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +177,8 @@ export const reservasApi = {
         return { success: false, error: 'No autenticado' };
       }
 
-      const response = await fetch(`http://localhost:8000/api/reservas/${reservaId}/estado-temporal/`, {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/reservas/${reservaId}/estado-temporal/`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -289,7 +294,8 @@ export const reservasApi = {
         asientos_ids: asientosIds
       };
 
-      const response = await fetch(`http://localhost:8000/api/reservas/${reservaId}/agregar-asientos/`, {
+      const API_BASE_URL = getApiBaseUrl();
+      const response = await fetch(`${API_BASE_URL}/api/reservas/${reservaId}/agregar-asientos/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -324,3 +330,4 @@ export const reservasApi = {
     }
   }
 };
+
