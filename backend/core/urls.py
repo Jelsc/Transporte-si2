@@ -65,6 +65,10 @@ urlpatterns = [
     
     # Rutas Optimizadas: VRP/PDPTW para encomiendas y entregas
     path("api/rutas-optimizadas/", include("rutas_optimizadas.urls")),
+    
+    # Reportes: generación de reportes PDF, Excel e Imágenes
+    path("api/reportes/", include("reportes.urls")),
+    
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
 
