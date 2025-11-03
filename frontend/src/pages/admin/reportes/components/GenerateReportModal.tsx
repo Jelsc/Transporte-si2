@@ -105,8 +105,45 @@ export default function GenerateReportModal({
     }
     
     // Mostrar confianza
-    if (result.confidence > 0.7) {
+    const CONFIDENCE_THRESHOLD = 0.8;
+    if (result.confidence >= CONFIDENCE_THRESHOLD) {
       toast.success(`Comando interpretado correctamente (${Math.round(result.confidence * 100)}% confianza)`);
+
+      // Si la IA detectó un tipo (pdf/excel/imagen) y la confianza es alta, generar automáticamente
+      if (result.tipo) {
+        // Preferir la categoría detectada por la IA si viene, sino la del modal
+        const categoriaDetectada = (result.categoria as string) || categoria;
+        const tipoDetectado = result.tipo as 'pdf' | 'excel' | 'imagen';
+        const request: GenerarReporteRequest = {
+          tipo: tipoDetectado,
+          categoria: categoriaDetectada as any,
+          ...(result.titulo && { titulo: result.titulo }),
+          ...(result.fechaInicio && { fecha_inicio: result.fechaInicio }),
+          ...(result.fechaFin && { fecha_fin: result.fechaFin }),
+        };
+
+        // Ejecutar generación y descarga automática
+        void (async () => {
+          setLoading(true);
+          try {
+            const blob = await reportesService.generar(request);
+            const nombreArchivo = reportesService.getNombreArchivo(
+              tipoDetectado,
+              categoriaDetectada,
+              result.titulo || ''
+            );
+            reportesService.descargarArchivo(blob, nombreArchivo);
+            toast.success('Reporte generado y descargado automáticamente');
+            onClose();
+            resetForm();
+          } catch (error: any) {
+            console.error('Error al generar reporte automático:', error);
+            toast.error(error.response?.data?.error || 'Error al generar el reporte automáticamente');
+          } finally {
+            setLoading(false);
+          }
+        })();
+      }
     } else {
       toast.info(`Comando interpretado con baja confianza. Verifica los datos.`);
     }

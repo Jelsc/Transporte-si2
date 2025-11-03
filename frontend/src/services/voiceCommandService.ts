@@ -2,6 +2,10 @@
  * Servicio para procesamiento de voz usando Google AI (Gemini) API
  */
 
+// Configuración de Google API (usar variables de entorno)
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'; // modelo solicitado
+
 // Declaración de tipos para Web Speech API
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -36,7 +40,7 @@ class VoiceCommandService {
   private googleApiKey: string;
 
   constructor() {
-    this.googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
+    this.googleApiKey = GOOGLE_API_KEY || '';
     this.initializeSpeechRecognition();
   }
 
@@ -146,7 +150,8 @@ class VoiceCommandService {
       throw new Error('API Key no configurada');
     }
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.googleApiKey}`;
+  // Usar endpoint de Gemini pedido por el usuario (gemini-2.0-flash)
+  const apiUrl = `${GEMINI_API_URL}?key=${this.googleApiKey}`;
 
     const prompt = `Eres un asistente para interpretar comandos de voz para generar reportes.
 
@@ -178,11 +183,7 @@ Si no se menciona algo, usa null. La confidence debe ser entre 0 y 1.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
+          contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
             temperature: 0.2,
             maxOutputTokens: 300,
@@ -205,7 +206,15 @@ Si no se menciona algo, usa null. La confidence debe ser entre 0 y 1.`;
       }
 
       const data = await response.json();
-      const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      // Manejar varias formas de respuesta:
+      // - paid gemini: candidates[0].content.parts[0].text
+      // - text-bison: candidates[0].output
+      // - otros: candidates[0].content.text
+      const generatedText =
+        data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        data?.candidates?.[0]?.output ||
+        data?.candidates?.[0]?.content?.text ||
+        '{}';
       
       console.log('🤖 Respuesta de Google AI:', generatedText);
       

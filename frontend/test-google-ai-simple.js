@@ -1,6 +1,6 @@
 // Test simple de Google AI - Una sola petición
-const API_KEY = 'AIzaSyBlRWbLF0dKtS2T0WXT5NYOtoZ7V0vWi10';
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
+const API_KEY = 'AIzaSyCsc5kFnHu2K1MP14doz9mFXH7hS0kr1y4';
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
 async function testSimple() {
   console.log('🧪 Test Simple de Google AI Gemini\n');
@@ -40,22 +40,15 @@ Si no se menciona algo, usa null. La confidence debe ser entre 0 y 1.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 300,
-        }
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 300 }
       })
     });
 
     console.log('📥 Respuesta recibida (Status:', response.status, ')\n');
 
     if (response.ok) {
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
       
       console.log('✅ ¡Éxito! Respuesta de Google AI:');
@@ -90,9 +83,14 @@ Si no se menciona algo, usa null. La confidence debe ser entre 0 y 1.`;
         console.log('Texto recibido:', text);
       }
     } else {
-      const error = await response.json();
-      console.error('❌ Error en API:', response.status);
-      console.error('Detalles:', JSON.stringify(error, null, 2));
+      let errorBody = null;
+      try {
+        errorBody = await response.text();
+      } catch (e) {
+        errorBody = null;
+      }
+      console.error('❌ Error en API:', response.status, response.statusText);
+      if (errorBody) console.error('Detalles:', errorBody);
       
       if (response.status === 429) {
         console.log('');

@@ -1,8 +1,8 @@
 // Test de Google AI (Gemini) API
 // Ejecutar con: node test-google-ai.js
 
-const API_KEY = 'AIzaSyBlRWbLF0dKtS2T0WXT5NYOtoZ7V0vWi10';
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
+const API_KEY = 'AIzaSyCsc5kFnHu2K1MP14doz9mFXH7hS0kr1y4';
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
 async function testGoogleAI() {
   console.log('🧪 Probando Google AI (Gemini)...\n');
@@ -16,23 +16,23 @@ async function testGoogleAI() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: "Di 'Hola' en español"
-          }]
-        }]
+        prompt: { text: "Di 'Hola' en español" },
+        temperature: 0.2,
+        maxOutputTokens: 200,
       })
     });
 
     if (response1.ok) {
-      const data1 = await response1.json();
-      const text1 = data1.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
+      const data1 = await response1.json().catch(() => ({}));
+      const text1 = data1.candidates?.[0]?.content?.parts?.[0]?.text || data1.candidates?.[0]?.output || 'Sin respuesta';
       console.log('✅ Conexión exitosa!');
       console.log('📝 Respuesta:', text1);
       console.log('');
     } else {
-      const error = await response1.json();
-      console.error('❌ Error en conexión:', error);
+      let errText = null;
+      try { errText = await response1.text(); } catch(e) { errText = null; }
+      console.error('❌ Error en conexión:', response1.status, response1.statusText);
+      if (errText) console.error('Detalles:', errText);
       return;
     }
   } catch (error) {
@@ -69,27 +69,20 @@ IMPORTANTE: Responde ÚNICAMENTE con un JSON válido en este formato exacto (sin
 Si no se menciona algo, usa null. La confidence debe ser entre 0 y 1.`;
 
   try {
-    const response2 = await fetch(API_URL, {
+    const response2 = await fetch(`${API_URL}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+          'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 300,
-        }
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 300 }
       })
     });
 
     if (response2.ok) {
-      const data2 = await response2.json();
-      const text2 = data2.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      const data2 = await response2.json().catch(() => ({}));
+      const text2 = data2.candidates?.[0]?.content?.parts?.[0]?.text || data2.candidates?.[0]?.output || '{}';
       
       console.log('✅ Interpretación exitosa!');
       console.log('📝 Respuesta completa de Google AI:');
@@ -119,8 +112,10 @@ Si no se menciona algo, usa null. La confidence debe ser entre 0 y 1.`;
         console.log('Texto recibido:', text2);
       }
     } else {
-      const error = await response2.json();
-      console.error('❌ Error en API:', error);
+      let errText = null;
+      try { errText = await response2.text(); } catch(e) { errText = null; }
+      console.error('❌ Error en API:', response2.status, response2.statusText);
+      if (errText) console.error('Detalles:', errText);
     }
   } catch (error) {
     console.error('❌ Error:', error.message);
