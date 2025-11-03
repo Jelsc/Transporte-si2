@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Google AI - Comandos de Voz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-left: 4px solid #4CAF50;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+        .error {
+            border-left-color: #f44336;
+            color: #f44336;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Google AI - Comandos de Voz</h1>
+        
+        <div class="test-section">
+            <h3>1. Test de API Key</h3>
+            <input type="text" id="apiKey" placeholder="Ingresa tu API Key de Google AI" value="AIzaSyBlRWbLF0dKtS2T0WXT5NYOtoZ7V0vWi10">
+            <button onclick="testApiConnection()">Probar Conexión</button>
+            <div id="apiResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Test de Interpretación de Comando</h3>
+            <input type="text" id="command" placeholder="Ingresa un comando (ej: Generar reporte PDF de vehículos)" value="Generar reporte PDF de vehículos del mes">
+            <button onclick="testCommandInterpretation()">Interpretar Comando</button>
+            <div id="commandResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Ejemplos de Comandos</h3>
+            <ul>
+                <li>"Generar reporte PDF de vehículos"</li>
+                <li>"Reporte de conductores en Excel"</li>
+                <li>"Crear reporte de viajes del mes en formato imagen"</li>
+                <li>"Reporte mensual de encomiendas en PDF con título Envíos de Octubre"</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function testApiConnection() {
+            const apiKey = document.getElementById('apiKey').value;
+            const resultDiv = document.getElementById('apiResult');
+            
+            resultDiv.innerHTML = '⏳ Probando conexión...';
+            
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: "Di 'Hola' en español"
+                            }]
+                        }]
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sin respuesta';
+                    resultDiv.innerHTML = `<div class="result">✅ Conexión exitosa!\n\nRespuesta de Google AI:\n${text}</div>`;
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `<div class="result error">❌ Error ${response.status}:\n${JSON.stringify(error, null, 2)}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error de red:\n${error.message}</div>`;
+            }
+        }
+
+        async function testCommandInterpretation() {
+            const apiKey = document.getElementById('apiKey').value;
+            const command = document.getElementById('command').value;
+            const resultDiv = document.getElementById('commandResult');
+            
+            resultDiv.innerHTML = '⏳ Interpretando comando...';
+            
+            const prompt = `Eres un asistente para interpretar comandos de voz para generar reportes.
+
+El usuario dijo: "${command}"
+
+Extrae la siguiente información del comando:
+1. Tipo de reporte: pdf, excel, o imagen
+2. Categoría: viajes, encomiendas, conductores, vehiculos, financiero, o general
+3. Título del reporte (si lo menciona)
+4. Fecha inicio (si la menciona, formato YYYY-MM-DD)
+5. Fecha fin (si la menciona, formato YYYY-MM-DD)
+
+IMPORTANTE: Responde ÚNICAMENTE con un JSON válido en este formato exacto (sin markdown, sin comentarios):
+{
+  "tipo": "pdf",
+  "categoria": "viajes",
+  "titulo": "Reporte mensual",
+  "fechaInicio": "2025-10-01",
+  "fechaFin": "2025-10-31",
+  "confidence": 0.95
+}
+
+Si no se menciona algo, usa null. La confidence debe ser entre 0 y 1.`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: prompt
+                            }]
+                        }],
+                        generationConfig: {
+                            temperature: 0.2,
+                            maxOutputTokens: 300,
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+                    
+                    // Intentar extraer JSON
+                    const jsonMatch = text.match(/\{[\s\S]*\}/);
+                    const jsonText = jsonMatch ? jsonMatch[0] : text;
+                    
+                    try {
+                        const parsed = JSON.parse(jsonText);
+                        resultDiv.innerHTML = `<div class="result">✅ Interpretación exitosa!\n\nComando: "${command}"\n\nRespuesta de Google AI:\n${text}\n\nJSON Parseado:\n${JSON.stringify(parsed, null, 2)}</div>`;
+                    } catch (parseError) {
+                        resultDiv.innerHTML = `<div class="result error">⚠️ Respuesta recibida pero JSON inválido:\n${text}\n\nError: ${parseError.message}</div>`;
+                    }
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `<div class="result error">❌ Error ${response.status}:\n${JSON.stringify(error, null, 2)}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Error:\n${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -21,6 +21,8 @@ import { FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import reportesService from "@/services/reportesService";
 import type { GenerarReporteRequest } from "@/services/reportesService";
+import { VoiceCommandButton } from "@/components/voice/VoiceCommandButton";
+import type { VoiceCommandResult } from "@/services/voiceCommandService";
 
 interface GenerateReportModalProps {
   open: boolean;
@@ -81,17 +83,55 @@ export default function GenerateReportModal({
     setFechaFin("");
   };
 
+  const handleVoiceCommand = (result: VoiceCommandResult) => {
+    console.log('🎤 Comando de voz recibido:', result);
+    
+    // Aplicar los valores detectados
+    if (result.tipo) {
+      setFormato(result.tipo);
+      toast.success(`Formato detectado: ${result.tipo.toUpperCase()}`);
+    }
+    
+    if (result.titulo) {
+      setTitulo(result.titulo);
+    }
+    
+    if (result.fechaInicio) {
+      setFechaInicio(result.fechaInicio);
+    }
+    
+    if (result.fechaFin) {
+      setFechaFin(result.fechaFin);
+    }
+    
+    // Mostrar confianza
+    if (result.confidence > 0.7) {
+      toast.success(`Comando interpretado correctamente (${Math.round(result.confidence * 100)}% confianza)`);
+    } else {
+      toast.info(`Comando interpretado con baja confianza. Verifica los datos.`);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Generar Reporte de {categoria}</DialogTitle>
           <DialogDescription>
-            Configura los parámetros para generar tu reporte
+            Configura los parámetros para generar tu reporte o usa comando de voz
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          {/* Comando de Voz */}
+          <div className="grid gap-2 pb-4 border-b">
+            <Label>Comando de Voz con IA 🤖</Label>
+            <VoiceCommandButton 
+              onCommandDetected={handleVoiceCommand}
+              disabled={loading}
+            />
+          </div>
+
           {/* Formato */}
           <div className="grid gap-2">
             <Label htmlFor="formato">Formato del Reporte *</Label>
