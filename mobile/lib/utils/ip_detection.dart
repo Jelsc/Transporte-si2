@@ -2,14 +2,14 @@ import 'dart:io';
 
 class IPDetection {
   // 🔧 CONFIGURACIÓN MANUAL - Cambia esta constante según necesites
-  // Para desarrollo local:
-  static const String BACKEND_HOST = "http://10.0.2.2:8000";
+  // Para desarrollo con teléfono físico (usando IP local de tu PC):
+  static const String BACKEND_HOST = "http://192.168.0.143:8000";
+
+  // Para desarrollo con emulador Android (cambia si usas emulador):
+  // static const String BACKEND_HOST = "http://10.0.2.2:8000";
 
   // Para producción en la nube (descomenta la línea de abajo y comenta la de arriba):
   // static const String BACKEND_HOST = "http://3.230.69.204:8000";
-
-  // Para IP local de tu máquina (prueba esta si 10.0.2.2 no funciona):
-  // static const String BACKEND_HOST = "http://10.135.114.93:8000";
 
   // Para iOS localhost (si usas iOS):
   // static const String BACKEND_HOST = "http://localhost:8000";

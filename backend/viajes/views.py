@@ -46,8 +46,8 @@ class ViajeViewSet(viewsets.ModelViewSet):
         Permite lectura pública, pero creación/edición/eliminación solo para usuarios autenticados con staff
         """
         logger.info(f"🔐 get_permissions - Action: {self.action}, User: {self.request.user}, Authenticated: {self.request.user.is_authenticated}")
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
+        if self.action in ['list', 'retrieve', 'mis_viajes', 'obtener_pasajeros', 'mi_vehiculo']:
+            return [AllowAny()] if self.action in ['list', 'retrieve'] else [IsAuthenticated()]
         # Para crear, actualizar o eliminar, solo requiere autenticación
         return [IsAuthenticated()]
     
@@ -93,6 +93,264 @@ class ViajeViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_staff:
             raise PermissionDenied("Solo el personal administrativo puede eliminar viajes.")
         instance.delete()
+    
+    @action(detail=False, methods=['get'], url_path='mis-viajes')
+    def mis_viajes(self, request):
+        """
+        Endpoint personalizado para obtener los viajes asignados al conductor actual.
+        Filtra por el conductor asociado al usuario autenticado.
+        """
+        try:
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Filtrar viajes por el vehículo del conductor
+            queryset = Viaje.objects.filter(
+                vehiculo__conductor=conductor
+            ).select_related(
+                'vehiculo', 'origen', 'destino'
+            ).order_by('-fecha', '-hora')
+            
+            # Aplicar filtro de estado si se proporciona
+            estado_filter = request.query_params.get('estado')
+            if estado_filter and estado_filter != 'todos':
+                queryset = queryset.filter(estado=estado_filter)
+            
+            # Serializar los datos
+            serializer = self.get_serializer(queryset, many=True)
+            
+            return Response({
+                'success': True,
+                'data': serializer.data,
+                'count': queryset.count(),
+                'conductor': {
+                    'id': conductor.id,
+                    'nombre_completo': conductor.nombre_completo,
+                    'vehiculo': conductor.conductores.first().nombre if conductor.conductores.exists() else None
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en mis_viajes: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al obtener viajes: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['post'], url_path='actualizar-estado')
+    def actualizar_estado(self, request, pk=None):
+        """
+        Endpoint para que el conductor actualice el estado de un viaje.
+        Solo puede actualizar viajes asignados a su vehículo.
+        """
+        try:
+            viaje = self.get_object()
+            
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Verificar que el viaje esté asignado al vehículo del conductor
+            if viaje.vehiculo.conductor != conductor:
+                return Response({
+                    'success': False,
+                    'error': 'No tienes permisos para modificar este viaje'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Obtener el nuevo estado
+            nuevo_estado = request.data.get('estado')
+            if not nuevo_estado:
+                return Response({
+                    'success': False,
+                    'error': 'Debe proporcionar un estado'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validar que el estado sea válido
+            estados_validos = dict(Viaje.ESTADOS).keys()
+            if nuevo_estado not in estados_validos:
+                return Response({
+                    'success': False,
+                    'error': f'Estado inválido. Estados válidos: {", ".join(estados_validos)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Actualizar el estado
+            viaje.estado = nuevo_estado
+            viaje.save()
+            
+            # Serializar el viaje actualizado
+            serializer = self.get_serializer(viaje)
+            
+            logger.info(f"✅ Conductor {conductor.nombre_completo} actualizó viaje {viaje.id} a estado '{nuevo_estado}'")
+            
+            return Response({
+                'success': True,
+                'message': f'Estado actualizado a {nuevo_estado}',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en actualizar_estado: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al actualizar estado: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['get'], url_path='pasajeros')
+    def obtener_pasajeros(self, request, pk=None):
+        """
+        Endpoint para obtener la lista de pasajeros de un viaje específico.
+        Solo accesible por el conductor asignado al viaje.
+        """
+        try:
+            viaje = self.get_object()
+            
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Verificar que el viaje esté asignado al vehículo del conductor
+            if viaje.vehiculo.conductor != conductor:
+                return Response({
+                    'success': False,
+                    'error': 'No tienes permisos para ver los pasajeros de este viaje'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Obtener todas las reservas confirmadas del viaje
+            reservas = Reserva.objects.filter(
+                viaje=viaje,
+                estado__in=['confirmada', 'pagada']
+            ).select_related('cliente').prefetch_related('items__asiento')
+            
+            pasajeros = []
+            for reserva in reservas:
+                # Obtener los asientos de cada reserva
+                items = reserva.items.all()
+                asientos = [item.asiento.numero for item in items]
+                
+                cliente = reserva.cliente
+                pasajeros.append({
+                    'id': reserva.id,
+                    'nombre': cliente.first_name,
+                    'apellido': cliente.last_name,
+                    'email': cliente.email,
+                    'telefono': cliente.telefono if hasattr(cliente, 'telefono') else 'N/A',
+                    'ci': cliente.ci if hasattr(cliente, 'ci') else 'N/A',
+                    'asientos': asientos,
+                    'cantidad_asientos': len(asientos),
+                    'estado_reserva': reserva.estado,
+                    'fecha_reserva': reserva.fecha_reserva.isoformat(),
+                    'codigo_reserva': reserva.codigo_reserva,
+                })
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'pasajeros': pasajeros,
+                    'totales': {
+                        'total_pasajeros': len(pasajeros),
+                        'asientos_ocupados': viaje.asientos_ocupados,
+                        'asientos_disponibles': viaje.asientos_libres,
+                    }
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error al obtener pasajeros: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al obtener pasajeros: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'], url_path='mi-vehiculo')
+    def mi_vehiculo(self, request):
+        """
+        Endpoint para obtener información del vehículo asignado al conductor.
+        """
+        try:
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Obtener el vehículo asignado
+            from vehiculos.models import Vehiculo
+            vehiculos = Vehiculo.objects.filter(conductor=conductor)
+            
+            if not vehiculos.exists():
+                return Response({
+                    'success': False,
+                    'error': 'No tienes un vehículo asignado'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            vehiculo = vehiculos.first()
+            
+            # Calcular estadísticas del vehículo
+            viajes_hoy = Viaje.objects.filter(
+                vehiculo=vehiculo,
+                fecha=timezone.now().date()
+            ).count()
+            
+            viajes_programados = Viaje.objects.filter(
+                vehiculo=vehiculo,
+                estado='programado'
+            ).count()
+            
+            viajes_en_curso = Viaje.objects.filter(
+                vehiculo=vehiculo,
+                estado='en_curso'
+            ).count()
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'id': vehiculo.id,
+                    'nombre': vehiculo.nombre,
+                    'placa': vehiculo.placa,
+                    'tipo': vehiculo.tipo_vehiculo,
+                    'marca': vehiculo.marca or 'N/A',
+                    'modelo': vehiculo.modelo or 'N/A',
+                    'año': vehiculo.año_fabricacion,
+                    'capacidad_pasajeros': vehiculo.capacidad_pasajeros,
+                    'capacidad_carga': str(vehiculo.capacidad_carga),
+                    'estado': vehiculo.estado,
+                    'kilometraje': vehiculo.kilometraje,
+                    'ultimo_mantenimiento': vehiculo.ultimo_mantenimiento.isoformat() if vehiculo.ultimo_mantenimiento else None,
+                    'proximo_mantenimiento': vehiculo.proximo_mantenimiento.isoformat() if vehiculo.proximo_mantenimiento else None,
+                    'estadisticas': {
+                        'viajes_hoy': viajes_hoy,
+                        'viajes_programados': viajes_programados,
+                        'viajes_en_curso': viajes_en_curso,
+                    }
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error al obtener información del vehículo: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al obtener información del vehículo: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class AsientoViewSet(viewsets.ModelViewSet):
     queryset = Asiento.objects.all()

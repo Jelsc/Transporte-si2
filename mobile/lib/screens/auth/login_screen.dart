@@ -86,6 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             userType,
             loginResponse.user.firstName,
+            user: loginResponse.user, // Pasar el objeto user completo
           );
         }
       } else {

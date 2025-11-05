@@ -15,6 +15,9 @@ class AppRouter {
   static const String login = '/login';
   static const String home = '/home';
   static const String conductorHome = '/conductor-home';
+  static const String conductorViajes = '/conductor-viajes';
+  static const String conductorPerfil = '/conductor-perfil';
+  static const String userSettings = '/user-settings';
 
   static const String seleccionAsientos = '/seleccion-asientos';
   static const String checkout = '/checkout';
@@ -92,8 +95,16 @@ class AppRouter {
   static Future<void> navigateBasedOnUserType(
     BuildContext context,
     String userType,
-    String userName,
-  ) async {
+    String userName, {
+    dynamic user,
+  }) async {
+    // Verificar primero si el usuario tiene un conductor asociado
+    if (user != null && user.conductor != null) {
+      Navigator.pushReplacementNamed(context, conductorHome);
+      return;
+    }
+
+    // Si no es conductor, usar la lógica por tipo de usuario
     switch (userType.toLowerCase()) {
       case 'conductor':
         Navigator.pushReplacementNamed(context, conductorHome);
