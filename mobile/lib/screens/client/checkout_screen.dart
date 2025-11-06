@@ -1,12 +1,12 @@
 // lib/screens/client/checkout_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart' as stripe;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../models/reserva_model.dart';
 import '../../models/viaje_model.dart';
 import '../../models/pago_model.dart';
 import '../../services/reserva_service.dart';
 import '../../services/pago_service.dart';
+import '../../utils/stripe_config.dart';
 import 'confirmacion_reserva_screen.dart';
 import 'dart:async';
 
@@ -48,16 +48,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _configurarStripe() async {
     try {
-      // ⚠️ La clave Stripe debe configurarse desde .env
-      // Ver mobile/.env.example para configuración correcta
-      final stripeKey = dotenv.env['STRIPE_PUBLISHABLE_KEY'];
-
-      if (stripeKey != null && stripeKey.isNotEmpty) {
-        stripe.Stripe.publishableKey = stripeKey;
-        await stripe.Stripe.instance.applySettings();
-      } else {
-        print('⚠️ STRIPE_PUBLISHABLE_KEY no configurada en .env');
-      }
+      // ✅ Inicializar Stripe usando stripe_config.dart centralizado
+      await StripeConfig.initialize();
+      print('✅ Stripe configurado correctamente');
     } catch (e) {
       print('❌ Error configurando Stripe: $e');
     }

@@ -43,7 +43,7 @@ dependencies:
   path_provider: ^2.1.1
   share_plus: ^7.2.1
   provider: ^6.1.1
-  flutter_dotenv: ^5.1.0
+  # flutter_dotenv: ^5.1.0  # ❌ No se usa - credenciales en stripe_config.dart y ip_detection.dart
 
   # Firebase dependencies for notifications
   firebase_core: ^3.6.0
