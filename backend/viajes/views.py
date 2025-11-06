@@ -10,6 +10,7 @@ from django.db.models import F, Q
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .models import Viaje, Asiento, Reserva, ItemReserva
+from ubicaciones.models import Ubicacion
 from .serializers import (
     ViajeSerializer, 
     AsientoSerializer, 
@@ -46,8 +47,8 @@ class ViajeViewSet(viewsets.ModelViewSet):
         Permite lectura pública, pero creación/edición/eliminación solo para usuarios autenticados con staff
         """
         logger.info(f"🔐 get_permissions - Action: {self.action}, User: {self.request.user}, Authenticated: {self.request.user.is_authenticated}")
-        if self.action in ['list', 'retrieve']:
-            return [AllowAny()]
+        if self.action in ['list', 'retrieve', 'mis_viajes', 'obtener_pasajeros', 'mi_vehiculo', 'viaje_en_curso', 'actualizar_ubicacion']:
+            return [AllowAny()] if self.action in ['list', 'retrieve'] else [IsAuthenticated()]
         # Para crear, actualizar o eliminar, solo requiere autenticación
         return [IsAuthenticated()]
     
@@ -93,6 +94,596 @@ class ViajeViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_staff:
             raise PermissionDenied("Solo el personal administrativo puede eliminar viajes.")
         instance.delete()
+    
+    @action(detail=False, methods=['get'], url_path='mis-viajes')
+    def mis_viajes(self, request):
+        """
+        Endpoint personalizado para obtener los viajes asignados al conductor actual.
+        Filtra por el conductor asociado al usuario autenticado.
+        """
+        try:
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Filtrar viajes por el vehículo del conductor
+            queryset = Viaje.objects.filter(
+                vehiculo__conductor=conductor
+            ).select_related(
+                'vehiculo', 'origen', 'destino'
+            ).order_by('-fecha', '-hora')
+            
+            # Aplicar filtro de estado si se proporciona
+            estado_filter = request.query_params.get('estado')
+            if estado_filter and estado_filter != 'todos':
+                queryset = queryset.filter(estado=estado_filter)
+            
+            # Serializar los datos
+            serializer = self.get_serializer(queryset, many=True)
+            
+            return Response({
+                'success': True,
+                'data': serializer.data,
+                'count': queryset.count(),
+                'conductor': {
+                    'id': conductor.id,
+                    'nombre_completo': conductor.nombre_completo,
+                    'vehiculo': conductor.conductores.first().nombre if conductor.conductores.exists() else None
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en mis_viajes: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al obtener viajes: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['post'], url_path='actualizar-estado')
+    def actualizar_estado(self, request, pk=None):
+        """
+        Endpoint para que el conductor actualice el estado de un viaje.
+        Solo puede actualizar viajes asignados a su vehículo.
+        """
+        try:
+            viaje = self.get_object()
+            
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Verificar que el viaje esté asignado al vehículo del conductor
+            if viaje.vehiculo.conductor != conductor:
+                return Response({
+                    'success': False,
+                    'error': 'No tienes permisos para modificar este viaje'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Obtener el nuevo estado
+            nuevo_estado = request.data.get('estado')
+            if not nuevo_estado:
+                return Response({
+                    'success': False,
+                    'error': 'Debe proporcionar un estado'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validar que el estado sea válido
+            estados_validos = dict(Viaje.ESTADOS).keys()
+            if nuevo_estado not in estados_validos:
+                return Response({
+                    'success': False,
+                    'error': f'Estado inválido. Estados válidos: {", ".join(estados_validos)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Actualizar el estado
+            viaje.estado = nuevo_estado
+            viaje.save()
+            
+            # Serializar el viaje actualizado
+            serializer = self.get_serializer(viaje)
+            
+            logger.info(f"✅ Conductor {conductor.nombre_completo} actualizó viaje {viaje.id} a estado '{nuevo_estado}'")
+            
+            return Response({
+                'success': True,
+                'message': f'Estado actualizado a {nuevo_estado}',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en actualizar_estado: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al actualizar estado: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['get'], url_path='pasajeros')
+    def obtener_pasajeros(self, request, pk=None):
+        """
+        Endpoint para obtener la lista de pasajeros de un viaje específico.
+        Solo accesible por el conductor asignado al viaje.
+        """
+        try:
+            viaje = self.get_object()
+            
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Verificar que el viaje esté asignado al vehículo del conductor
+            if viaje.vehiculo.conductor != conductor:
+                return Response({
+                    'success': False,
+                    'error': 'No tienes permisos para ver los pasajeros de este viaje'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Obtener todas las reservas confirmadas del viaje
+            reservas = Reserva.objects.filter(
+                viaje=viaje,
+                estado__in=['confirmada', 'pagada']
+            ).select_related('cliente').prefetch_related('items__asiento')
+            
+            pasajeros = []
+            for reserva in reservas:
+                # Obtener los asientos de cada reserva
+                items = reserva.items.all()
+                asientos = [item.asiento.numero for item in items]
+                
+                cliente = reserva.cliente
+                pasajeros.append({
+                    'id': reserva.id,
+                    'nombre': cliente.first_name,
+                    'apellido': cliente.last_name,
+                    'email': cliente.email,
+                    'telefono': cliente.telefono if hasattr(cliente, 'telefono') else 'N/A',
+                    'ci': cliente.ci if hasattr(cliente, 'ci') else 'N/A',
+                    'asientos': asientos,
+                    'cantidad_asientos': len(asientos),
+                    'estado_reserva': reserva.estado,
+                    'fecha_reserva': reserva.fecha_reserva.isoformat(),
+                    'codigo_reserva': reserva.codigo_reserva,
+                })
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'pasajeros': pasajeros,
+                    'totales': {
+                        'total_pasajeros': len(pasajeros),
+                        'asientos_ocupados': viaje.asientos_ocupados,
+                        'asientos_disponibles': viaje.asientos_libres,
+                    }
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error al obtener pasajeros: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al obtener pasajeros: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'], url_path='mi-vehiculo')
+    def mi_vehiculo(self, request):
+        """
+        Endpoint para obtener información del vehículo asignado al conductor.
+        """
+        try:
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Obtener el vehículo asignado
+            from vehiculos.models import Vehiculo
+            vehiculos = Vehiculo.objects.filter(conductor=conductor)
+            
+            if not vehiculos.exists():
+                return Response({
+                    'success': False,
+                    'error': 'No tienes un vehículo asignado'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            vehiculo = vehiculos.first()
+            
+            # Calcular estadísticas del vehículo
+            viajes_hoy = Viaje.objects.filter(
+                vehiculo=vehiculo,
+                fecha=timezone.now().date()
+            ).count()
+            
+            viajes_programados = Viaje.objects.filter(
+                vehiculo=vehiculo,
+                estado='programado'
+            ).count()
+            
+            viajes_en_curso = Viaje.objects.filter(
+                vehiculo=vehiculo,
+                estado='en_curso'
+            ).count()
+            
+            return Response({
+                'success': True,
+                'data': {
+                    'id': vehiculo.id,
+                    'nombre': vehiculo.nombre,
+                    'placa': vehiculo.placa,
+                    'tipo': vehiculo.tipo_vehiculo,
+                    'marca': vehiculo.marca or 'N/A',
+                    'modelo': vehiculo.modelo or 'N/A',
+                    'año': vehiculo.año_fabricacion,
+                    'capacidad_pasajeros': vehiculo.capacidad_pasajeros,
+                    'capacidad_carga': str(vehiculo.capacidad_carga),
+                    'estado': vehiculo.estado,
+                    'kilometraje': vehiculo.kilometraje,
+                    'ultimo_mantenimiento': vehiculo.ultimo_mantenimiento.isoformat() if vehiculo.ultimo_mantenimiento else None,
+                    'proximo_mantenimiento': vehiculo.proximo_mantenimiento.isoformat() if vehiculo.proximo_mantenimiento else None,
+                    'estadisticas': {
+                        'viajes_hoy': viajes_hoy,
+                        'viajes_programados': viajes_programados,
+                        'viajes_en_curso': viajes_en_curso,
+                    }
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error al obtener información del vehículo: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al obtener información del vehículo: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'], url_path='viaje-en-curso')
+    def viaje_en_curso(self, request):
+        """
+        Obtiene el viaje actualmente en curso para el conductor.
+        Retorna información completa del viaje, ruta y progreso.
+        """
+        try:
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Buscar viaje en curso del conductor
+            viaje = Viaje.objects.filter(
+                vehiculo__conductor=conductor,
+                estado='en_curso'
+            ).select_related(
+                'vehiculo', 'origen', 'destino'
+            ).first()
+            
+            if not viaje:
+                return Response({
+                    'success': True,
+                    'data': None,
+                    'mensaje': 'No hay viaje en curso'
+                }, status=status.HTTP_200_OK)
+            
+            # Obtener información de los pasajeros
+            reservas = Reserva.objects.filter(
+                viaje=viaje,
+                estado__in=['confirmada', 'pagada']
+            ).select_related('cliente').prefetch_related('items__asiento')
+            
+            pasajeros = []
+            for reserva in reservas:
+                asientos = [item.asiento.numero for item in reserva.items.all()]
+                pasajeros.append({
+                    'id': reserva.id,
+                    'nombre': f"{reserva.cliente.first_name} {reserva.cliente.last_name}",
+                    'asientos': asientos,
+                    'cantidad_asientos': len(asientos),
+                    'estado_reserva': reserva.estado,
+                    'codigo_reserva': reserva.codigo_reserva
+                })
+            
+            # Construir respuesta con información completa del viaje
+            data = {
+                'viaje': {
+                    'id': viaje.id,
+                    'origen': {
+                        'id': viaje.origen.id,
+                        'nombre': viaje.origen.nombre,
+                        'direccion': viaje.origen.direccion_texto,
+                        'lat': float(viaje.origen.lat),
+                        'lng': float(viaje.origen.lng)
+                    },
+                    'destino': {
+                        'id': viaje.destino.id,
+                        'nombre': viaje.destino.nombre,
+                        'direccion': viaje.destino.direccion_texto,
+                        'lat': float(viaje.destino.lat),
+                        'lng': float(viaje.destino.lng)
+                    },
+                    'fecha': viaje.fecha,
+                    'hora': viaje.hora,
+                    'estado': viaje.estado,
+                    'precio': float(viaje.precio),
+                    'asientos_disponibles': viaje.asientos_disponibles,
+                    'asientos_ocupados': viaje.asientos_ocupados
+                },
+                'pasajeros': pasajeros,
+                'totales': {
+                    'total_pasajeros': len(pasajeros),
+                    'asientos_ocupados': viaje.asientos_ocupados,
+                    'asientos_disponibles': viaje.asientos_disponibles
+                }
+            }
+            
+            return Response({
+                'success': True,
+                'data': data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en viaje_en_curso: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al obtener viaje en curso: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'], url_path='actualizar-ubicacion')
+    def actualizar_ubicacion(self, request):
+        """
+        Actualiza la ubicación actual del conductor durante un viaje.
+        Permite tracking en tiempo real para futura integración con mapas.
+        
+        Body params:
+        - lat: Latitud actual
+        - lng: Longitud actual
+        - velocidad: Velocidad actual (opcional)
+        - rumbo: Dirección/rumbo (opcional)
+        """
+        try:
+            # Verificar que el usuario tenga un perfil de conductor
+            if not hasattr(request.user, 'conductor') or request.user.conductor is None:
+                return Response({
+                    'success': False,
+                    'error': 'El usuario no tiene un perfil de conductor asociado'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            conductor = request.user.conductor
+            
+            # Validar datos recibidos
+            lat = request.data.get('lat')
+            lng = request.data.get('lng')
+            
+            if lat is None or lng is None:
+                return Response({
+                    'success': False,
+                    'error': 'Se requieren los parámetros lat y lng'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validar rangos de coordenadas
+            try:
+                lat = float(lat)
+                lng = float(lng)
+                if not (-90 <= lat <= 90):
+                    raise ValueError("Latitud fuera de rango")
+                if not (-180 <= lng <= 180):
+                    raise ValueError("Longitud fuera de rango")
+            except (ValueError, TypeError) as e:
+                return Response({
+                    'success': False,
+                    'error': f'Coordenadas inválidas: {str(e)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Buscar viaje en curso
+            viaje = Viaje.objects.filter(
+                vehiculo__conductor=conductor,
+                estado='en_curso'
+            ).first()
+            
+            if not viaje:
+                return Response({
+                    'success': False,
+                    'error': 'No hay viaje en curso para actualizar ubicación'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Preparar datos de ubicación
+            velocidad = request.data.get('velocidad')
+            rumbo = request.data.get('rumbo')
+            
+            ubicacion_data = {
+                'lat': lat,
+                'lng': lng,
+                'timestamp': timezone.now().isoformat(),
+                'viaje_id': viaje.id,
+                'conductor_id': conductor.id
+            }
+            
+            if velocidad is not None:
+                ubicacion_data['velocidad'] = float(velocidad)
+            if rumbo is not None:
+                ubicacion_data['rumbo'] = float(rumbo)
+            
+            # TODO: Almacenar en Redis o base de datos para tracking en tiempo real
+            # Por ahora, solo validamos y confirmamos recepción
+            # cache.set(f'ubicacion_conductor_{conductor.id}', ubicacion_data, timeout=60)
+            
+            return Response({
+                'success': True,
+                'mensaje': 'Ubicación actualizada correctamente',
+                'data': ubicacion_data
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en actualizar_ubicacion: {str(e)}")
+            return Response({
+                'success': False,
+                'error': f'Error al actualizar ubicación: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'], url_path='calcular-eta')
+    def calcular_eta(self, request):
+        """
+        Calcula ETA dinámico desde ubicación actual hasta destino usando OSRM
+        
+        GET /api/viajes/calcular-eta/?lat=-16.5&lng=-68.15&destino_id=5
+        
+        Parámetros:
+            - lat: Latitud actual del conductor
+            - lng: Longitud actual del conductor
+            - destino_id: ID de la ubicación de destino
+            
+        Respuesta:
+            {
+                "success": true,
+                "eta": {
+                    "distancia_km": 12.5,
+                    "tiempo_minutos": 18,
+                    "tiempo_llegada_estimado": "2025-11-05T13:30:00",
+                    "geometria_ruta": "encoded_polyline..."
+                }
+            }
+        """
+        try:
+            # Validar parámetros
+            lat_actual = request.query_params.get('lat')
+            lng_actual = request.query_params.get('lng')
+            destino_id = request.query_params.get('destino_id')
+            
+            if not all([lat_actual, lng_actual, destino_id]):
+                return Response({
+                    'success': False,
+                    'error': 'Se requieren parámetros: lat, lng, destino_id'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                lat_actual = float(lat_actual)
+                lng_actual = float(lng_actual)
+                destino_id = int(destino_id)
+            except (ValueError, TypeError):
+                return Response({
+                    'success': False,
+                    'error': 'Parámetros inválidos. lat y lng deben ser números, destino_id debe ser entero'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Validar rangos de coordenadas
+            if not (-90 <= lat_actual <= 90 and -180 <= lng_actual <= 180):
+                return Response({
+                    'success': False,
+                    'error': 'Coordenadas fuera de rango válido'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Obtener ubicación de destino
+            try:
+                destino = Ubicacion.objects.get(id=destino_id)
+            except Ubicacion.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'error': f'Ubicación de destino {destino_id} no encontrada'
+                }, status=status.HTTP_404_NOT_FOUND)
+            
+            # Calcular ETA con OSRM
+            from rutas_optimizadas.services.osrm_service import OSRMService
+            from datetime import datetime, timedelta
+            
+            osrm = OSRMService()
+            
+            # Verificar si OSRM está disponible
+            if not osrm.is_available():
+                # Fallback: cálculo simple basado en distancia euclidiana
+                from math import radians, sin, cos, sqrt, atan2
+                
+                R = 6371  # Radio de la Tierra en km
+                lat1, lng1 = radians(lat_actual), radians(lng_actual)
+                lat2, lng2 = radians(destino.lat), radians(destino.lng)
+                
+                dlat = lat2 - lat1
+                dlng = lng2 - lng1
+                
+                a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlng/2)**2
+                c = 2 * atan2(sqrt(a), sqrt(1-a))
+                distancia_km = R * c
+                
+                # Asumir velocidad promedio de 40 km/h en ciudad
+                tiempo_minutos = int((distancia_km / 40) * 60)
+                tiempo_llegada = datetime.now() + timedelta(minutes=tiempo_minutos)
+                
+                return Response({
+                    'success': True,
+                    'eta': {
+                        'distancia_km': round(distancia_km, 2),
+                        'tiempo_minutos': tiempo_minutos,
+                        'tiempo_llegada_estimado': tiempo_llegada.isoformat(),
+                        'geometria_ruta': None,
+                        'modo_calculo': 'euclidiano'  # Indicar que es cálculo aproximado
+                    },
+                    'warning': 'OSRM no disponible, usando cálculo aproximado'
+                }, status=status.HTTP_200_OK)
+            
+            # Calcular ruta con OSRM
+            origen = (lat_actual, lng_actual)
+            destino_coords = (float(destino.lat), float(destino.lng))
+            
+            try:
+                ruta = osrm.obtener_ruta_detallada(origen, destino_coords)
+            except Exception as e:
+                logger.error(f"Error obteniendo ruta OSRM: {e}")
+                return Response({
+                    'success': False,
+                    'error': f'No se pudo calcular la ruta: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            distancia_metros = ruta['distance']
+            duracion_segundos = ruta['duration']
+            
+            distancia_km = distancia_metros / 1000
+            tiempo_minutos = int(duracion_segundos / 60)
+            tiempo_llegada = datetime.now() + timedelta(seconds=duracion_segundos)
+            
+            # Geometría de la ruta en formato GeoJSON
+            # OSRM devuelve geometry como GeoJSON con coordinates [[lng, lat], [lng, lat], ...]
+            geometria_geojson = ruta.get('geometry', {})
+            geometria_coords = geometria_geojson.get('coordinates', []) if isinstance(geometria_geojson, dict) else []
+            
+            logger.info(f"✅ Ruta OSRM obtenida - Puntos: {len(geometria_coords)}, Distancia: {distancia_km:.2f}km")
+            
+            return Response({
+                'success': True,
+                'eta': {
+                    'distancia_km': round(distancia_km, 2),
+                    'tiempo_minutos': tiempo_minutos,
+                    'tiempo_llegada_estimado': tiempo_llegada.isoformat(),
+                    'geometria_ruta': geometria_coords,  # Array de [lng, lat]
+                    'modo_calculo': 'osrm'
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en calcular_eta: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'success': False,
+                'error': f'Error al calcular ETA: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class AsientoViewSet(viewsets.ModelViewSet):
     queryset = Asiento.objects.all()
