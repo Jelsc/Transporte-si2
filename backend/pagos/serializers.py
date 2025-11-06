@@ -1,3 +1,4 @@
+# pagos/serializers.py - VERSIÓN CORREGIDA
 from rest_framework import serializers
 from django.apps import apps
 from .models import Pago
@@ -22,7 +23,7 @@ class PagoSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'usuario', 'usuario_nombre', 'usuario_email',
-            'reserva', 'reserva_info', 'codigo_reserva', 'reserva_estado',  # 👈 NUEVOS
+            'reserva', 'reserva_info', 'codigo_reserva', 'reserva_estado',
             'monto', 'metodo_pago', 'estado', 'descripcion',
             'stripe_payment_intent_id', 'stripe_charge_id',
             'fecha_creacion', 'fecha_completado', 'fecha_cancelado'
@@ -40,22 +41,53 @@ class PagoSerializer(serializers.ModelSerializer):
         return obj.usuario.username
     
     def get_reserva_info(self, obj):
-        """Información básica de la reserva relacionada"""
+        """Información básica de la reserva relacionada - VERSIÓN CORREGIDA"""
         if obj.reserva and obj.reserva.items.exists():
             try:
                 primer_item = obj.reserva.items.first()
                 if primer_item and primer_item.asiento and primer_item.asiento.viaje:
                     viaje = primer_item.asiento.viaje
+                    
+                    # ✅ CORREGIDO: Serializar objetos Ubicacion a strings/dicts
+                    origen_info = self._serializar_ubicacion(viaje.origen)
+                    destino_info = self._serializar_ubicacion(viaje.destino)
+                    
                     return {
-                        'origen': viaje.origen,
-                        'destino': viaje.destino,
-                        'fecha': viaje.fecha,
-                        'hora': viaje.hora,
+                        'origen': origen_info,  # ✅ Ahora es un dict/string, no un objeto
+                        'destino': destino_info,  # ✅ Ahora es un dict/string, no un objeto
+                        'fecha': viaje.fecha.isoformat() if viaje.fecha else None,
+                        'hora': str(viaje.hora) if viaje.hora else None,
                         'cantidad_asientos': obj.reserva.items.count()
                     }
-            except Exception:
+            except Exception as e:
+                print(f"❌ Error serializando reserva_info: {e}")
                 return None
         return None
+    
+    def _serializar_ubicacion(self, ubicacion):
+        """Método helper para serializar objetos Ubicacion de manera segura"""
+        if not ubicacion:
+            return None
+        
+        try:
+            # ✅ Opción 1: Devolver solo el string representation
+            # return str(ubicacion)
+            
+            # ✅ Opción 2: Devolver un diccionario con datos básicos
+            return {
+                'id': ubicacion.id,
+                'nombre': str(ubicacion.nombre) if hasattr(ubicacion, 'nombre') else str(ubicacion),
+                'tipo': str(ubicacion.tipo) if hasattr(ubicacion, 'tipo') else 'TERMINAL',
+                'direccion': str(ubicacion.direccion) if hasattr(ubicacion, 'direccion') else None,
+                'ciudad': str(ubicacion.ciudad) if hasattr(ubicacion, 'ciudad') else None
+            }
+        except Exception as e:
+            print(f"❌ Error serializando ubicación: {e}")
+            # ✅ Opción de respaldo: devolver solo el ID
+            return {
+                'id': ubicacion.id,
+                'nombre': f'Ubicación {ubicacion.id}'
+            }
 
 
 class CrearPagoSerializer(serializers.ModelSerializer):
@@ -73,7 +105,7 @@ class CrearPagoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pago
         fields = ['monto', 'metodo_pago', 'descripcion', 'reserva_id']
-        read_only_fields = ['monto', 'descripcion']  # 👈 Estos se auto-completarán
+        read_only_fields = ['monto', 'descripcion']
     
     def validate_monto(self, value):
         """Validar que el monto sea positivo"""
@@ -84,7 +116,7 @@ class CrearPagoSerializer(serializers.ModelSerializer):
         return value
     
     def validate(self, attrs):
-        """Validaciones adicionales al crear el pago - VERSIÓN MEJORADA"""
+        """Validaciones adicionales al crear el pago"""
         reserva = attrs.get('reserva')
         usuario = self.context['request'].user
         
@@ -105,9 +137,7 @@ class CrearPagoSerializer(serializers.ModelSerializer):
                 'reserva_id': 'Esta reserva ya tiene un pago completado'
             })
         
-        # ✅ VALIDACIONES MEJORADAS PARA ESTADOS DE RESERVA:
-        
-        # 1. Estados que NO permiten pago
+        # Estados que NO permiten pago
         estados_invalidos = ['cancelada', 'expirada', 'pagada']
         
         if reserva.estado in estados_invalidos:
@@ -115,56 +145,22 @@ class CrearPagoSerializer(serializers.ModelSerializer):
                 'reserva_id': f'No se puede pagar una reserva en estado: {reserva.estado}'
             })
         
-        # 2. Verificar expiración para reservas temporales
+        # Verificar expiración para reservas temporales
         if reserva.estado == 'pendiente_pago':
-            # Verificar si la reserva tiene método para detectar expiración
-            if hasattr(reserva, 'esta_expirada') and reserva.esta_expirada:
+            if hasattr(reserva, 'fecha_expiracion') and reserva.fecha_expiracion and reserva.fecha_expiracion < timezone.now():
                 raise serializers.ValidationError({
                     'reserva_id': 'La reserva ha expirado. Por favor, realiza una nueva reserva.'
                 })
-            
-            # Verificar expiración por fecha si existe el campo
-            if (hasattr(reserva, 'fecha_expiracion') and 
-                reserva.fecha_expiracion and 
-                reserva.fecha_expiracion < timezone.now()):
-                raise serializers.ValidationError({
-                    'reserva_id': 'La reserva ha expirado. Por favor, realiza una nueva reserva.'
-                })
-            
-            # Verificar tiempo restante (para logging/debug)
-            if hasattr(reserva, 'tiempo_restante'):
-                tiempo_restante = reserva.tiempo_restante
-                if tiempo_restante < 60:  # Menos de 1 minuto
-                    print(f"⚠️ Advertencia: Reserva {reserva.codigo_reserva} con poco tiempo restante: {tiempo_restante}s")
-                elif tiempo_restante > 0:
-                    print(f"✅ Reserva {reserva.codigo_reserva} con {tiempo_restante}s restantes - Procesando pago")
         
-        # 3. Validar que la reserva tenga items/asientos
+        # Validar que la reserva tenga items/asientos
         if not reserva.items.exists():
             raise serializers.ValidationError({
                 'reserva_id': 'La reserva no tiene asientos asignados'
             })
         
-        # 4. Validar que los asientos sigan disponibles (para reservas no pagadas)
-        if reserva.estado in ['pendiente_pago', 'pendiente']:
-            asientos_no_disponibles = []
-            for item in reserva.items.all():
-                if (item.asiento and 
-                    item.asiento.estado not in ['libre', 'reservado'] and
-                    item.asiento.reserva_temporal != reserva):
-                    asientos_no_disponibles.append(item.asiento.numero)
-            
-            if asientos_no_disponibles:
-                raise serializers.ValidationError({
-                    'reserva_id': f'Los asientos {asientos_no_disponibles} ya no están disponibles'
-                })
-        
-        # 👇 AUTO-COMPLETAR MONTO Y DESCRIPCIÓN DESDE LA RESERVA
+        # Auto-completar monto y descripción
         attrs['monto'] = reserva.total
         attrs['descripcion'] = f"Pago para reserva {reserva.codigo_reserva} - {reserva.items.count()} asiento(s)"
-        
-        # ✅ LOG PARA DEBUG
-        print(f"✅ Validación exitosa - Reserva {reserva.codigo_reserva} (estado: {reserva.estado}) lista para pago")
         
         return attrs
     
@@ -175,7 +171,7 @@ class CrearPagoSerializer(serializers.ModelSerializer):
 
 
 class ConfirmarPagoSerializer(serializers.Serializer):
-    """Serializer para confirmar pagos - SE MANTIENE IGUAL"""
+    """Serializer para confirmar pagos"""
     payment_intent_id = serializers.CharField(
         required=True,
         help_text="ID del Payment Intent de Stripe"
