@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'utils/stripe_config.dart';
 import 'navigation/app_router.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -16,11 +17,18 @@ void main() async {
   // Inicializar Firebase
   await Firebase.initializeApp();
 
+  // Inicializar Stripe
+  try {
+    await StripeConfig.initialize();
+  } catch (e) {
+    print('Error inicializando Stripe: $e');
+  }
+
   // Inicializar NotificationService
   try {
     await NotificationService.initialize();
   } catch (e) {
-    print('Error inicializando notificaciones: \$e');
+    print('Error inicializando notificaciones: $e');
   }
 
   runApp(const MyApp());

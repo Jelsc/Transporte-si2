@@ -6,6 +6,7 @@ import '../../models/viaje_model.dart';
 import '../../models/pago_model.dart';
 import '../../services/reserva_service.dart';
 import '../../services/pago_service.dart';
+import '../../utils/stripe_config.dart';
 import 'confirmacion_reserva_screen.dart';
 import 'dart:async';
 
@@ -47,9 +48,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _configurarStripe() async {
     try {
-      stripe.Stripe.publishableKey = 'xd';
-
-      await stripe.Stripe.instance.applySettings();
+      // Usar la configuración centralizada de Stripe
+      await StripeConfig.initialize();
     } catch (e) {
       // Error configurando Stripe
     }
