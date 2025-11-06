@@ -23,6 +23,7 @@ import {
   UserCheck,
   Bus,
   Container,
+  Database,
   FileText,
 } from "lucide-react";
 
@@ -186,6 +187,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       name: "Bitácora",
       icon: BookOpen,
       route: "/admin/bitacora",
+    },
+    {
+      id: "backups",
+      name: "Backups",
+      icon: Database,
+      route: "/admin/backups",
     },
     {
       id: "reportes",

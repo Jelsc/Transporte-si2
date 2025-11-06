@@ -69,6 +69,9 @@ urlpatterns = [
     # Reportes: generación de reportes PDF, Excel e Imágenes
     path("api/reportes/", include("reportes.urls")),
     
+    # Backups: gestión de backups de base de datos
+    path("api/backups/", include("backups.urls")),
+    
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
 

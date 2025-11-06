@@ -9,9 +9,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Configurar zona horaria
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Dependencias para psycopg2
+# Dependencias para psycopg2 y pg_dump/pg_restore
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libpq-dev bash tzdata \
+    build-essential libpq-dev bash tzdata postgresql-client \
  && rm -rf /var/lib/apt/lists/*
 
 # Requisitos primero (mejor cache)
