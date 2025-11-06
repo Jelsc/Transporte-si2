@@ -40,20 +40,28 @@ class NotificationService {
   /**
    * Inicializar el servicio de notificaciones web
    */
-  public async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+  public async initialize(): Promise<boolean> {
+    if (this.isInitialized) return true;
 
     try {
       // Verificar si el navegador soporta notificaciones
       if (!("Notification" in window)) {
         console.warn("Este navegador no soporta notificaciones");
-        return;
+        return false;
       }
 
       // Verificar si Service Worker está disponible
       if (!("serviceWorker" in navigator)) {
         console.warn("Service Worker no está disponible");
-        return;
+        return false;
+      }
+
+      // Verificar si Firebase Messaging está disponible
+      if (!messaging) {
+        console.warn(
+          "Firebase Messaging no disponible - requiere HTTPS o localhost"
+        );
+        return false;
       }
 
       // Registrar service worker para Firebase Messaging
@@ -63,9 +71,10 @@ class NotificationService {
       this.setupMessageListeners();
 
       this.isInitialized = true;
+      return true;
     } catch (error) {
       console.error("Error al inicializar NotificationService:", error);
-      throw error;
+      return false;
     }
   }
 
@@ -88,6 +97,12 @@ class NotificationService {
    */
   public async requestPermissionAndGetToken(): Promise<string | null> {
     try {
+      // Verificar que Firebase Messaging esté disponible
+      if (!messaging) {
+        console.warn("Firebase Messaging no disponible - requiere HTTPS");
+        return null;
+      }
+
       // Solicitar permisos
       const permission = await Notification.requestPermission();
 
@@ -123,8 +138,16 @@ class NotificationService {
    * Configurar listeners para mensajes de Firebase
    */
   private setupMessageListeners(): void {
+    // Verificar que Firebase Messaging esté disponible
+    if (!messaging) {
+      console.warn(
+        "Firebase Messaging no disponible - listeners no configurados"
+      );
+      return;
+    }
+
     // Escuchar mensajes cuando la app está en primer plano
-    onMessage(messaging, (payload) => {
+    onMessage((payload) => {
       console.log("Mensaje FCM recibido:", payload);
 
       // Mostrar notificación del navegador
@@ -339,7 +362,6 @@ class NotificationService {
           "Content-Type": "application/json",
         },
       });
-
 
       if (!response.ok) {
         if (response.status === 401) {
