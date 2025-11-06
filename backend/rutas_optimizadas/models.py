@@ -55,14 +55,33 @@ class SolicitudRuta(models.Model):
         help_text="Viaje comercial original que generó esta solicitud"
     )
     
-    # Ubicación de inicio/fin (depot)
+    # Depósitos de salida y regreso
+    depot_salida = models.ForeignKey(
+        Ubicacion,
+        on_delete=models.PROTECT,
+        related_name='solicitudes_depot_salida',
+        null=True,
+        blank=True,
+        help_text="Ubicación de inicio/salida de las rutas (ej: terminal, almacén)"
+    )
+    
+    depot_regreso = models.ForeignKey(
+        Ubicacion,
+        on_delete=models.PROTECT,
+        related_name='solicitudes_depot_regreso',
+        null=True,
+        blank=True,
+        help_text="Ubicación de fin/regreso de las rutas (puede ser diferente al de salida)"
+    )
+    
+    # Campo legacy - mantener para compatibilidad con datos existentes
     depot = models.ForeignKey(
         Ubicacion,
         on_delete=models.PROTECT,
-        related_name='solicitudes_depot',
+        related_name='solicitudes_depot_legacy',
         null=True,
         blank=True,
-        help_text="Ubicación de inicio y fin de las rutas (ej: terminal, almacén)"
+        help_text="[DEPRECADO] Use depot_salida y depot_regreso"
     )
     
     # Resultados de la optimización

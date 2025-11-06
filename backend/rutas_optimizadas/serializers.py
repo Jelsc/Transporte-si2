@@ -97,7 +97,9 @@ class SolicitudRutaSerializer(serializers.ModelSerializer):
     entregas = EntregaSerializer(many=True, read_only=True)
     rutas_optimizadas = RutaOptimizadaSerializer(many=True, read_only=True)
     vehiculos_disponibles_detalle = VehiculoSerializer(source='vehiculos_disponibles', many=True, read_only=True)
-    depot_detalle = UbicacionSerializer(source='depot', read_only=True)
+    depot_salida_detalle = UbicacionSerializer(source='depot_salida', read_only=True)
+    depot_regreso_detalle = UbicacionSerializer(source='depot_regreso', read_only=True)
+    depot_detalle = UbicacionSerializer(source='depot', read_only=True)  # Legacy
     tiene_rutas = serializers.BooleanField(read_only=True)
     numero_entregas = serializers.IntegerField(read_only=True)
     
@@ -106,7 +108,9 @@ class SolicitudRutaSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'fecha_creacion', 'fecha_viaje', 'hora_inicio',
             'estado', 'vehiculos_disponibles', 'vehiculos_disponibles_detalle',
-            'depot', 'depot_detalle', 'mensaje_resultado', 'fecha_procesamiento',
+            'depot_salida', 'depot_salida_detalle', 'depot_regreso', 'depot_regreso_detalle',
+            'depot', 'depot_detalle',  # Legacy - mantener para compatibilidad
+            'mensaje_resultado', 'fecha_procesamiento',
             'entregas', 'rutas_optimizadas', 'tiene_rutas', 'numero_entregas'
         ]
         read_only_fields = [
@@ -138,7 +142,7 @@ class SolicitudRutaCreateSerializer(serializers.ModelSerializer):
         model = SolicitudRuta
         fields = [
             'fecha_viaje', 'hora_inicio', 'vehiculos_disponibles',
-            'depot', 'entregas', 'viajes_ids'
+            'depot_salida', 'depot_regreso', 'depot', 'entregas', 'viajes_ids'
         ]
     
     def validate(self, data):
@@ -176,10 +180,23 @@ class SolicitudRutaCreateSerializer(serializers.ModelSerializer):
                         "entregas": f"La entrega #{i+1} debe tener una ubicación asignada"
                     })
         
-        # Validar depot
-        if not data.get('depot'):
+        # Validar depósitos (prioridad a nuevos campos)
+        depot_salida = data.get('depot_salida')
+        depot_regreso = data.get('depot_regreso')
+        depot_legacy = data.get('depot')
+        
+        # Si se usa depot_salida, depot_regreso es opcional (por defecto = depot_salida)
+        if depot_salida:
+            if not depot_regreso:
+                data['depot_regreso'] = depot_salida
+        # Si se usa depot legacy, copiar a ambos
+        elif depot_legacy:
+            data['depot_salida'] = depot_legacy
+            data['depot_regreso'] = depot_legacy
+        # Si no hay ninguno, error
+        else:
             raise serializers.ValidationError({
-                "depot": "Debe seleccionar un depósito (punto de partida)"
+                "depot_salida": "Debe seleccionar al menos un depósito de salida"
             })
         
         return data
