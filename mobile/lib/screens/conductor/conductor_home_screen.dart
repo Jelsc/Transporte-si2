@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../auth/login_screen.dart';
 import '../../widgets/neumorphic_card.dart';
-import '../../widgets/bottom_navigation_bar.dart';
+import '../../widgets/conductor_bottom_navigation_bar.dart';
+import 'vehiculo_estado_screen.dart';
+import 'viajes_asignados_screen.dart';
+import 'mi_ubicacion_screen.dart';
 
 class ConductorHomeScreen extends StatefulWidget {
   const ConductorHomeScreen({super.key});
@@ -48,7 +51,6 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,7 +62,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                 children: [
                   // Header con información del conductor
                   _buildHeader(),
-                  
+
                   // Contenido principal - Grid 2x3 con funcionalidades originales
                   Expanded(
                     child: Padding(
@@ -75,21 +77,54 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                             title: 'Viajes Asignados',
                             subtitle: 'Ver viajes del día',
                             color: Colors.blue,
-                            onTap: () => _showComingSoon('Viajes Asignados'),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ViajesAsignadosScreen(),
+                                ),
+                              );
+                            },
                           ),
                           _buildNeumorphicCard(
                             icon: Icons.people,
                             title: 'Pasajeros',
-                            subtitle: 'Gestionar pasajeros',
+                            subtitle: 'Gestionar',
                             color: Colors.green,
-                            onTap: () => _showComingSoon('Gestión de Pasajeros'),
+                            onTap: () {
+                              // Navegar primero a viajes para seleccionar uno
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const ViajesAsignadosScreen(),
+                                ),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Selecciona un viaje para ver sus pasajeros',
+                                  ),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
                           ),
                           _buildNeumorphicCard(
                             icon: Icons.location_on,
                             title: 'Mi Ubicación',
-                            subtitle: 'Compartir ubicación',
+                            subtitle: 'Compartir',
                             color: Colors.red,
-                            onTap: () => _showComingSoon('Compartir Ubicación'),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const MiUbicacionScreen(),
+                                ),
+                              );
+                            },
                           ),
                           _buildNeumorphicCard(
                             icon: Icons.analytics,
@@ -101,9 +136,17 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                           _buildNeumorphicCard(
                             icon: Icons.car_repair,
                             title: 'Vehículo',
-                            subtitle: 'Estado del vehículo',
+                            subtitle: 'Estado del',
                             color: Colors.orange,
-                            onTap: () => _showComingSoon('Estado del Vehículo'),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const VehiculoEstadoScreen(),
+                                ),
+                              );
+                            },
                           ),
                           _buildNeumorphicCard(
                             icon: Icons.schedule,
@@ -119,7 +162,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                 ],
               ),
             ),
-      bottomNavigationBar: const CustomBottomNavigationBar(currentIndex: 2),
+      bottomNavigationBar: const ConductorBottomNavigationBar(currentIndex: 0),
     );
   }
 
@@ -142,10 +185,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
               ),
               Text(
                 _currentUser?.firstName ?? 'Conductor',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black54,
-                ),
+                style: const TextStyle(fontSize: 16, color: Colors.black54),
               ),
             ],
           ),
@@ -186,11 +226,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 24,
-                color: color,
-              ),
+              child: Icon(icon, size: 24, color: color),
             ),
             const SizedBox(height: 8),
             Flexible(
@@ -210,10 +246,7 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
             Flexible(
               child: Text(
                 subtitle,
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -224,7 +257,6 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
       ),
     );
   }
-
 
   void _showComingSoon(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(

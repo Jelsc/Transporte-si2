@@ -76,6 +76,33 @@ class ViajeSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["asientos_libres", "esta_lleno", "porcentaje_ocupacion"]
     
+    def to_representation(self, instance):
+        """
+        Garantiza tipos consistentes en la respuesta JSON.
+        Previene errores de casting en clientes móviles.
+        """
+        data = super().to_representation(instance)
+        
+        # Garantizar tipos numéricos
+        int_fields = ['id', 'asientos_disponibles', 'asientos_ocupados', 'asientos_libres']
+        for field in int_fields:
+            if field in data and data[field] is not None:
+                data[field] = int(data[field])
+        
+        # Garantizar float para precio
+        if 'precio' in data and data['precio'] is not None:
+            data['precio'] = float(data['precio'])
+        
+        # Garantizar boolean
+        if 'esta_lleno' in data and data['esta_lleno'] is not None:
+            data['esta_lleno'] = bool(data['esta_lleno'])
+            
+        # Garantizar float para porcentaje
+        if 'porcentaje_ocupacion' in data and data['porcentaje_ocupacion'] is not None:
+            data['porcentaje_ocupacion'] = float(data['porcentaje_ocupacion'])
+        
+        return data
+    
     def create(self, validated_data):
         vehiculo = validated_data['vehiculo']
         if not validated_data.get('asientos_disponibles'):

@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import '../screens/client/client_home_screen.dart';
 import '../screens/user/user_settings_screen.dart';
 
+/// Bottom Navigation Bar para CLIENTES
+/// Para conductores usar ConductorBottomNavigationBar
 class CustomBottomNavigationBar extends StatelessWidget {
   final int currentIndex;
-  
+
   const CustomBottomNavigationBar({
     super.key,
     this.currentIndex = 2, // Por defecto, home está activo
   });
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -40,7 +41,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
 
   Widget _buildNavItem(BuildContext context, IconData icon, int index) {
     final isActive = index == currentIndex;
-    
+
     return GestureDetector(
       onTap: () => _handleNavigation(context, index),
       child: Container(
@@ -76,6 +77,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
   }
 
   void _handleNavigation(BuildContext context, int index) {
+    // No navegar si ya estamos en esa pantalla
+    if (index == currentIndex) return;
+
     switch (index) {
       case 2: // Home
         Navigator.pushReplacement(

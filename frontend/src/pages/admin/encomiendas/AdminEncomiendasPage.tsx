@@ -397,4 +397,4 @@ export default function AdminEncomiendaPage() {
       </div>
     </AdminLayout>
   );
-}
+  }

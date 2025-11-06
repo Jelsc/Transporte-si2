@@ -28,7 +28,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ModuleItem {
-  id: string; 
+  id: string;
   name: string;
   icon: React.ElementType;
   route?: string;
@@ -86,6 +86,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
   const isExpanded = (moduleId: string) => expandedModules.includes(moduleId);
 
   const sidebarModules: ModuleItem[] = [
+    {
+      id: "dashboard",
+      name: "Dashboard",
+      icon: BarChart3,
+      route: "/admin/dashboard",
+    },
     {
       id: "Panel",
       name: "Panel",
@@ -159,7 +165,7 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           name: "Encomiendas",
           icon: Container, // Agregar el icono de Package
           route: "/admin/encomiendas",
-      },
+        },
         {
           id: "rutas-optimizadas",
           name: "Rutas Optimizadas",

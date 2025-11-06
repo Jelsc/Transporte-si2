@@ -1,2 +1,11 @@
 .env
-.env
+
+# Scripts de debugging y documentación temporal
+associate_conductor.py
+check_conductor_users.py
+check_miguel_data.py
+fix_conductor_issues.py
+test_mis_viajes_endpoint.py
+ARCHITECTURE_EXPLANATION.md
+CONDUCTOR_ACCESS_EXPLANATION.md
+CONDUCTOR_SETUP_GUIDE.md

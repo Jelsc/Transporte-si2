@@ -4,11 +4,16 @@ from .models import Ubicacion, TipoUbicacion, SourceUbicacion
 
 
 class UbicacionSerializer(serializers.ModelSerializer):
-    """Serializer para el modelo Ubicacion"""
+    """Serializer para el modelo Ubicacion con tipos garantizados"""
     
     # Campos calculados
     coordenadas = serializers.SerializerMethodField()
     geohash_cercano = serializers.SerializerMethodField()
+    
+    # Campos explícitos para garantizar tipos correctos
+    id = serializers.IntegerField(read_only=True)
+    lat = serializers.DecimalField(max_digits=10, decimal_places=7)
+    lng = serializers.DecimalField(max_digits=10, decimal_places=7)
     
     class Meta:
         model = Ubicacion
@@ -33,6 +38,30 @@ class UbicacionSerializer(serializers.ModelSerializer):
             'geohash_cercano',
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'geohash']
+    
+    def to_representation(self, instance):
+        """
+        Garantiza tipos consistentes en la respuesta JSON.
+        Esto previene errores de casting en el cliente móvil.
+        """
+        data = super().to_representation(instance)
+        
+        # Garantizar que id siempre sea int
+        if 'id' in data and data['id'] is not None:
+            data['id'] = int(data['id'])
+        
+        # Garantizar que lat/lng siempre sean float
+        if 'lat' in data and data['lat'] is not None:
+            data['lat'] = float(data['lat'])
+        if 'lng' in data and data['lng'] is not None:
+            data['lng'] = float(data['lng'])
+            
+        # Garantizar strings
+        for field in ['nombre', 'direccion_texto', 'descripcion']:
+            if field in data and data[field] is not None:
+                data[field] = str(data[field])
+        
+        return data
     
     def get_coordenadas(self, obj):
         """Retorna las coordenadas como tupla"""

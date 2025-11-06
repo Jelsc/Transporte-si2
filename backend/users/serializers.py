@@ -42,6 +42,9 @@ class UserSerializer(serializers.ModelSerializer):
     # Campos para las relaciones (read/write)
     personal_id = serializers.IntegerField(required=False, allow_null=True)
     conductor_id = serializers.IntegerField(required=False, allow_null=True)
+    
+    # Información del conductor si existe
+    conductor = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -63,13 +66,21 @@ class UserSerializer(serializers.ModelSerializer):
             "password_confirm",
             "personal_id",
             "conductor_id",
+            "conductor",
             "puede_acceder_admin",
             "es_administrativo",
             "es_cliente",
             "date_joined",
             "last_login",
         ]
-        read_only_fields = ["id", "date_joined", "last_login", "puede_acceder_admin", "es_administrativo", "es_cliente"]
+        read_only_fields = ["id", "date_joined", "last_login", "puede_acceder_admin", "es_administrativo", "es_cliente", "conductor"]
+    
+    def get_conductor(self, obj):
+        """Retorna información del conductor si existe"""
+        if hasattr(obj, 'conductor') and obj.conductor:
+            from conductores.serializers import ConductorSerializer
+            return ConductorSerializer(obj.conductor).data
+        return None
 
     def validate(self, attrs):
         """Validaciones generales"""
