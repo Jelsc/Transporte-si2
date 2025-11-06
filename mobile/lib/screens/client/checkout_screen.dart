@@ -47,8 +47,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _configurarStripe() async {
     try {
-      stripe.Stripe.publishableKey =
-          'pk_test_51SGsYoLvj1KGuQ3cql9Sbku0B4wFBh0rZagIacnqlftAdAlajt7a2EMeyEgx3Cnxkd1g83RiVGDpZAOwIhEDOUmI00pchGCQ9i';
+      stripe.Stripe.publishableKey = 'pk_test_';
 
       await stripe.Stripe.instance.applySettings();
     } catch (e) {
