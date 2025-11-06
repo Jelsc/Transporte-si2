@@ -9,6 +9,7 @@ import ProtectedRoute from "@/app/auth/ProtectedRoute";
 import RolesPage from "@/pages/admin/roles/roles.page";
 import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
+import BackupsPage from "@/pages/admin/backups/backups.page";
 import { VentasReserva } from "./layout/VentasReserva";
 import PersonalPage from "@/pages/admin/personal/personal.page";
 import ConductoresPage from "@/pages/admin/conductores/driver.page";
@@ -82,6 +83,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute requireAdmin={true}>
               <BitacoraPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/backups"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <BackupsPage />
             </ProtectedRoute>
           }
         />

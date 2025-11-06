@@ -57,7 +57,7 @@ services:
     env_file:
       - ./frontend/.env
     environment:
-      HOST: "0.0.0.0"  # Vite necesita HOST para exponer en 0.0.0.0
+      HOST: "0.0.0.0" # Vite necesita HOST para exponer en 0.0.0.0
       # Dejamos VITE_API_URL vacío para habilitar detección automática
       VITE_API_URL: ""
     volumes:
@@ -110,6 +110,29 @@ services:
     volumes:
       - ./backend:/app
     command: bash -lc "python detect_ip.py && celery -A core worker --loglevel=info"
+
+  # Celery Beat para tareas programadas
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: transporte_celery_beat
+    env_file:
+      - ./backend/.env
+    environment:
+      POSTGRES_HOST: db
+      REDIS_URL: "redis://redis:6379/0"
+      OSRM_URL: "https://router.project-osrm.org"
+      # IP automática habilitada
+      AUTO_DETECT_IP: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: bash -lc "python detect_ip.py && celery -A core beat --loglevel=info"
 
   # Flower para monitoreo de Celery
   flower:
