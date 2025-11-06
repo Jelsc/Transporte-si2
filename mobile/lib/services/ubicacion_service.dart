@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/ubicacion_model.dart';
+import '../utils/ip_detection.dart';
 
 /// Servicio para gestión de ubicaciones y tracking del conductor
 ///
@@ -10,12 +11,11 @@ import '../models/ubicacion_model.dart';
 /// - Actualización de ubicación en tiempo real
 /// - Preparado para integración con Google Maps API
 class UbicacionService {
-  // ⚠️ IMPORTANTE: Cambia esta IP según tu configuración:
-  // - Emulador Android: 'http://10.0.2.2:8000/api'
-  // - iOS Simulator: 'http://localhost:8000/api'
-  // - Dispositivo Físico: Usa la IP de tu WiFi (ej: 192.168.0.143)
-  //   Para obtenerla: ipconfig (Windows) / ifconfig (Mac/Linux)
-  static const String baseUrl = 'http://192.168.0.143:8000/api';
+  /// Obtiene la URL base desde IPDetection (detección automática de entorno)
+  static Future<String> _getBaseUrl() async {
+    final backendHost = await IPDetection.getBaseUrl();
+    return '$backendHost/api';
+  }
 
   /// Headers base para todas las peticiones
   Future<Map<String, String>> _getHeaders() async {
@@ -39,6 +39,7 @@ class UbicacionService {
   Future<ApiResponse<ViajeEnCurso>> obtenerViajeEnCurso() async {
     try {
       final headers = await _getHeaders();
+      final baseUrl = await _getBaseUrl();
 
       // 🐛 DEBUG: Ver qué headers se están enviando
       print('🔍 DEBUG - URL: $baseUrl/viajes/viaje-en-curso/');
@@ -130,6 +131,7 @@ class UbicacionService {
       }
 
       final headers = await _getHeaders();
+      final baseUrl = await _getBaseUrl();
       final body = <String, dynamic>{'lat': lat, 'lng': lng};
 
       if (velocidad != null) body['velocidad'] = velocidad;
@@ -223,6 +225,7 @@ class UbicacionService {
   }) async {
     try {
       final headers = await _getHeaders();
+      final baseUrl = await _getBaseUrl();
 
       // Construir URL con query parameters (GET request)
       final uri = Uri.parse('$baseUrl/viajes/calcular-eta/').replace(
