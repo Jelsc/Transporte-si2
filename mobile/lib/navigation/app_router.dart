@@ -15,9 +15,6 @@ class AppRouter {
   static const String login = '/login';
   static const String home = '/home';
   static const String conductorHome = '/conductor-home';
-  static const String conductorViajes = '/conductor-viajes';
-  static const String conductorPerfil = '/conductor-perfil';
-  static const String userSettings = '/user-settings';
 
   static const String seleccionAsientos = '/seleccion-asientos';
   static const String checkout = '/checkout';

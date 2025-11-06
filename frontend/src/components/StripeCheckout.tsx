@@ -1,30 +1,30 @@
 // components/StripeCheckout.tsx - VERSIÓN CORREGIDA
-import React, { useState, useEffect } from 'react';
-import { 
-  loadStripe, 
-  type Stripe, 
-  type StripeElementsOptions, 
-  type Appearance 
-} from '@stripe/stripe-js';
-import { 
-  Elements, 
-  useStripe, 
-  useElements, 
+import React, { useState, useEffect } from "react";
+import {
+  loadStripe,
+  type Stripe,
+  type StripeElementsOptions,
+  type Appearance,
+} from "@stripe/stripe-js";
+import {
+  Elements,
+  useStripe,
+  useElements,
   PaymentElement,
-  AddressElement
-} from '@stripe/react-stripe-js';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  CreditCard, 
-  Shield, 
-  CheckCircle2, 
-  XCircle, 
+  AddressElement,
+} from "@stripe/react-stripe-js";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  CreditCard,
+  Shield,
+  CheckCircle2,
+  XCircle,
   Loader2,
-  Lock
-} from 'lucide-react';
-import { pagosApi } from '@/services/pagosService';
+  Lock,
+} from "lucide-react";
+import { pagosApi } from "@/services/pagosService";
 
 declare global {
   interface ImportMetaEnv {
@@ -32,7 +32,9 @@ declare global {
   }
 }
 
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_YOUR_PUBLISHABLE_KEY_HERE';
+const STRIPE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  "pk_test_YOUR_PUBLISHABLE_KEY_HERE";
 
 const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
@@ -45,17 +47,17 @@ interface StripeCheckoutProps {
   onCancel: () => void;
 }
 
-function StripeCheckoutForm({ 
-  pagoId, 
-  monto, 
-  onExitoso, 
-  onError, 
-  onCancel 
-}: Omit<StripeCheckoutProps, 'clientSecret'> & { clientSecret: string }) {
+function StripeCheckoutForm({
+  pagoId,
+  monto,
+  onExitoso,
+  onError,
+  onCancel,
+}: Omit<StripeCheckoutProps, "clientSecret"> & { clientSecret: string }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<string>('');
+  const [message, setMessage] = useState<string>("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [pagoConfirmado, setPagoConfirmado] = useState(false);
 
@@ -65,7 +67,7 @@ function StripeCheckoutForm({
     }
 
     const clientSecret = new URLSearchParams(window.location.search).get(
-      'payment_intent_client_secret'
+      "payment_intent_client_secret"
     );
 
     if (!clientSecret) {
@@ -76,18 +78,20 @@ function StripeCheckoutForm({
       if (!paymentIntent) return;
 
       switch (paymentIntent.status) {
-        case 'succeeded':
-          setMessage('¡Pago exitoso!');
+        case "succeeded":
+          setMessage("¡Pago exitoso!");
           setIsSuccess(true);
           break;
-        case 'processing':
-          setMessage('Tu pago se está procesando.');
+        case "processing":
+          setMessage("Tu pago se está procesando.");
           break;
-        case 'requires_payment_method':
-          setMessage('Tu pago no se pudo procesar. Por favor intenta nuevamente.');
+        case "requires_payment_method":
+          setMessage(
+            "Tu pago no se pudo procesar. Por favor intenta nuevamente."
+          );
           break;
         default:
-          setMessage('Algo salió mal.');
+          setMessage("Algo salió mal.");
           break;
       }
     });
@@ -101,7 +105,7 @@ function StripeCheckoutForm({
     }
 
     setIsLoading(true);
-    setMessage('');
+    setMessage("");
 
     try {
       const { error, paymentIntent } = await stripe.confirmPayment({
@@ -109,54 +113,72 @@ function StripeCheckoutForm({
         confirmParams: {
           return_url: `${window.location.origin}/pago-exitoso?pago_id=${pagoId}`,
         },
-        redirect: 'if_required',
+        redirect: "if_required",
       });
 
       if (error) {
-        console.error('❌ Error de Stripe:', error);
-        
-        if (error.type === 'card_error' || error.type === 'validation_error') {
-          setMessage(error.message || 'Error en la tarjeta');
+        console.error("❌ Error de Stripe:", error);
+
+        if (error.type === "card_error" || error.type === "validation_error") {
+          setMessage(error.message || "Error en la tarjeta");
         } else {
-          setMessage('Ocurrió un error inesperado');
+          setMessage("Ocurrió un error inesperado");
         }
-        
-        onError(error.message || 'Error al procesar el pago');
+
+        onError(error.message || "Error al procesar el pago");
       } else if (paymentIntent) {
-        if (paymentIntent.status === 'succeeded') {
-          console.log('✅ Pago exitoso con Stripe - PaymentIntent:', paymentIntent);
-          
+        if (paymentIntent.status === "succeeded") {
+          console.log(
+            "✅ Pago exitoso con Stripe - PaymentIntent:",
+            paymentIntent
+          );
+
           // ✅ CONFIRMAR PAGO EN EL BACKEND (solo una vez)
           if (!pagoConfirmado) {
             try {
-              console.log('🔄 Confirmando pago en backend...', {
+              console.log("🔄 Confirmando pago en backend...", {
                 pagoId: pagoId,
-                paymentIntentId: paymentIntent.id
+                paymentIntentId: paymentIntent.id,
               });
 
               const confirmarResult = await pagosApi.confirmarPago(pagoId, {
-                payment_intent_id: paymentIntent.id
+                payment_intent_id: paymentIntent.id,
               });
 
               if (confirmarResult.success) {
-                console.log('✅ Pago confirmado en backend:', confirmarResult.data);
+                console.log(
+                  "✅ Pago confirmado en backend:",
+                  confirmarResult.data
+                );
                 setIsSuccess(true);
-                setMessage('¡Pago completado exitosamente!');
+                setMessage("¡Pago completado exitosamente!");
                 setPagoConfirmado(true);
-                
+
                 // ✅ SOLO llamar onExitoso una vez después de confirmar el backend
                 setTimeout(() => {
                   onExitoso();
                 }, 1500);
               } else {
-                console.error('❌ Error confirmando pago en backend:', confirmarResult.error);
-                setMessage('Pago procesado pero error al confirmar. Contacte soporte.');
-                onError('Error al confirmar pago en el sistema: ' + confirmarResult.error);
+                console.error(
+                  "❌ Error confirmando pago en backend:",
+                  confirmarResult.error
+                );
+                setMessage(
+                  "Pago procesado pero error al confirmar. Contacte soporte."
+                );
+                onError(
+                  "Error al confirmar pago en el sistema: " +
+                    confirmarResult.error
+                );
               }
             } catch (confirmError: any) {
-              console.error('❌ Error en confirmación backend:', confirmError);
-              setMessage('Pago procesado pero error al confirmar. Contacte soporte.');
-              onError('Error de conexión al confirmar pago: ' + confirmError.message);
+              console.error("❌ Error en confirmación backend:", confirmError);
+              setMessage(
+                "Pago procesado pero error al confirmar. Contacte soporte."
+              );
+              onError(
+                "Error de conexión al confirmar pago: " + confirmError.message
+              );
             }
           }
         } else {
@@ -165,18 +187,18 @@ function StripeCheckoutForm({
         }
       }
     } catch (error: any) {
-      console.error('❌ Error al procesar pago:', error);
-      setMessage('Error al procesar el pago');
-      onError(error.message || 'Error desconocido al procesar pago');
+      console.error("❌ Error al procesar pago:", error);
+      setMessage("Error al procesar el pago");
+      onError(error.message || "Error desconocido al procesar pago");
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-BO', {
-      style: 'currency',
-      currency: 'BOB'
+    return new Intl.NumberFormat("es-BO", {
+      style: "currency",
+      currency: "BOB",
     }).format(price);
   };
 
@@ -193,11 +215,13 @@ function StripeCheckoutForm({
       </div>
 
       {message && (
-        <div className={`p-3 rounded-lg border ${
-          isSuccess 
-            ? 'bg-green-50 border-green-200 text-green-800' 
-            : 'bg-red-50 border-red-200 text-red-800'
-        }`}>
+        <div
+          className={`p-3 rounded-lg border ${
+            isSuccess
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}
+        >
           <div className="flex items-center gap-2">
             {isSuccess ? (
               <CheckCircle2 className="h-4 w-4" />
@@ -216,16 +240,16 @@ function StripeCheckoutForm({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Información de Facturación
               </label>
-              <AddressElement 
+              <AddressElement
                 options={{
-                  mode: 'billing',
-                  allowedCountries: ['BO', 'US'],
+                  mode: "billing",
+                  allowedCountries: ["BO", "US"],
                   fields: {
-                    phone: 'always',
+                    phone: "always",
                   },
                   validation: {
                     phone: {
-                      required: 'never',
+                      required: "never",
                     },
                   },
                 }}
@@ -236,13 +260,13 @@ function StripeCheckoutForm({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Información de Pago
               </label>
-              <PaymentElement 
+              <PaymentElement
                 options={{
-                  layout: 'tabs',
+                  layout: "tabs",
                   wallets: {
-                    applePay: 'never',
-                    googlePay: 'never',
-                  }
+                    applePay: "never",
+                    googlePay: "never",
+                  },
                 }}
               />
             </div>
@@ -264,7 +288,7 @@ function StripeCheckoutForm({
             disabled={isLoading || isSuccess}
             className="flex-1"
           >
-            {isSuccess ? 'Volver' : 'Cancelar'}
+            {isSuccess ? "Volver" : "Cancelar"}
           </Button>
           <Button
             type="submit"
@@ -313,30 +337,30 @@ export default function StripeCheckout(props: StripeCheckoutProps) {
   const { clientSecret, monto } = props;
 
   const appearance: Appearance = {
-    theme: 'stripe',
+    theme: "stripe",
     variables: {
-      colorPrimary: '#2563eb',
-      colorBackground: '#ffffff',
-      colorText: '#1f2937',
-      colorDanger: '#dc2626',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      spacingUnit: '4px',
-      borderRadius: '8px',
+      colorPrimary: "#2563eb",
+      colorBackground: "#ffffff",
+      colorText: "#1f2937",
+      colorDanger: "#dc2626",
+      fontFamily: "Inter, system-ui, sans-serif",
+      spacingUnit: "4px",
+      borderRadius: "8px",
     },
     rules: {
-      '.Input': {
-        border: '1px solid #d1d5db',
-        padding: '12px',
-        fontSize: '14px',
+      ".Input": {
+        border: "1px solid #d1d5db",
+        padding: "12px",
+        fontSize: "14px",
       },
-      '.Input:focus': {
-        borderColor: '#2563eb',
-        boxShadow: '0 0 0 1px #2563eb',
+      ".Input:focus": {
+        borderColor: "#2563eb",
+        boxShadow: "0 0 0 1px #2563eb",
       },
-      '.Label': {
-        fontSize: '14px',
-        fontWeight: '500',
-        marginBottom: '4px',
+      ".Label": {
+        fontSize: "14px",
+        fontWeight: "500",
+        marginBottom: "4px",
       },
     },
   };
@@ -344,19 +368,17 @@ export default function StripeCheckout(props: StripeCheckoutProps) {
   const options: StripeElementsOptions = {
     clientSecret,
     appearance,
-    loader: 'always',
+    loader: "always",
   };
 
   if (!clientSecret) {
     return (
       <div className="text-center py-8">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800">Error: No se pudo cargar la información de pago</p>
-          <Button 
-            variant="outline" 
-            className="mt-2"
-            onClick={props.onCancel}
-          >
+          <p className="text-yellow-800">
+            Error: No se pudo cargar la información de pago
+          </p>
+          <Button variant="outline" className="mt-2" onClick={props.onCancel}>
             Volver
           </Button>
         </div>

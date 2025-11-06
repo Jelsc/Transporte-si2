@@ -5,6 +5,7 @@ import '../../widgets/neumorphic_card.dart';
 import '../../widgets/conductor_bottom_navigation_bar.dart';
 import 'vehiculo_estado_screen.dart';
 import 'viajes_asignados_screen.dart';
+import 'mi_ubicacion_screen.dart';
 
 class ConductorHomeScreen extends StatefulWidget {
   const ConductorHomeScreen({super.key});
@@ -115,7 +116,15 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                             title: 'Mi Ubicación',
                             subtitle: 'Compartir',
                             color: Colors.red,
-                            onTap: () => _showComingSoon('Compartir Ubicación'),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const MiUbicacionScreen(),
+                                ),
+                              );
+                            },
                           ),
                           _buildNeumorphicCard(
                             icon: Icons.analytics,
