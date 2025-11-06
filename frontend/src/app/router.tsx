@@ -26,6 +26,7 @@ import AdminEncomiendaPage from "@/pages/admin/encomiendas/AdminEncomiendasPage"
 import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 import ReservasPage from "@/pages/admin/reservas/reservas.page";
 import Dashboard from "@/pages/admin/Dashboard";
+import ReportesPage from "@/pages/admin/reportes/reportes.page";
 
 import NotificationHistoryPage from "@/pages/client/notification-history.page";
 
@@ -182,7 +183,9 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        
+
+      
+
         <Route
           path="/admin/reservas"
           element={
@@ -196,6 +199,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute requireAdmin={true}>
               <VentasReserva />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reportes"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ReportesPage />
             </ProtectedRoute>
           }
         />
