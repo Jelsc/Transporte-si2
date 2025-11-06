@@ -1,4 +1,4 @@
-// components/StripeCheckout.tsx - VERSIÓN CORREGIDA
+// components/StripeCheckout.tsx - VERSIÓN COMPLETA ACTUALIZADA
 import React, { useState, useEffect } from 'react';
 import { 
   loadStripe, 
@@ -22,19 +22,18 @@ import {
   CheckCircle2, 
   XCircle, 
   Loader2,
-  Lock
+  Lock,
+  AlertCircle
 } from 'lucide-react';
 import { pagosApi } from '@/services/pagosService';
 
-declare global {
-  interface ImportMetaEnv {
-    readonly VITE_STRIPE_PUBLISHABLE_KEY?: string;
-  }
-}
+// Validar la variable de entorno
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
-const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51SFOxOB9S1VdGc0Rs6sEecz84SqlUSMGZ7CzOTNf1WLUPMrZfcEdPe3y0zDsfBPsxM0pR1cV4azJCjLspvfzLboL00KY7wBet1';
-
-const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
+// Solo carga stripe si existe la clave
+const stripePromise = STRIPE_PUBLISHABLE_KEY 
+  ? loadStripe(STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 interface StripeCheckoutProps {
   pagoId: number;
@@ -43,6 +42,37 @@ interface StripeCheckoutProps {
   onExitoso: () => void;
   onError: (error: string) => void;
   onCancel: () => void;
+}
+
+// Componente para mostrar cuando falta la clave de Stripe
+function MissingStripeKey({ onCancel }: { onCancel: () => void }) {
+  return (
+    <div className="text-center py-8 space-y-4">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md mx-auto">
+        <AlertCircle className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+          Configuración Requerida
+        </h3>
+        <p className="text-yellow-700 mb-4">
+          El método de pago con tarjeta no está configurado correctamente.
+        </p>
+        <div className="bg-yellow-100 p-3 rounded text-sm text-yellow-800 mb-4">
+          <p className="font-medium">Para desarrolladores:</p>
+          <p>Agrega en tu archivo .env:</p>
+          <code className="block mt-1 p-2 bg-yellow-200 rounded">
+            VITE_STRIPE_PUBLISHABLE_KEY=pk_test_tu_clave_aqui
+          </code>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={onCancel}
+          className="mt-2"
+        >
+          Volver
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function StripeCheckoutForm({ 
@@ -312,6 +342,34 @@ function StripeCheckoutForm({
 export default function StripeCheckout(props: StripeCheckoutProps) {
   const { clientSecret, monto } = props;
 
+  // Si no hay clave de Stripe configurada
+  if (!stripePromise) {
+    return <MissingStripeKey onCancel={props.onCancel} />;
+  }
+
+  // Si no hay clientSecret
+  if (!clientSecret) {
+    return (
+      <div className="text-center py-8">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+          <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-red-800 mb-2">
+            Error de Configuración
+          </h3>
+          <p className="text-red-700 mb-4">
+            No se pudo cargar la información de pago. Por favor intenta nuevamente.
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={props.onCancel}
+          >
+            Volver
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const appearance: Appearance = {
     theme: 'stripe',
     variables: {
@@ -346,23 +404,6 @@ export default function StripeCheckout(props: StripeCheckoutProps) {
     appearance,
     loader: 'always',
   };
-
-  if (!clientSecret) {
-    return (
-      <div className="text-center py-8">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800">Error: No se pudo cargar la información de pago</p>
-          <Button 
-            variant="outline" 
-            className="mt-2"
-            onClick={props.onCancel}
-          >
-            Volver
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Elements stripe={stripePromise} options={options}>

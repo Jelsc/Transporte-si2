@@ -3,7 +3,7 @@ import 'dart:io';
 class IPDetection {
   // 🔧 CONFIGURACIÓN MANUAL - Cambia esta constante según necesites
   // Para desarrollo local:
-  static const String BACKEND_HOST = "http://10.0.2.2:8000";
+  static const String BACKEND_HOST = "http://192.168.0.8:8000";
 
   // Para producción en la nube (descomenta la línea de abajo y comenta la de arriba):
   // static const String BACKEND_HOST = "http://3.230.69.204:8000";

@@ -182,14 +182,7 @@ export default function AppRouter() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/admin/encomiendas"
-          element={
-            <ProtectedRoute requireAdmin={true}>
-              <AdminEncomienda />
-            </ProtectedRoute>
-          }
-        />
+        
         <Route
           path="/admin/reservas"
           element={
