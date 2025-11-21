@@ -22,35 +22,8 @@ import {
 } from 'lucide-react';
 import type { Reserva } from '@/types/reservas';
 
-// 👇 Mismos tipos que en MisReservasTable
-interface ViajeEnItem {
-  id: number;
-  origen: string;
-  destino: string;
-  fecha: string;
-  hora: string;
-  precio: number;
-}
-
-interface AsientoConViaje {
-  id: number;
-  numero: string;
-  estado: string;
-  viaje: ViajeEnItem;
-}
-
-interface ItemReservaConDetalle {
-  id: number;
-  precio: number;
-  asiento: AsientoConViaje;
-}
-
-interface ReservaConDetalle extends Omit<Reserva, 'items'> {
-  items: ItemReservaConDetalle[];
-}
-
 interface DetalleReservaModalProps {
-  reserva: ReservaConDetalle | null;
+  reserva: Reserva | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -62,26 +35,38 @@ export function DetalleReservaModal({
 }: DetalleReservaModalProps) {
   if (!reserva) return null;
 
-  const primerItem = reserva.items?.[0];
-  const viaje = primerItem?.asiento.viaje;
+  // ✅ USAR viaje_info QUE YA EXISTE EN LOS DATOS
+  const viajeInfo = reserva.viaje_info;
 
   const getEstadoBadge = () => {
     const variants = {
-      pendiente: 'bg-yellow-100 text-yellow-800',
+      pendiente_pago: 'bg-yellow-100 text-yellow-800',
       confirmada: 'bg-green-100 text-green-800',
+      pagada: 'bg-green-100 text-green-800',
       cancelada: 'bg-red-100 text-red-800',
+      expirada: 'bg-gray-100 text-gray-800',
     };
 
     const icons = {
-      pendiente: <Clock4 className="h-4 w-4 mr-1" />,
+      pendiente_pago: <Clock4 className="h-4 w-4 mr-1" />,
       confirmada: <CheckCircle className="h-4 w-4 mr-1" />,
+      pagada: <CheckCircle className="h-4 w-4 mr-1" />,
       cancelada: <XCircle className="h-4 w-4 mr-1" />,
+      expirada: <XCircle className="h-4 w-4 mr-1" />,
+    };
+
+    const estadoTexto = {
+      pendiente_pago: 'Pendiente Pago',
+      confirmada: 'Confirmada',
+      pagada: 'Pagada',
+      cancelada: 'Cancelada',
+      expirada: 'Expirada',
     };
 
     return (
       <Badge variant="secondary" className={variants[reserva.estado as keyof typeof variants]}>
         {icons[reserva.estado as keyof typeof icons]}
-        {reserva.estado.charAt(0).toUpperCase() + reserva.estado.slice(1)}
+        {estadoTexto[reserva.estado as keyof typeof estadoTexto] || reserva.estado}
       </Badge>
     );
   };
@@ -98,6 +83,30 @@ export function DetalleReservaModal({
         Pendiente de pago
       </Badge>
     );
+  };
+
+  // ✅ FUNCIÓN PARA OBTENER INFORMACIÓN DEL VIAJE
+  const getViajeInfo = () => {
+    if (viajeInfo && viajeInfo.origen && viajeInfo.destino) {
+      return `${viajeInfo.origen} → ${viajeInfo.destino}`;
+    }
+    return 'Información no disponible';
+  };
+
+  // ✅ FUNCIÓN PARA OBTENER FECHA DEL VIAJE
+  const getFechaViaje = () => {
+    if (viajeInfo?.fecha) {
+      return new Date(viajeInfo.fecha).toLocaleDateString('es-BO');
+    }
+    return 'Fecha no disponible';
+  };
+
+  // ✅ FUNCIÓN PARA OBTENER HORA DEL VIAJE
+  const getHoraViaje = () => {
+    if (viajeInfo?.hora) {
+      return viajeInfo.hora.split(':').slice(0, 2).join(':');
+    }
+    return '--:--';
   };
 
   return (
@@ -135,11 +144,6 @@ export function DetalleReservaModal({
                     </div>
                     
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Fecha Reserva:</span>
-                      <span>{new Date(reserva.fecha_reserva).toLocaleString('es-BO')}</span>
-                    </div>
-                    
-                    <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Total:</span>
                       <span className="font-semibold text-green-600">
                         {new Intl.NumberFormat('es-BO', {
@@ -151,37 +155,39 @@ export function DetalleReservaModal({
                   </div>
                 </div>
 
-                {/* Información del Viaje */}
-                {viaje && (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Información del Viaje</h3>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-blue-600" />
-                        <span><strong>{viaje.origen}</strong> → <strong>{viaje.destino}</strong></span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-green-600" />
-                        <span>{new Date(viaje.fecha).toLocaleDateString('es-BO')}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-purple-600" />
-                        <span>{viaje.hora?.substring(0, 5)}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-4 w-4 text-green-600" />
-                        <span>Precio por asiento: {new Intl.NumberFormat('es-BO', {
-                          style: 'currency',
-                          currency: 'BOB'
-                        }).format(viaje.precio)}</span>
-                      </div>
+                {/* ✅ INFORMACIÓN DEL VIAJE - SIMPLIFICADA */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Información del Viaje</h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                      <span className="font-medium">{getViajeInfo()}</span>
                     </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <span>{getFechaViaje()}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                      <span>{getHoraViaje()}</span>
+                    </div>
+                    
+                    {viajeInfo?.precio && (
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span>
+                          Precio por asiento: {new Intl.NumberFormat('es-BO', {
+                            style: 'currency',
+                            currency: 'BOB'
+                          }).format(viajeInfo.precio)}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -202,8 +208,11 @@ export function DetalleReservaModal({
                       className="border rounded-lg p-3 flex items-center justify-between"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="font-semibold">Asiento {item.asiento.numero}</span>
+                        <div className={`w-3 h-3 rounded-full ${
+                          item.asiento?.estado === 'ocupado' ? 'bg-green-500' : 
+                          item.asiento?.estado === 'reservado' ? 'bg-yellow-500' : 'bg-gray-500'
+                        }`}></div>
+                        <span className="font-semibold">Asiento {item.asiento?.numero || 'N/A'}</span>
                       </div>
                       <Badge variant="outline" className="ml-2">
                         {new Intl.NumberFormat('es-BO', {

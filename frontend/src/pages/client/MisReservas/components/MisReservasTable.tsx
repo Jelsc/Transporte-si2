@@ -12,45 +12,16 @@ import {
   MapPin, 
   Calendar,
   Users,
-  DollarSign
+  DollarSign,
+  Navigation
 } from 'lucide-react';
 import type { Reserva } from '@/types/reservas';
 
-// 👇 Tipo seguro para el viaje dentro de los items
-interface ViajeEnItem {
-  id: number;
-  origen: string;
-  destino: string;
-  fecha: string;
-  hora: string;
-  precio: number;
-}
-
-// 👇 Tipo seguro para el asiento
-interface AsientoConViaje {
-  id: number;
-  numero: string;
-  estado: string;
-  viaje: ViajeEnItem;
-}
-
-// 👇 Tipo seguro para el item de reserva
-interface ItemReservaConDetalle {
-  id: number;
-  precio: number;
-  asiento: AsientoConViaje;
-}
-
-// 👇 Tipo seguro para la reserva completa
-interface ReservaConDetalle extends Omit<Reserva, 'items'> {
-  items: ItemReservaConDetalle[];
-}
-
 interface MisReservasTableProps {
-  reservas: ReservaConDetalle[];
+  reservas: Reserva[];
   loading: boolean;
-  onVerDetalle: (reserva: ReservaConDetalle) => void;
-  onCancelar: (reserva: ReservaConDetalle) => void;
+  onVerDetalle: (reserva: Reserva) => void;
+  onCancelar: (reserva: Reserva) => void;
   onMarcarPagada: (id: number) => void;
 }
 
@@ -61,19 +32,30 @@ export function MisReservasTable({
   onCancelar,
   onMarcarPagada,
 }: MisReservasTableProps) {
-  const getEstadoBadge = (reserva: ReservaConDetalle) => {
+
+  const getEstadoBadge = (reserva: Reserva) => {
     const variants = {
-      pendiente: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
+      pendiente_pago: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100',
       confirmada: 'bg-green-100 text-green-800 hover:bg-green-100',
+      pagada: 'bg-green-100 text-green-800 hover:bg-green-100',
       cancelada: 'bg-red-100 text-red-800 hover:bg-red-100',
+      expirada: 'bg-gray-100 text-gray-800 hover:bg-gray-100',
+    };
+
+    const estadoTexto = {
+      pendiente_pago: 'Pendiente Pago',
+      confirmada: 'Confirmada', 
+      pagada: 'Pagada',
+      cancelada: 'Cancelada',
+      expirada: 'Expirada',
     };
 
     return (
-      <Badge variant="secondary" className={variants[reserva.estado as keyof typeof variants]}>
-        {reserva.estado === 'pendiente' && <Clock className="h-3 w-3 mr-1" />}
-        {reserva.estado === 'confirmada' && <CheckCircle className="h-3 w-3 mr-1" />}
+      <Badge variant="secondary" className={variants[reserva.estado as keyof typeof variants] || 'bg-gray-100'}>
+        {reserva.estado === 'pendiente_pago' && <Clock className="h-3 w-3 mr-1" />}
+        {(reserva.estado === 'confirmada' || reserva.estado === 'pagada') && <CheckCircle className="h-3 w-3 mr-1" />}
         {reserva.estado === 'cancelada' && <X className="h-3 w-3 mr-1" />}
-        {reserva.estado.charAt(0).toUpperCase() + reserva.estado.slice(1)}
+        {estadoTexto[reserva.estado as keyof typeof estadoTexto] || reserva.estado}
       </Badge>
     );
   };
@@ -92,24 +74,30 @@ export function MisReservasTable({
     );
   };
 
-  const getViajeInfo = (reserva: ReservaConDetalle) => {
-    const primerItem = reserva.items?.[0];
-    if (!primerItem) return 'No hay información del viaje';
-    
-    const viaje = primerItem.asiento.viaje;
-    return `${viaje.origen} → ${viaje.destino}`;
+  // ✅ FUNCIÓN SIMPLIFICADA: Solo origen → destino
+  const getViajeInfo = (reserva: Reserva): string => {
+    if (reserva.viaje_info && reserva.viaje_info.origen && reserva.viaje_info.destino) {
+      return `${reserva.viaje_info.origen} → ${reserva.viaje_info.destino}`;
+    }
+    return 'Información no disponible';
   };
 
-  const getFechaViaje = (reserva: ReservaConDetalle) => {
-    const primerItem = reserva.items?.[0];
-    const viaje = primerItem?.asiento.viaje;
-    
-    if (!viaje?.fecha) return 'Fecha no disponible';
-    
-    return new Date(viaje.fecha).toLocaleDateString('es-BO');
+  // ✅ FUNCIÓN SIMPLIFICADA: Obtener fecha del viaje
+  const getFechaViaje = (reserva: Reserva): string => {
+    if (reserva.viaje_info?.fecha) {
+      return new Date(reserva.viaje_info.fecha).toLocaleDateString('es-BO');
+    }
+    return 'Fecha no disponible';
   };
 
-  // ... el resto del código permanece igual (pero usando ReservaConDetalle)
+  // ✅ FUNCIÓN SIMPLIFICADA: Obtener hora del viaje
+  const getHoraViaje = (reserva: Reserva): string => {
+    if (reserva.viaje_info?.hora) {
+      return reserva.viaje_info.hora.split(':').slice(0, 2).join(':');
+    }
+    return '--:--';
+  };
+
   if (loading) {
     return (
       <Card>
@@ -145,13 +133,14 @@ export function MisReservasTable({
         <TableHeader>
           <TableRow>
             <TableHead>Código</TableHead>
-            <TableHead>Viaje</TableHead>
-            <TableHead>Fecha Viaje</TableHead>
+            <TableHead className="min-w-[200px]">Viaje</TableHead>
+            <TableHead>Fecha</TableHead>
+            <TableHead>Hora</TableHead>
             <TableHead>Asientos</TableHead>
             <TableHead>Total</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Pago</TableHead>
-            <TableHead>Fecha Reserva</TableHead>
+            <TableHead>Reserva</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -161,40 +150,66 @@ export function MisReservasTable({
               <TableCell className="font-mono font-medium">
                 {reserva.codigo_reserva}
               </TableCell>
+              
+              {/* ✅ COLUMNA VIAJE - Limpia y simple */}
               <TableCell>
                 <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-blue-600" />
-                  <span className="max-w-[150px] truncate" title={getViajeInfo(reserva)}>
+                  <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                  <span className="font-medium">
                     {getViajeInfo(reserva)}
                   </span>
                 </div>
               </TableCell>
+              
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-green-600" />
-                  {getFechaViaje(reserva)}
+                  <span className="text-sm">{getFechaViaje(reserva)}</span>
                 </div>
               </TableCell>
+              
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-mono">{getHoraViaje(reserva)}</span>
+                </div>
+              </TableCell>
+              
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-purple-600" />
-                  {reserva.items?.length || 0} asiento(s)
+                  <span className="text-sm">
+                    {reserva.items?.length || 0}
+                  </span>
+                  {reserva.items && reserva.items.length > 0 && (
+                    <span className="text-xs text-gray-500 ml-1">
+                      ({reserva.items.map(item => item.asiento?.numero).join(', ')})
+                    </span>
+                  )}
                 </div>
               </TableCell>
+              
               <TableCell>
                 <div className="flex items-center gap-2 font-semibold">
                   <DollarSign className="h-4 w-4 text-green-600" />
-                  {new Intl.NumberFormat('es-BO', {
-                    style: 'currency',
-                    currency: 'BOB'
-                  }).format(reserva.total || 0)}
+                  <span className="text-sm">
+                    {new Intl.NumberFormat('es-BO', {
+                      style: 'currency',
+                      currency: 'BOB'
+                    }).format(reserva.total || 0)}
+                  </span>
                 </div>
               </TableCell>
+              
               <TableCell>{getEstadoBadge(reserva)}</TableCell>
               <TableCell>{getPagoBadge(reserva.pagado)}</TableCell>
+              
               <TableCell>
-                {new Date(reserva.fecha_reserva).toLocaleDateString('es-BO')}
+                <span className="text-sm text-gray-600">
+                  {new Date(reserva.fecha_reserva).toLocaleDateString('es-BO')}
+                </span>
               </TableCell>
+              
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
                   <Button
@@ -218,7 +233,7 @@ export function MisReservasTable({
                     </Button>
                   )}
                   
-                  {reserva.estado !== 'cancelada' && (
+                  {reserva.estado !== 'cancelada' && reserva.estado !== 'expirada' && (
                     <Button
                       variant="outline"
                       size="sm"

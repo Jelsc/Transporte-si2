@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, AlertCircle, MapPin, Truck, Calendar, Save, Plus, T
 import AdminLayout from '@/app/layout/admin-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import type { Ubicacion, Vehiculo, Viaje } from '@/types';
 
@@ -23,7 +24,9 @@ interface SolicitudFormData {
   fecha_viaje: string;
   hora_inicio: string;
   vehiculos_disponibles: number[];
-  depot: number | null;
+  depot_salida: number | null;
+  depot_regreso: number | null;
+  mismo_depot: boolean; // Checkbox para usar el mismo depot
   entregas: EntregaForm[];
   viajes_seleccionados: number[]; // IDs de viajes para convertir en entregas
 }
@@ -34,7 +37,9 @@ export default function CrearSolicitudPage() {
     fecha_viaje: new Date().toISOString().split('T')[0] || '',
     hora_inicio: '08:00',
     vehiculos_disponibles: [],
-    depot: null,
+    depot_salida: null,
+    depot_regreso: null,
+    mismo_depot: true, // Por defecto, usar el mismo depot
     entregas: [],
     viajes_seleccionados: [],
   });
@@ -129,9 +134,18 @@ export default function CrearSolicitudPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validación: Depósito
-    if (!formData.depot) {
-      setError('Debes seleccionar un depósito');
+    // Validación: Depósito de salida
+    if (!formData.depot_salida) {
+      setError('Debes seleccionar un depósito de salida');
+      return;
+    }
+
+    // Si "mismo depot" está activado, copiar depot_salida a depot_regreso
+    const depotRegreso = formData.mismo_depot ? formData.depot_salida : formData.depot_regreso;
+    
+    // Validar depósito de regreso si no es el mismo
+    if (!formData.mismo_depot && !depotRegreso) {
+      setError('Debes seleccionar un depósito de regreso');
       return;
     }
 
@@ -158,11 +172,8 @@ export default function CrearSolicitudPage() {
       return;
     }
 
-    // Validación: Mínimo 2 viajes para optimizar
-    if (modoCreacion === 'viajes' && formData.viajes_seleccionados.length < 2) {
-      setError('Se necesitan al menos 2 viajes para optimizar una ruta');
-      return;
-    }
+    // Un viaje ya tiene 2 ubicaciones (origen + destino), suficiente para optimizar
+    // No se requiere validación de mínimo 2 viajes
 
     // Validar que todas las entregas tengan ubicación (solo en modo manual)
     if (modoCreacion === 'manual') {
@@ -184,7 +195,8 @@ export default function CrearSolicitudPage() {
         // Convertir viajes en entregas automáticamente
         // Los viajes ya incluyen: fecha, hora, origen, destino, vehículo
         dataToSend = {
-          depot: formData.depot,
+          depot_salida: formData.depot_salida,
+          depot_regreso: depotRegreso,
           viajes_ids: formData.viajes_seleccionados,
         };
       } else {
@@ -192,7 +204,8 @@ export default function CrearSolicitudPage() {
         dataToSend = {
           fecha_viaje: formData.fecha_viaje,
           hora_inicio: formData.hora_inicio,
-          depot: formData.depot,
+          depot_salida: formData.depot_salida,
+          depot_regreso: depotRegreso,
           vehiculos_disponibles: formData.vehiculos_disponibles,
           entregas: formData.entregas.map(e => ({
             ubicacion: Number(e.ubicacion),
@@ -367,27 +380,71 @@ export default function CrearSolicitudPage() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Depósito (Punto de Partida/Regreso) *
-                </label>
-                <select
-                  value={formData.depot || ''}
-                  onChange={(e) => setFormData({ ...formData, depot: e.target.value ? parseInt(e.target.value) : null })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Seleccionar depósito...</option>
-                  {ubicaciones.map((ubicacion) => (
-                    <option key={ubicacion.id} value={ubicacion.id}>
-                      {ubicacion.nombre} - {ubicacion.direccion_texto || 'Sin dirección'}
-                    </option>
-                  ))}
-                </select>
-                {modoCreacion === 'viajes' && (
+              {/* Depósitos */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Depósito de Salida (Punto de Partida) *
+                  </label>
+                  <Select
+                    value={formData.depot_salida?.toString() || ''}
+                    onValueChange={(value) => setFormData({ ...formData, depot_salida: value ? parseInt(value) : null })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar depósito de salida..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ubicaciones.map((ubicacion) => (
+                        <SelectItem key={ubicacion.id} value={ubicacion.id.toString()}>
+                          {ubicacion.nombre} - {ubicacion.direccion_texto || 'Sin dirección'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-gray-500 mt-1">
-                    📍 Los vehículos partirán y regresarán a este punto
+                    🚚 Punto donde los vehículos inician su ruta
                   </p>
+                </div>
+
+                {/* Checkbox: ¿Regresar al mismo punto? */}
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="mismo_depot"
+                    checked={formData.mismo_depot}
+                    onChange={(e) => setFormData({ ...formData, mismo_depot: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <label htmlFor="mismo_depot" className="text-sm font-medium text-blue-900 cursor-pointer">
+                    ✓ Regresar al mismo punto de salida
+                  </label>
+                </div>
+
+                {/* Depósito de Regreso - Solo si no es el mismo */}
+                {!formData.mismo_depot && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Depósito de Regreso (Punto Final) *
+                    </label>
+                    <Select
+                      value={formData.depot_regreso?.toString() || ''}
+                      onValueChange={(value) => setFormData({ ...formData, depot_regreso: value ? parseInt(value) : null })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Seleccionar depósito de regreso..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ubicaciones.map((ubicacion) => (
+                          <SelectItem key={ubicacion.id} value={ubicacion.id.toString()}>
+                            {ubicacion.nombre} - {ubicacion.direccion_texto || 'Sin dirección'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      🏁 Punto donde los vehículos finalizan su ruta
+                    </p>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -477,6 +534,24 @@ export default function CrearSolicitudPage() {
                               {viaje.estado}
                             </span>
                           </div>
+                          
+                          {/* Ruta: Origen → Destino */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 border border-green-200 rounded text-xs">
+                              <MapPin className="w-3 h-3 text-green-600" />
+                              <span className="text-green-800 font-medium">
+                                {viaje.origen_detalle?.nombre || `Origen #${viaje.origen}`}
+                              </span>
+                            </div>
+                            <span className="text-gray-400">→</span>
+                            <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 border border-red-200 rounded text-xs">
+                              <MapPin className="w-3 h-3 text-red-600" />
+                              <span className="text-red-800 font-medium">
+                                {viaje.destino_detalle?.nombre || `Destino #${viaje.destino}`}
+                              </span>
+                            </div>
+                          </div>
+
                           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                             <div className="flex items-center gap-1 text-gray-600">
                               <Calendar className="w-3.5 h-3.5" />
@@ -487,9 +562,6 @@ export default function CrearSolicitudPage() {
                               <span>Asientos: {viaje.asientos_ocupados}/{viaje.asientos_disponibles}</span>
                             </div>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            💡 Este viaje ya incluye: ubicaciones, horarios y vehículo
-                          </p>
                         </div>
                       </label>
                     ))}
@@ -636,34 +708,40 @@ export default function CrearSolicitudPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Tipo de Operación
                           </label>
-                          <select
+                          <Select
                             value={entrega.tipo}
-                            onChange={(e) => actualizarEntrega(index, 'tipo', e.target.value as 'delivery' | 'pickup' | 'both')}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onValueChange={(value) => actualizarEntrega(index, 'tipo', value as 'delivery' | 'pickup' | 'both')}
                           >
-                            <option value="delivery">Entrega</option>
-                            <option value="pickup">Recogida</option>
-                            <option value="both">Entrega y Recogida</option>
-                          </select>
+                            <SelectTrigger className="w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="delivery">Entrega</SelectItem>
+                              <SelectItem value="pickup">Recogida</SelectItem>
+                              <SelectItem value="both">Entrega y Recogida</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div className="col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Ubicación *
                           </label>
-                          <select
-                            value={entrega.ubicacion || ''}
-                            onChange={(e) => actualizarEntrega(index, 'ubicacion', e.target.value ? parseInt(e.target.value) : null)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
+                          <Select
+                            value={entrega.ubicacion?.toString() || ''}
+                            onValueChange={(value) => actualizarEntrega(index, 'ubicacion', value ? parseInt(value) : null)}
                           >
-                            <option value="">Seleccionar ubicación...</option>
-                            {ubicaciones.map((ubicacion) => (
-                              <option key={ubicacion.id} value={ubicacion.id}>
-                                {ubicacion.nombre} - {ubicacion.direccion_texto || 'Sin dirección'}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Seleccionar ubicación..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {ubicaciones.map((ubicacion) => (
+                                <SelectItem key={ubicacion.id} value={ubicacion.id.toString()}>
+                                  {ubicacion.nombre} - {ubicacion.direccion_texto || 'Sin dirección'}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         <div className="col-span-2">

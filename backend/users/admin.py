@@ -93,15 +93,18 @@ class CustomUserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         (
             "Información Personal",
-            {"fields": ("telefono", "direccion", "fecha_nacimiento")},
+            {"fields": ("telefono", "direccion", "ci", "fecha_nacimiento")},
         ),
         (
             "Información Laboral",
-            {"fields": ("rol",)},
+            {"fields": ("rol", "personal", "conductor")},
         ),
     )
 
     readonly_fields = ["date_joined", "last_login"]
+    
+    # Agregar campos para autocompletado en el admin
+    autocomplete_fields = ["personal", "conductor"]
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)

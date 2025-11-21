@@ -163,6 +163,8 @@ INSTALLED_APPS = [
     "encomiendas",
     "ubicaciones",
     "rutas_optimizadas",
+    "reportes",
+    "backups",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
@@ -429,6 +431,19 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'America/La_Paz'
 CELERY_ENABLE_UTC = True
+
+# Celery Beat - Tareas programadas
+CELERY_BEAT_SCHEDULE = {
+    'ejecutar-backups-programados': {
+        'task': 'backups.tasks.ejecutar_backups_programados',
+        'schedule': 3600.0,  # Cada hora
+    },
+    'limpiar-backups-antiguos': {
+        'task': 'backups.tasks.limpiar_backups_antiguos_tarea',
+        'schedule': 86400.0,  # Cada día
+    },
+}
+
 
 # Configuración de OSRM con detección automática de IP
 def get_osrm_url():

@@ -92,8 +92,16 @@ class AppRouter {
   static Future<void> navigateBasedOnUserType(
     BuildContext context,
     String userType,
-    String userName,
-  ) async {
+    String userName, {
+    dynamic user,
+  }) async {
+    // Verificar primero si el usuario tiene un conductor asociado
+    if (user != null && user.conductor != null) {
+      Navigator.pushReplacementNamed(context, conductorHome);
+      return;
+    }
+
+    // Si no es conductor, usar la lógica por tipo de usuario
     switch (userType.toLowerCase()) {
       case 'conductor':
         Navigator.pushReplacementNamed(context, conductorHome);

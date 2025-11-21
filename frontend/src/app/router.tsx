@@ -9,6 +9,7 @@ import ProtectedRoute from "@/app/auth/ProtectedRoute";
 import RolesPage from "@/pages/admin/roles/roles.page";
 import PermisosPage from "@/pages/admin/permisos/permisos.page";
 import BitacoraPage from "@/pages/admin/bitacora.page";
+import BackupsPage from "@/pages/admin/backups/backups.page";
 import { VentasReserva } from "./layout/VentasReserva";
 import PersonalPage from "@/pages/admin/personal/personal.page";
 import ConductoresPage from "@/pages/admin/conductores/driver.page";
@@ -26,6 +27,7 @@ import AdminEncomiendaPage from "@/pages/admin/encomiendas/AdminEncomiendasPage"
 import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 import ReservasPage from "@/pages/admin/reservas/reservas.page";
 import Dashboard from "@/pages/admin/Dashboard";
+import ReportesPage from "@/pages/admin/reportes/reportes.page";
 
 import NotificationHistoryPage from "@/pages/client/notification-history.page";
 
@@ -82,6 +84,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute requireAdmin={true}>
               <BitacoraPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/backups"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <BackupsPage />
             </ProtectedRoute>
           }
         />
@@ -186,7 +196,7 @@ export default function AppRouter() {
           path="/admin/encomiendas"
           element={
             <ProtectedRoute requireAdmin={true}>
-              <AdminEncomienda />
+              <AdminEncomiendaPage />
             </ProtectedRoute>
           }
         />
@@ -203,6 +213,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute requireAdmin={true}>
               <VentasReserva />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reportes"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ReportesPage />
             </ProtectedRoute>
           }
         />
