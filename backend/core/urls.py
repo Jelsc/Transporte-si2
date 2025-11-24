@@ -76,4 +76,7 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
 
     path("api/pagos/", include("pagos.urls")),  # AGREGAR AQUÍ
+    
+    # Analytics: predicciones y análisis con Random Forest
+    path("api/analytics/", include("analytics.urls")),
 ]

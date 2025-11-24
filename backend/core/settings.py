@@ -165,6 +165,7 @@ INSTALLED_APPS = [
     "rutas_optimizadas",
     "reportes",
     "backups",
+    "analytics",
 ]
 
 AUTH_USER_MODEL = "users.CustomUser"
@@ -436,7 +437,7 @@ CELERY_ENABLE_UTC = True
 CELERY_BEAT_SCHEDULE = {
     'ejecutar-backups-programados': {
         'task': 'backups.tasks.ejecutar_backups_programados',
-        'schedule': 3600.0,  # Cada hora
+        'schedule': 60.0,  # Cada minuto para verificar backups pendientes
     },
     'limpiar-backups-antiguos': {
         'task': 'backups.tasks.limpiar_backups_antiguos_tarea',

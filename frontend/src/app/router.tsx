@@ -26,7 +26,7 @@ import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
 import AdminEncomiendaPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
 import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 import ReservasPage from "@/pages/admin/reservas/reservas.page";
-import Dashboard from "@/pages/admin/Dashboard";
+import Dashboard from "@/pages/admin/dashboard/dashboard.page";
 import ReportesPage from "@/pages/admin/reportes/reportes.page";
 
 import NotificationHistoryPage from "@/pages/client/notification-history.page";
