@@ -12,6 +12,17 @@
 .swiftpm/
 migrate_working_dir/
 
+# Environment variables (credenciales)
+.env
+.env.local
+.env.*.local
+
+# Archivos scaffold vacíos (temporales)
+lib/widgets/client_bottom_nav.dart
+lib/widgets/client_scaffold.dart
+lib/widgets/conductor_bottom_nav.dart
+lib/widgets/conductor_scaffold.dart
+
 # IntelliJ related
 *.iml
 *.ipr

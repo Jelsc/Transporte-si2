@@ -1,33 +1,35 @@
-  import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-  import HomePage from "@/pages/home/home.page";
-  import LoginPage from "@/pages/auth/login.page";
-  import RegisterPage from "@/pages/auth/register.page";
-  import CodeVerificationPage from "@/pages/auth/code-verification.page";
-  import AdminPage from "@/pages/admin/admin.page";
-  import AdminLoginPage from "@/pages/auth/admin-login.page";
-  import ProtectedRoute from "@/app/auth/ProtectedRoute";
-  import RolesPage from "@/pages/admin/roles/roles.page";
-  import PermisosPage from "@/pages/admin/permisos/permisos.page";
-  import BitacoraPage from "@/pages/admin/bitacora.page";
-  import { VentasReserva } from "./layout/VentasReserva";
-  import PersonalPage from "@/pages/admin/personal/personal.page";
-  import ConductoresPage from "@/pages/admin/conductores/driver.page";
-  import UsuariosPage from "@/pages/admin/users/users.page";
-  import AccountSettingsPage from "@/pages/auth/account-settings.page";
-  import ClientLayout from "@/app/layout/client-layout";
-  import ViajesPage from "@/pages/admin/viajes/viajes.page";
-  import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
-  import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
-  import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
-  import CrearSolicitudPage from "@/pages/admin/rutas-optimizadas/crear-solicitud.page";
-  import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
-  import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
-  import AdminEncomienda from "@/pages/admin/encomiendas/AdminEncomiendasPage";
-  import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
-  import ReservasPage from "@/pages/admin/reservas/reservas.page";
-  import Dashboard from "@/pages/admin/Dashboard";
-  import { CrearReclamo } from "@/pages/client/CrearReclamo";
-  import { GestionReclamos } from "@/pages/admin/reclamos/GestionReclamos";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import HomePage from "@/pages/home/home.page";
+import LoginPage from "@/pages/auth/login.page";
+import RegisterPage from "@/pages/auth/register.page";
+import CodeVerificationPage from "@/pages/auth/code-verification.page";
+import AdminPage from "@/pages/admin/admin.page";
+import AdminLoginPage from "@/pages/auth/admin-login.page";
+import ProtectedRoute from "@/app/auth/ProtectedRoute";
+import RolesPage from "@/pages/admin/roles/roles.page";
+import PermisosPage from "@/pages/admin/permisos/permisos.page";
+import BitacoraPage from "@/pages/admin/bitacora.page";
+import BackupsPage from "@/pages/admin/backups/backups.page";
+import { VentasReserva } from "./layout/VentasReserva";
+import PersonalPage from "@/pages/admin/personal/personal.page";
+import ConductoresPage from "@/pages/admin/conductores/driver.page";
+import UsuariosPage from "@/pages/admin/users/users.page";
+import AccountSettingsPage from "@/pages/auth/account-settings.page";
+import ClientLayout from "@/app/layout/client-layout";
+import ViajesPage from "@/pages/admin/viajes/viajes.page";
+import VehiculosPage from "@/pages/admin/vehiculos/vehiculos.page";
+import UbicacionesPage from "@/pages/admin/ubicaciones/ubicaciones.page";
+import RutasOptimizadasPage from "@/pages/admin/rutas-optimizadas/rutas-optimizadas.page";
+import CrearSolicitudPage from "@/pages/admin/rutas-optimizadas/crear-solicitud.page";
+import ConsultaViajesPage from "@/pages/client/viajes-disponibles.page";
+import ClienteEncomienda from "@/pages/client/ClientEncomiendasPage";
+import AdminEncomiendaPage from "@/pages/admin/encomiendas/AdminEncomiendasPage";
+import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
+import ReservasPage from "@/pages/admin/reservas/reservas.page";
+import Dashboard from "@/pages/admin/dashboard/dashboard.page";
+import ReportesPage from "@/pages/admin/reportes/reportes.page";
+import { CrearReclamo } from "@/pages/client/CrearReclamo";
+import { GestionReclamos } from "@/pages/admin/reclamos/GestionReclamos";
 
 
   import NotificationHistoryPage from "@/pages/client/notification-history.page";
@@ -56,168 +58,184 @@
             />
           </Route>
 
-          {/* Rutas de autenticación sin layout */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/code-verification" element={<CodeVerificationPage />} />
-          <Route path="/profile/edit" element={<AccountSettingsPage />} />
+        {/* Rutas de autenticación sin layout */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/code-verification" element={<CodeVerificationPage />} />
+        <Route path="/profile/edit" element={<AccountSettingsPage />} />
 
-          {/* Rutas de administración */}
-          <Route path="/admin" element={<AdminLoginPage />} />
-          {/* Rutas protegidas de administración */}
-          <Route
-            path="/admin/roles"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <RolesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/permisos"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <PermisosPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
+        {/* Rutas de administración */}
+        <Route path="/admin" element={<AdminLoginPage />} />
+        {/* Rutas protegidas de administración */}
+        <Route
+          path="/admin/roles"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <RolesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/permisos"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <PermisosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
             path="/admin/reclamos"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <GestionReclamos />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/admin/bitacora"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <BitacoraPage />
-              </ProtectedRoute>
-            }
-          />
+        />
+        <Route
+          path="/admin/bitacora"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <BitacoraPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/backups"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <BackupsPage />
+            </ProtectedRoute>
+          }
+        />
 
-          <Route
-            path="/admin/dashboard"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/home"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <AdminPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/conductores"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <ConductoresPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/personal"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <PersonalPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/usuarios"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <UsuariosPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/mantenimiento"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <div>Mantenimiento (por implementar)</div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/rutas"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <RutasOptimizadasPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/ventas"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <div>Ventas (por implementar)</div>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/viajes"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <ViajesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/vehiculos"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <VehiculosPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/ubicaciones"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <UbicacionesPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/encomiendas"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <AdminEncomienda />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/reservas"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <ReservasPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/rutas-optimizadas/crear"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <CrearSolicitudPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/pagos"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <VentasReserva />
-              </ProtectedRoute>
-            }
-          />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/home"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/conductores"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ConductoresPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/personal"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <PersonalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/usuarios"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <UsuariosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/mantenimiento"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <div>Mantenimiento (por implementar)</div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rutas-optimizadas"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <RutasOptimizadasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rutas-optimizadas/crear"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <CrearSolicitudPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/ventas"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <div>Ventas (por implementar)</div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/viajes"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ViajesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/vehiculos"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <VehiculosPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/ubicaciones"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <UbicacionesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/encomiendas"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <AdminEncomiendaPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reservas"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ReservasPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/pagos"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <VentasReserva />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/reportes"
+          element={
+            <ProtectedRoute requireAdmin={true}>
+              <ReportesPage />
+            </ProtectedRoute>
+          }
+        />
 
           {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
           <Route

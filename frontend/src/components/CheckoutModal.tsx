@@ -1,4 +1,4 @@
-// components/CheckoutModal.tsx - VERSIÓN MEJORADA CON MENSAJE DE ÉXITO PERSISTENTE
+// components/CheckoutModal.tsx - VERSIÓN MEJORADA CON ASIENTOS
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Dialog, 
@@ -22,7 +22,9 @@ import {
   Zap,
   AlertTriangle,
   AlertCircle,
-  Home
+  Home,
+  Users,
+  Square 
 } from 'lucide-react';
 import { pagosApi, type CrearPagoData } from '@/services/pagosService';
 import { reservasApi } from '@/services/reservasService';
@@ -42,16 +44,6 @@ interface CheckoutModalProps {
 type MetodoPago = 'stripe' | 'efectivo' | 'transferencia';
 type EstadoPago = 'seleccionando' | 'creando_pago' | 'procesando_stripe' | 'completado' | 'error';
 
-interface ViajeInfo {
-  id: number;
-  origen: string;
-  destino: string;
-  fecha: string;
-  hora: string;
-  precio: number;
-  estado?: string;
-}
-
 export default function CheckoutModal({ 
   open, 
   onClose, 
@@ -69,34 +61,35 @@ export default function CheckoutModal({
   const [pagoExitoso, setPagoExitoso] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  const getViajeInfo = (): ViajeInfo | null => {
-    try {
-      if (reserva.viaje && typeof reserva.viaje === 'object' && 'origen' in reserva.viaje) {
-        const viajeData = reserva.viaje as ViajeInfo;
-        if (viajeData.origen && viajeData.destino && viajeData.fecha) {
-          return viajeData;
-        }
-      }
-      
-      if (reserva?.items?.[0]?.asiento?.viaje) {
-        const viajeData = reserva.items[0].asiento.viaje;
-        
-        if (typeof viajeData === 'object' && viajeData !== null && 'origen' in viajeData) {
-          const viajeObj = viajeData as ViajeInfo;
-          if (viajeObj.origen && viajeObj.destino && viajeObj.fecha) {
-            return viajeObj;
-          }
-        }
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('❌ Error obteniendo info del viaje:', error);
-      return null;
+  // ✅ CORREGIDO: Usar viaje_info que YA EXISTE en los datos
+  const viajeInfo = reserva.viaje_info;
+
+  // ✅ NUEVO: Obtener lista de asientos seleccionados
+  const getAsientosSeleccionados = (): string => {
+    if (!reserva.items || reserva.items.length === 0) {
+      return 'No hay asientos seleccionados';
     }
+    
+    const asientos = reserva.items
+      .map(item => item.asiento?.numero)
+      .filter(Boolean)
+      .sort((a, b) => parseInt(a!) - parseInt(b!));
+    
+    return asientos.join(', ');
   };
 
-  const viajeInfo = getViajeInfo();
+  // ✅ NUEVO: Obtener precio por asiento
+  const getPrecioPorAsiento = (): number => {
+    if (viajeInfo?.precio) {
+      return viajeInfo.precio;
+    }
+    
+    if (reserva.items && reserva.items.length > 0) {
+      return reserva.items[0]?.precio || 0;
+    }
+    
+    return 0;
+  };
 
   useEffect(() => {
     setTiempoLocal(tiempoRestante);
@@ -144,23 +137,18 @@ export default function CheckoutModal({
     onClose();
   };
 
-  // ✅ MODIFICADO: Lógica de cierre - NO cerrar automáticamente después de pago exitoso
   const handleDialogClose = (open: boolean) => {
     if (!open) {
-      // ✅ SI EL PAGO FUE EXITOSO: NO cerrar automáticamente, esperar a que el usuario haga clic en "Continuar"
       if (pagoExitoso || estado === 'completado') {
         console.log('✅ Pago exitoso - El usuario debe cerrar manualmente con el botón "Continuar"');
-        return; // ❌ NO cerrar, dejar que el usuario vea el mensaje de éxito
+        return;
       }
       
-      // ✅ SI HAY RESERVA TEMPORAL ACTIVA: Mostrar confirmación solo si no hay pago exitoso
       if (tiempoLocal > 0 && !pagoExitoso) {
         if (window.confirm('¿Estás seguro de que quieres cancelar el pago? La reserva expirará en 15 minutos.')) {
           handleClose();
         }
-        // Si el usuario cancela la confirmación, no hacer nada (el modal permanece abierto)
       } else {
-        // ✅ EN CUALQUIER OTRO CASO: Cerrar directamente
         handleClose();
       }
     }
@@ -206,7 +194,6 @@ export default function CheckoutModal({
         } else {
           const errorMessage = resultadoPago.error || 'Error al crear pago con Stripe';
           
-          // Detectar si es un error de configuración de Stripe
           if (errorMessage.includes('no está configurado') || errorMessage.includes('autenticación')) {
             throw new Error('⚠️ Stripe no está configurado correctamente en el servidor. Por favor contacta al administrador.');
           }
@@ -239,8 +226,7 @@ export default function CheckoutModal({
     console.log('✅ Pago con Stripe exitoso - Mostrando confirmación');
     setEstado('completado');
     setPagoExitoso(true);
-    onPagoExitoso(); // ✅ Notificar al padre inmediatamente
-    // ❌ NO llamar handleClose() aquí - dejar que el usuario vea el mensaje
+    onPagoExitoso();
   };
 
   const handleStripeError = (errorMsg: string) => {
@@ -249,15 +235,13 @@ export default function CheckoutModal({
     setEstado('error');
   };
 
-  // ✅ MEJORADO: Manejo del cierre después de pago exitoso - Redirige al inicio
   const handleContinuar = () => {
     console.log('🔄 Cerrando modal y redirigiendo al inicio');
-    handleClose(); // Esto ya llama a resetEstado() y onClose()
+    handleClose();
     
-    // ✅ Redirigir a la página de inicio después de un breve delay
     setTimeout(() => {
       navigate('/');
-      window.location.reload(); // Opcional: para asegurar que se actualicen los datos
+      window.location.reload();
     }, 300);
   };
 
@@ -272,6 +256,28 @@ export default function CheckoutModal({
     const minutos = Math.floor(segundos / 60);
     const segs = segundos % 60;
     return `${minutos}:${segs.toString().padStart(2, '0')}`;
+  };
+
+  // ✅ FUNCIONES CORREGIDAS: Usar viaje_info directamente
+  const getViajeInfo = (): string => {
+    if (viajeInfo && viajeInfo.origen && viajeInfo.destino) {
+      return `${viajeInfo.origen} → ${viajeInfo.destino}`;
+    }
+    return 'Información no disponible';
+  };
+
+  const getFechaViaje = (): string => {
+    if (viajeInfo?.fecha) {
+      return new Date(viajeInfo.fecha).toLocaleDateString('es-BO');
+    }
+    return 'Fecha no disponible';
+  };
+
+  const getHoraViaje = (): string => {
+    if (viajeInfo?.hora) {
+      return viajeInfo.hora.split(':').slice(0, 2).join(':');
+    }
+    return '--:--';
   };
 
   return (
@@ -323,52 +329,92 @@ export default function CheckoutModal({
 
           {/* Información de la reserva - Ocultar cuando el pago es exitoso para evitar duplicados */}
           {estado !== 'completado' && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-semibold text-lg">Reserva {reserva.codigo_reserva}</h3>
-                    <p className="text-sm text-gray-600">
-                      {reserva.items?.length || 0} asiento(s) seleccionado(s)
-                    </p>
+            <div className="space-y-4">
+              {/* Información principal */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-semibold text-lg">Reserva {reserva.codigo_reserva}</h3>
+                      <p className="text-sm text-gray-600">
+                        {reserva.items?.length || 0} asiento(s) seleccionado(s)
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      {pagoExitoso ? 'Confirmada' : reserva.estado}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                    {pagoExitoso ? 'Confirmada' : reserva.estado}
-                  </Badge>
-                </div>
 
-                {viajeInfo ? (
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                      <span className="truncate">
-                        {viajeInfo.origen} → {viajeInfo.destino}
-                      </span>
+                  {/* ✅ CORREGIDO: Usar viaje_info directamente */}
+                  {viajeInfo ? (
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <span className="truncate">
+                          {getViajeInfo()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <span>
+                          {getFechaViaje()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <span>
+                          {getHoraViaje()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <span className="font-semibold">{formatPrice(reserva.total)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                      <span>
-                        {new Date(viajeInfo.fecha).toLocaleDateString('es-BO')}
-                      </span>
+                  ) : (
+                    <div className="text-center py-2 text-gray-500">
+                      <p>Información del viaje no disponible</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                      <span>
-                        {viajeInfo.hora ? viajeInfo.hora.substring(0, 5) : 'Hora no disponible'}
-                      </span>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ✅ NUEVO: Card de asientos seleccionados */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Square className="h-5 w-5 text-purple-600" />
+                    <h4 className="font-semibold">Asientos Seleccionados</h4>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Asientos:</span>
+                      <Badge variant="outline" className="font-mono">
+                        {getAsientosSeleccionados()}
+                      </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span className="font-semibold">{formatPrice(reserva.total)}</span>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Cantidad:</span>
+                      <span className="font-semibold">{reserva.items?.length || 0} asiento(s)</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Precio por asiento:</span>
+                      <span className="font-semibold">{formatPrice(getPrecioPorAsiento())}</span>
+                    </div>
+                    
+                    <div className="border-t pt-2 flex justify-between items-center">
+                      <span className="text-sm font-semibold">Total a pagar:</span>
+                      <span className="text-lg font-bold text-green-600">
+                        {formatPrice(reserva.total)}
+                      </span>
                     </div>
                   </div>
-                ) : (
-                  <div className="text-center py-2 text-gray-500">
-                    <p>Información del viaje no disponible</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Estados del flujo de pago */}
@@ -466,7 +512,7 @@ export default function CheckoutModal({
             />
           )}
 
-          {/* ✅ MEJORADO: Mensaje de éxito con información completa del viaje */}
+          {/* ✅ CORREGIDO: Mensaje de éxito usando viaje_info */}
           {estado === 'completado' && pagoExitoso && (
             <div className="text-center py-8 space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-6">
@@ -474,7 +520,7 @@ export default function CheckoutModal({
                 <p className="text-xl font-bold text-green-600 mb-2">¡Pago Completado Exitosamente!</p>
                 <p className="text-gray-700 mb-4">Tu reserva ha sido confirmada y está lista para viajar.</p>
                 
-                {/* Información del viaje en el mensaje de éxito */}
+                {/* ✅ CORREGIDO: Información del viaje usando viaje_info */}
                 {viajeInfo && (
                   <Card className="mb-4">
                     <CardContent className="p-4">
@@ -482,24 +528,24 @@ export default function CheckoutModal({
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-blue-600 flex-shrink-0" />
                           <span className="truncate">
-                            {viajeInfo.origen} → {viajeInfo.destino}
+                            {getViajeInfo()}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-blue-600 flex-shrink-0" />
                           <span>
-                            {new Date(viajeInfo.fecha).toLocaleDateString('es-BO')}
+                            {getFechaViaje()}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-blue-600 flex-shrink-0" />
                           <span>
-                            {viajeInfo.hora ? viajeInfo.hora.substring(0, 5) : 'Hora no disponible'}
+                            {getHoraViaje()}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <DollarSign className="h-4 w-4 text-green-600 flex-shrink-0" />
-                          <span className="font-semibold">{formatPrice(reserva.total)}</span>
+                          <Users className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                          <span>Asientos: {getAsientosSeleccionados()}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -564,7 +610,6 @@ export default function CheckoutModal({
             </>
           )}
           
-          {/* ✅ MEJORADO: Botón "Continuar al Inicio" para pago exitoso */}
           {estado === 'completado' && pagoExitoso && (
             <Button onClick={handleContinuar} className="bg-green-600 hover:bg-green-700 w-full">
               <Home className="h-4 w-4 mr-2" />

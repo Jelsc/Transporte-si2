@@ -1,3 +1,4 @@
+# pagos/views.py - VERSIÓN COMPLETA ACTUALIZADA CON VALIDACIÓN
 import stripe
 from django.conf import settings
 from rest_framework import viewsets, status, permissions
@@ -126,6 +127,8 @@ class PagoViewSet(viewsets.ModelViewSet):
                     pago.save()
                     
                     print(f"✅ Payment Intent creado: {intent.id}")
+                    print(f"🔍 Pago ID guardado: {pago.id}")
+                    print(f"🔍 Stripe Payment Intent ID guardado: {pago.stripe_payment_intent_id}")
                     
                     # Registrar en bitácora
                     registrar_bitacora(
@@ -307,6 +310,17 @@ class PagoViewSet(viewsets.ModelViewSet):
             # Verificar el Payment Intent en Stripe
             payment_intent_id = serializer.validated_data['payment_intent_id']
             
+            # ✅ NUEVA VALIDACIÓN CRÍTICA: Verificar que el payment_intent_id coincida
+            if pago.stripe_payment_intent_id != payment_intent_id:
+                print(f"❌ ERROR: Payment Intent ID no coincide. Esperado: {pago.stripe_payment_intent_id}, Recibido: {payment_intent_id}")
+                print(f"🔍 Pago ID: {pago.id}")
+                print(f"🔍 Usuario: {pago.usuario.email}")
+                print(f"🔍 Reserva: {pago.reserva.codigo_reserva if pago.reserva else 'N/A'}")
+                return Response({
+                    'success': False,
+                    'error': 'El ID del pago no coincide con la reserva'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
             # Validar que Stripe esté configurado
             if not settings.STRIPE_SECRET_KEY or settings.STRIPE_SECRET_KEY.strip() == "":
                 print(f"❌ ERROR: STRIPE_SECRET_KEY no está configurada al confirmar pago")
@@ -330,6 +344,14 @@ class PagoViewSet(viewsets.ModelViewSet):
                     'error': f'Error de Stripe: {str(e)}'
                 }, status=status.HTTP_400_BAD_REQUEST)
             
+            # ✅ AGREGAR LOGS DETALLADOS DEL INTENT
+            print(f"🔍 Estado del Payment Intent: {intent.status}")
+            print(f"🔍 ID del Payment Intent: {intent.id}")
+            print(f"🔍 Monto: {intent.amount}")
+            print(f"🔍 Currency: {intent.currency}")
+            print(f"🔍 Metadata: {intent.metadata}")
+            print(f"🔍 Latest Charge: {intent.latest_charge}")
+            
             if intent.status == 'succeeded':
                 # ✅ USAR TRANSACCIÓN ATÓMICA PARA GARANTIZAR CONSISTENCIA
                 with transaction.atomic():
@@ -348,12 +370,14 @@ class PagoViewSet(viewsets.ModelViewSet):
                         reserva.save()
                         
                         # ✅ ACTUALIZAR ESTADO DE ASIENTOS
+                        asientos_actualizados = 0
                         for item in reserva.items.all():
                             if item.asiento:
                                 item.asiento.estado = 'ocupado'
                                 item.asiento.save()
+                                asientos_actualizados += 1
                         
-                        print(f"✅ Pago confirmado - Reserva {reserva.codigo_reserva} confirmada y {reserva.items.count()} asientos ocupados")
+                        print(f"✅ Pago confirmado - Reserva {reserva.codigo_reserva} confirmada y {asientos_actualizados} asientos ocupados")
                 
                 # Registrar en bitácora
                 registrar_bitacora(
@@ -383,18 +407,23 @@ class PagoViewSet(viewsets.ModelViewSet):
                 except Exception:
                     pass
 
+                # ✅ USAR EL SERIALIZADOR CORREGIDO (PagoSerializer con get_reserva_info actualizado)
+                pago_serializer = PagoSerializer(pago)
+                
                 return Response({
                     'success': True,
                     'message': 'Pago confirmado exitosamente',
-                    'pago': PagoSerializer(pago).data,
+                    'pago': pago_serializer.data,  # ✅ Ahora usa el serializador corregido
                     'reserva_actualizada': pago.reserva.codigo_reserva if pago.reserva else None,
-                    'asientos_actualizados': pago.reserva.items.count() if pago.reserva else 0
+                    'asientos_actualizados': asientos_actualizados
                 })
             
             else:
                 # ✅ MEJOR MANEJO DE ESTADOS FALLIDOS
                 pago.estado = 'fallido'
                 pago.save()
+                
+                print(f"❌ Payment Intent no completado. Estado actual: {intent.status}")
                 
                 return Response({
                     'success': False,
@@ -495,10 +524,13 @@ class PagoViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
 
+            # ✅ USAR EL SERIALIZADOR CORREGIDO TAMBIÉN EN CANCELAR
+            pago_serializer = PagoSerializer(pago)
+            
             return Response({
                 'success': True,
                 'message': 'Pago cancelado exitosamente',
-                'pago': PagoSerializer(pago).data
+                'pago': pago_serializer.data  # ✅ Usar serializador corregido
             })
         
         except Exception as e:
@@ -513,6 +545,8 @@ class PagoViewSet(viewsets.ModelViewSet):
         """Obtener los pagos del usuario autenticado"""
         pagos = Pago.objects.filter(usuario=request.user).order_by('-fecha_creacion')
         total_pagado = pagos.filter(estado='completado').aggregate(total=Sum('monto'))['total'] or 0
+        
+        # ✅ USAR SERIALIZADOR CORREGIDO
         serializer = PagoSerializer(pagos, many=True)
         
         return Response({

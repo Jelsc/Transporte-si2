@@ -65,10 +65,20 @@ urlpatterns = [
     
     # Rutas Optimizadas: VRP/PDPTW para encomiendas y entregas
     path("api/rutas-optimizadas/", include("rutas_optimizadas.urls")),
+    
+    # Reportes: generación de reportes PDF, Excel e Imágenes
+    path("api/reportes/", include("reportes.urls")),
+    
+    # Backups: gestión de backups de base de datos
+    path("api/backups/", include("backups.urls")),
+    
     # Auth social: endpoints para login social (navegador)
     path("accounts/", include("allauth.urls")),
 
     path("api/pagos/", include("pagos.urls")),  # AGREGAR AQUÍ
 
     path("api/reclamos/", include("reclamos.urls")),  # AGREGAR AQUÍ
+    
+    # Analytics: predicciones y análisis con Random Forest
+    path("api/analytics/", include("analytics.urls")),
 ]

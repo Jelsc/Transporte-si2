@@ -27,22 +27,30 @@ class VRPSolver:
         matriz_tiempos: List[List[float]],
         demandas: List[int],
         capacidades_vehiculos: List[int],
-        depot: int = 0
+        depot_inicio: int = 0,
+        depot_fin: int = None
     ) -> Dict:
         """
         Resolver VRP básico con restricciones de capacidad
         
         Args:
-            matriz_distancias: Matriz de distancias entre nodos
+            matriz_distancias: Matriz de distancias entre nodos (puede incluir nodos no visitables para cálculo)
             matriz_tiempos: Matriz de tiempos entre nodos
-            demandas: Lista de demandas de cada nodo
+            demandas: Lista de demandas de cada nodo VISITABLE
             capacidades_vehiculos: Lista de capacidades de cada vehículo
-            depot: Índice del nodo depot (por defecto 0)
+            depot_inicio: Índice del nodo depot de inicio
+            depot_fin: Índice del nodo depot de fin (puede estar fuera de nodos visitables)
             
         Returns:
             Dict con la solución del VRP
         """
-        num_nodos = len(matriz_distancias)
+        # Si no se especifica depot_fin, usar el mismo que depot_inicio
+        if depot_fin is None:
+            depot_fin = depot_inicio
+        
+        # IMPORTANTE: num_nodos es el número de nodos VISITABLES (len(demandas))
+        # No confundir con el tamaño de la matriz de distancias
+        num_nodos = len(demandas)
         num_vehiculos = len(capacidades_vehiculos)
         
         # Validar que hay suficientes nodos para crear una ruta
@@ -57,12 +65,20 @@ class VRPSolver:
             logger.info(f"Caso trivial detectado: {num_nodos} nodos, {num_vehiculos} vehículos")
             return self._resolver_caso_trivial(
                 matriz_distancias, matriz_tiempos, demandas, 
-                capacidades_vehiculos, depot
+                capacidades_vehiculos, depot_inicio, depot_fin
             )
         
-        # Crear manager
+        # Crear listas de starts y ends para cada vehículo
+        starts = [depot_inicio] * num_vehiculos
+        ends = [depot_fin] * num_vehiculos
+        
+        logger.info(f"OR-Tools VRP BÁSICO - setup: starts={starts}, ends={ends}, num_nodos={num_nodos}")
+        logger.info(f"  - demandas: {demandas}")
+        logger.info(f"  - capacidades: {capacidades_vehiculos}")
+        
+        # Crear manager con starts y ends diferentes
         self.manager = pywrapcp.RoutingIndexManager(
-            num_nodos, num_vehiculos, depot
+            num_nodos, num_vehiculos, starts, ends
         )
         
         # Crear routing model
@@ -128,19 +144,30 @@ class VRPSolver:
         search_parameters.log_search = True
         
         # Permitir que algunos nodos queden sin visitar si no hay solución
+        # IMPORTANTE: No marcar depot_inicio ni depot_fin como opcionales
         penalty = 10000  # Penalidad por no visitar un nodo
         for node in range(1, num_nodos):
+            # Si el nodo es depot_fin y es diferente de depot_inicio, no hacerlo opcional
+            if node == depot_fin and depot_fin != depot_inicio:
+                continue
+            # Solo marcar entregas como opcionales (nodos que no son depósitos)
             self.routing.AddDisjunction([self.manager.NodeToIndex(node)], penalty)
         
         # Resolver
         self.solution = self.routing.SolveWithParameters(search_parameters)
         
         if not self.solution:
+            logger.error(f"OR-Tools no encontró solución. Parámetros:")
+            logger.error(f"  - num_nodos: {num_nodos}")
+            logger.error(f"  - num_vehiculos: {num_vehiculos}")
+            logger.error(f"  - depot_inicio: {depot_inicio}, depot_fin: {depot_fin}")
+            logger.error(f"  - demandas: {demandas}")
+            logger.error(f"  - capacidades: {capacidades_vehiculos}")
             raise Exception("No se encontró solución para el VRP")
         
         # Procesar solución
         return self._procesar_solucion(
-            num_vehiculos, depot, matriz_distancias, matriz_tiempos
+            num_vehiculos, depot_inicio, depot_fin, matriz_distancias, matriz_tiempos
         )
     
     def resolver_vrp_con_ventanas_tiempo(
@@ -151,7 +178,8 @@ class VRPSolver:
         capacidades_vehiculos: List[int],
         ventanas_tiempo: List[Tuple[float, float]],  # (inicio, fin) en minutos
         tiempos_servicio: List[int],  # Tiempo de servicio en cada nodo
-        depot: int = 0
+        depot_inicio: int = 0,
+        depot_fin: int = None
     ) -> Dict:
         """
         Resolver VRP con ventanas de tiempo (PDPTW)
@@ -163,12 +191,18 @@ class VRPSolver:
             capacidades_vehiculos: Lista de capacidades de cada vehículo
             ventanas_tiempo: Lista de tuplas (inicio, fin) para ventanas de tiempo
             tiempos_servicio: Lista de tiempos de servicio en cada nodo
-            depot: Índice del nodo depot
+            depot_inicio: Índice del nodo depot de inicio
+            depot_fin: Índice del nodo depot de fin (si es None, usa depot_inicio)
             
         Returns:
             Dict con la solución del VRP con ventanas de tiempo
         """
-        num_nodos = len(matriz_distancias)
+        # Si no se especifica depot_fin, usar el mismo que depot_inicio
+        if depot_fin is None:
+            depot_fin = depot_inicio
+            
+        # IMPORTANTE: num_nodos es el número de nodos VISITABLES (len(demandas))
+        num_nodos = len(demandas)
         num_vehiculos = len(capacidades_vehiculos)
         
         # Validar que hay suficientes nodos para crear una ruta
@@ -184,12 +218,16 @@ class VRPSolver:
             logger.info(f"Usando resolver trivial para {num_nodos} nodos (con ventanas de tiempo)")
             return self._resolver_caso_trivial(
                 matriz_distancias, matriz_tiempos, demandas, 
-                capacidades_vehiculos, depot
+                capacidades_vehiculos, depot_inicio, depot_fin
             )
         
-        # Crear manager
+        # Crear listas de starts y ends para cada vehículo
+        starts = [depot_inicio] * num_vehiculos
+        ends = [depot_fin] * num_vehiculos
+        
+        # Crear manager con starts y ends diferentes
         self.manager = pywrapcp.RoutingIndexManager(
-            num_nodos, num_vehiculos, depot
+            num_nodos, num_vehiculos, starts, ends
         )
         
         # Crear routing model
@@ -226,8 +264,8 @@ class VRPSolver:
         time_dimension = self.routing.GetDimensionOrDie('Tiempo')
         
         for node_idx in range(num_nodos):
-            if node_idx == depot:
-                # Depot: ventana amplia
+            if node_idx == depot_inicio or node_idx == depot_fin:
+                # Depots: ventana amplia
                 time_dimension.CumulVar(self.manager.NodeToIndex(node_idx)).SetRange(
                     0, 36000
                 )
@@ -273,8 +311,13 @@ class VRPSolver:
         search_parameters.log_search = True
         
         # Permitir que algunos nodos queden sin visitar si no hay solución
+        # IMPORTANTE: No marcar depot_inicio ni depot_fin como opcionales
         penalty = 10000  # Penalidad por no visitar un nodo
         for node in range(1, num_nodos):
+            # Si el nodo es depot_fin y es diferente de depot_inicio, no hacerlo opcional
+            if node == depot_fin and depot_fin != depot_inicio:
+                continue
+            # Solo marcar entregas como opcionales (nodos que no son depósitos)
             self.routing.AddDisjunction([self.manager.NodeToIndex(node)], penalty)
         
         # Resolver
@@ -284,14 +327,15 @@ class VRPSolver:
             raise Exception("No se encontró solución para el VRP con ventanas de tiempo")
         
         return self._procesar_solucion(
-            num_vehiculos, depot, matriz_distancias, matriz_tiempos, 
+            num_vehiculos, depot_inicio, depot_fin, matriz_distancias, matriz_tiempos, 
             ventanas_tiempo, tiempos_servicio
         )
     
     def _procesar_solucion(
         self,
         num_vehiculos: int,
-        depot: int,
+        depot_inicio: int,
+        depot_fin: int,
         matriz_distancias: List[List[float]],
         matriz_tiempos: List[List[float]],
         ventanas_tiempo: Optional[List[Tuple[float, float]]] = None,
@@ -300,6 +344,10 @@ class VRPSolver:
         """
         Procesar la solución encontrada por OR-Tools
         
+        Args:
+            depot_inicio: Índice del nodo de inicio
+            depot_fin: Índice del nodo de regreso
+            
         Returns:
             Dict con rutas procesadas
         """
@@ -322,17 +370,19 @@ class VRPSolver:
                 time_dimension = self.routing.GetDimensionOrDie('Tiempo')
                 tiempo_llegada = self.solution.Value(time_dimension.CumulVar(index))
                 
+                # Obtener el siguiente índice usando la solución
+                siguiente_index = self.solution.Value(self.routing.NextVar(index))
+                
                 # Calcular distancia al siguiente nodo
-                if not self.routing.IsEnd(self.routing.NextVar(index).Value()):
-                    siguiente_index = self.routing.NextVar(index).Value()
+                if not self.routing.IsEnd(siguiente_index):
                     siguiente_node = self.manager.IndexToNode(siguiente_index)
                     distancia_vehiculo += matriz_distancias[node][siguiente_node]
                     tiempo_vehiculo += matriz_tiempos[node][siguiente_node]
                 
-                index = self.routing.NextVar(index).Value()
+                index = siguiente_index
             
-            # Agregar nodo final (depot)
-            ruta.append(depot)
+            # Agregar nodo final (depot de regreso)
+            ruta.append(depot_fin)
             
             # Convertir a unidades correctas
             # OSRM devuelve distancias en METROS y tiempos en SEGUNDOS
@@ -355,7 +405,9 @@ class VRPSolver:
             'distancia_total': distancia_total,
             'tiempo_total': tiempo_total,
             'numero_vehiculos_utilizados': len([r for r in rutas if len(r['ruta']) > 2]),
-            'solucion_valida': True
+            'solucion_valida': True,
+            'depot_inicio': depot_inicio,
+            'depot_fin': depot_fin
         }
     
     def resolver_pdptw(
@@ -447,7 +499,7 @@ class VRPSolver:
             raise Exception("No se encontró solución para el PDPTW")
         
         return self._procesar_solucion(
-            num_vehiculos, depot, matriz_distancias, matriz_tiempos
+            num_vehiculos, depot, depot, matriz_distancias, matriz_tiempos
         )
     
     def _resolver_caso_trivial(
@@ -456,25 +508,33 @@ class VRPSolver:
         matriz_tiempos: List[List[float]],
         demandas: List[int],
         capacidades_vehiculos: List[int],
-        depot: int = 0
+        depot_inicio: int = 0,
+        depot_fin: int = None
     ) -> Dict:
         """
         Resolver casos triviales con pocos nodos (solución greedy simple)
         
         Para casos con 2-3 nodos, generar una solución simple:
-        - Depot -> Nodo 1 -> Nodo 2 -> ... -> Depot
+        - Depot Inicio -> Nodo 1 -> Nodo 2 -> ... -> Depot Fin
         """
-        num_nodos = len(matriz_distancias)
+        # Si no se especifica depot_fin, usar el mismo que depot_inicio
+        if depot_fin is None:
+            depot_fin = depot_inicio
+            
+        # IMPORTANTE: num_nodos es el número de nodos VISITABLES (len(demandas))
+        num_nodos = len(demandas)
         num_vehiculos = len(capacidades_vehiculos)
         
-        logger.info(f"Generando solución trivial para {num_nodos} nodos")
+        logger.info(f"Generando solución trivial para {num_nodos} nodos visitables (depot_inicio={depot_inicio}, depot_fin={depot_fin})")
         
         # Crear una ruta simple: visitar todos los nodos en orden
         rutas = []
-        nodos_a_visitar = list(range(1, num_nodos))  # Excluir depot
         
-        # Calcular demanda total
-        demanda_total = sum(demandas[1:])  # Excluir depot
+        # Excluir depósitos de la lista de nodos a visitar
+        nodos_a_visitar = [i for i in range(num_nodos) if i != depot_inicio and i != depot_fin]
+        
+        # Calcular demanda total (excluyendo depots)
+        demanda_total = sum(demandas[i] for i in nodos_a_visitar)
         
         # Usar el primer vehículo que tenga capacidad suficiente
         vehiculo_idx = 0
@@ -483,8 +543,8 @@ class VRPSolver:
                 vehiculo_idx = i
                 break
         
-        # Construir ruta: depot -> todos los nodos -> depot
-        ruta = [depot] + nodos_a_visitar + [depot]
+        # Construir ruta: depot_inicio -> todos los nodos -> depot_fin
+        ruta = [depot_inicio] + nodos_a_visitar + [depot_fin]
         
         # Calcular distancia y tiempo total
         distancia_total = 0.0
@@ -511,7 +571,11 @@ class VRPSolver:
                 'numero_paradas': len(ruta) - 2  # Excluir depot inicio y fin
             }],
             'distancia_total': distancia_km,
-            'tiempo_total': tiempo_min
+            'tiempo_total': tiempo_min,
+            'numero_vehiculos_utilizados': 1,
+            'solucion_valida': True,
+            'depot_inicio': depot_inicio,
+            'depot_fin': depot_fin
         }
         
         logger.info(f"Solución trivial generada: ruta = {ruta}, distancia = {distancia_km:.2f} km, tiempo = {tiempo_min:.2f} min")

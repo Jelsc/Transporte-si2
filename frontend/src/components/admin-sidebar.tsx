@@ -24,6 +24,8 @@ import {
   Bus,
   Container,
   AlertTriangle,
+  Database,
+  FileText,
 } from "lucide-react";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -192,6 +194,18 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
       name: "Bitácora",
       icon: BookOpen,
       route: "/admin/bitacora",
+    },
+    {
+      id: "backups",
+      name: "Backups",
+      icon: Database,
+      route: "/admin/backups",
+    },
+    {
+      id: "reportes",
+      name: "Reportes",
+      icon: FileText,
+      route: "/admin/reportes",
     },
   ];
 

@@ -98,6 +98,24 @@ SUPERPROMPT-CREDENCIALES.md
 **/google-services.json
 **/firebase-messaging-sw.js
 
+# Documentación temporal de desarrollo (contiene claves de ejemplo)
+CREDENCIALES_CONDUCTOR.md
+GUIA_GOOGLE_MAPS.md
+PASOS_DEBUG.md
+SISTEMA_VRP_ETA_INTEGRACION.md
+SOLUCION_FINAL_401.md
+SOLUCION_RAPIDA.md
+SOLUCION_VRP_ETA_FIX.md
+UBICACION_ARQUITECTURA.md
+UBICACION_RESUMEN.md
+VERIFICACION_PRE_COMMIT.md
+INSTRUCCIONES_STRIPE_FIX.md
+GUIA_HTTPS_AZURE.md
+FIREBASE_FIX_SUMMARY.md
+
+# Scripts temporales de desarrollo
+backend/set_miguel_password.py
+
 # Claves y certificados
 *.key
 *.pem

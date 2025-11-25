@@ -58,10 +58,21 @@ export interface SolicitudRuta {
   fecha_viaje: string;
   hora_inicio: string;
   estado: 'pendiente' | 'procesando' | 'completado' | 'fallido' | 'cancelado';
-  depot?: Ubicacion;
+  
+  // Nuevos campos para depósitos separados
+  depot_salida?: number | Ubicacion;
+  depot_salida_detalle?: Ubicacion;
+  depot_regreso?: number | Ubicacion;
+  depot_regreso_detalle?: Ubicacion;
+  
+  // Campo legacy (mantener para compatibilidad)
+  depot?: number | Ubicacion;
+  depot_detalle?: Ubicacion;
+  
   entregas: Entrega[];
   rutas_optimizadas: RutaOptimizada[];
   vehiculos_disponibles?: Vehiculo[];
+  vehiculos_disponibles_detalle?: Vehiculo[];
   mensaje_resultado?: string;
   fecha_creacion: string;
   numero_entregas?: number;

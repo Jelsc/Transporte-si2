@@ -172,8 +172,35 @@ docker compose exec backend bash
 
 ---
 
-## 📦 Roadmap (VRP / ETA)
+## 📦 Roadmap y Características Implementadas
 
-* **VRP**: integrar `ortools` para ruteo (tareas offline con Celery + Redis).
-* **ETA**: baseline con `scikit-learn` / `xgboost` usando features de tráfico/histórico.
+### ✅ Implementado
+
+* **VRP (Vehicle Routing Problem)**: ✅ Optimización de rutas con OR-Tools integrado con Celery + Redis
+  - Múltiples vehículos con capacidades
+  - Ventanas de tiempo para entregas
+  - Depósitos de salida y regreso independientes
+  - Matriz de distancias/tiempos con OSRM
+  
+* **ETA con Baseline**: ✅ Sistema completo de seguimiento de tiempos estimados
+  - **ETA Baseline**: Calculado durante optimización inicial
+  - **ETA Real-time**: Actualizado según posición GPS y condiciones actuales
+  - **Estadísticas de Demora**: Análisis de cumplimiento de tiempos
+  - **Estados Visuales**: on_time, delayed, early, critical
+  - **API Endpoints**: Consulta y actualización de ETAs
+  - **Componente React**: Panel interactivo con auto-refresh
+  - Ver [docs/ETA_SYSTEM.md](./docs/ETA_SYSTEM.md) para más detalles
+
+### 🚧 En Desarrollo
+
+* **ML para Predicción de ETAs**: Entrenar modelos con histórico de demoras
+* **Integración Tráfico Real**: APIs de Google/OSRM con datos de tráfico
+* **Notificaciones Push**: Alertas automáticas de cambios en ETA
+
+### 📋 Por Implementar
+
+* **Re-optimización Dinámica**: Ajustar rutas ante demoras críticas
+* **Dashboard Analítico**: Visualización de métricas históricas
+* **Predicción ML Avanzada**: XGBoost/LightGBM para ETAs más precisos
+
 "# transporte_si2" 

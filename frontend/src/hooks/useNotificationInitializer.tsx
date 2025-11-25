@@ -20,12 +20,30 @@ function useNotificationInitializer() {
             user?.username
           );
 
+          // Verificar si el contexto es seguro (HTTPS o localhost)
+          const isSecureContext =
+            window.isSecureContext ||
+            window.location.protocol === "https:" ||
+            window.location.hostname === "localhost";
+
+          if (!isSecureContext) {
+            console.warn(
+              "⚠️ Notificaciones deshabilitadas: Se requiere HTTPS para Firebase Messaging"
+            );
+            return;
+          }
+
           // Esperar un poco para asegurar que el DOM esté listo
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
           // Inicializar el servicio solo si Firebase está disponible
           if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-            await NotificationService.initialize();
+            const initialized = await NotificationService.initialize();
+
+            if (!initialized) {
+              console.warn("⚠️ Notificaciones no disponibles en este entorno");
+              return;
+            }
 
             // Configurar callback para notificaciones en tiempo real
             NotificationService.onMessage((payload) => {
@@ -61,6 +79,7 @@ function useNotificationInitializer() {
             "❌ Error al inicializar servicio de notificaciones:",
             error
           );
+          // No lanzar el error, solo registrarlo
         }
       }
     };
