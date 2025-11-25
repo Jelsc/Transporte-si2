@@ -21,8 +21,6 @@ import { FileDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import reportesService from "@/services/reportesService";
 import type { GenerarReporteRequest } from "@/services/reportesService";
-import { VoiceCommandButton } from "@/components/voice/VoiceCommandButton";
-import type { VoiceCommandResult } from "@/services/voiceCommandService";
 
 interface GenerateReportModalProps {
   open: boolean;
@@ -83,71 +81,6 @@ export default function GenerateReportModal({
     setFechaFin("");
   };
 
-  const handleVoiceCommand = (result: VoiceCommandResult) => {
-    console.log('🎤 Comando de voz recibido:', result);
-    
-    // Aplicar los valores detectados
-    if (result.tipo) {
-      setFormato(result.tipo);
-      toast.success(`Formato detectado: ${result.tipo.toUpperCase()}`);
-    }
-    
-    if (result.titulo) {
-      setTitulo(result.titulo);
-    }
-    
-    if (result.fechaInicio) {
-      setFechaInicio(result.fechaInicio);
-    }
-    
-    if (result.fechaFin) {
-      setFechaFin(result.fechaFin);
-    }
-    
-    // Mostrar confianza
-    const CONFIDENCE_THRESHOLD = 0.8;
-    if (result.confidence >= CONFIDENCE_THRESHOLD) {
-      toast.success(`Comando interpretado correctamente (${Math.round(result.confidence * 100)}% confianza)`);
-
-      // Si la IA detectó un tipo (pdf/excel/imagen) y la confianza es alta, generar automáticamente
-      if (result.tipo) {
-        // Preferir la categoría detectada por la IA si viene, sino la del modal
-        const categoriaDetectada = (result.categoria as string) || categoria;
-        const tipoDetectado = result.tipo as 'pdf' | 'excel' | 'imagen';
-        const request: GenerarReporteRequest = {
-          tipo: tipoDetectado,
-          categoria: categoriaDetectada as any,
-          ...(result.titulo && { titulo: result.titulo }),
-          ...(result.fechaInicio && { fecha_inicio: result.fechaInicio }),
-          ...(result.fechaFin && { fecha_fin: result.fechaFin }),
-        };
-
-        // Ejecutar generación y descarga automática
-        void (async () => {
-          setLoading(true);
-          try {
-            const blob = await reportesService.generar(request);
-            const nombreArchivo = reportesService.getNombreArchivo(
-              tipoDetectado,
-              categoriaDetectada,
-              result.titulo || ''
-            );
-            reportesService.descargarArchivo(blob, nombreArchivo);
-            toast.success('Reporte generado y descargado automáticamente');
-            onClose();
-            resetForm();
-          } catch (error: any) {
-            console.error('Error al generar reporte automático:', error);
-            toast.error(error.response?.data?.error || 'Error al generar el reporte automáticamente');
-          } finally {
-            setLoading(false);
-          }
-        })();
-      }
-    } else {
-      toast.info(`Comando interpretado con baja confianza. Verifica los datos.`);
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -155,20 +88,11 @@ export default function GenerateReportModal({
         <DialogHeader>
           <DialogTitle>Generar Reporte de {categoria}</DialogTitle>
           <DialogDescription>
-            Configura los parámetros para generar tu reporte o usa comando de voz
+            Configura los parámetros para generar tu reporte
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Comando de Voz */}
-          <div className="grid gap-2 pb-4 border-b">
-            <Label>Comando de Voz con IA 🤖</Label>
-            <VoiceCommandButton 
-              onCommandDetected={handleVoiceCommand}
-              disabled={loading}
-            />
-          </div>
-
           {/* Formato */}
           <div className="grid gap-2">
             <Label htmlFor="formato">Formato del Reporte *</Label>
