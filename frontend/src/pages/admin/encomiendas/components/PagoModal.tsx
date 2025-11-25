@@ -1,3 +1,4 @@
+// components/PagoModal.tsx - VERSIÓN ESPECÍFICA PARA ENCOMIENDAS// components/PagoModal.tsx - VERSIÓN CORREGIDA
 import React, { useState } from 'react';
 import {
   Dialog,

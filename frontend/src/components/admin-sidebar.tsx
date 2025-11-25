@@ -23,6 +23,7 @@ import {
   UserCheck,
   Bus,
   Container,
+  AlertTriangle,
 } from "lucide-react";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -173,6 +174,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           route: "/admin/rutas-optimizadas",
         },
       ],
+    },
+    {
+      id: "reclamos",
+      name: "Gestión de Reclamos",
+      icon: AlertTriangle,
+      route: "/admin/reclamos",
     },
     {
       id: "notificaciones",

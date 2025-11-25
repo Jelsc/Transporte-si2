@@ -69,4 +69,6 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
 
     path("api/pagos/", include("pagos.urls")),  # AGREGAR AQUÍ
+
+    path("api/reclamos/", include("reclamos.urls")),  # AGREGAR AQUÍ
 ]

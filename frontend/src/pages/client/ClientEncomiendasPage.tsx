@@ -460,7 +460,7 @@ export function ClienteEncomienda() {
                   {/* Detalles de la Encomienda */}
                   <div>
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Package className="w-5 text-purple-600" />
+                      <Package className="w-5 w-5 text-purple-600" />
                       Detalles de la Encomienda
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -513,7 +513,7 @@ export function ClienteEncomienda() {
                         value={nuevaEncomienda.notas}
                         onChange={handleInputChange}
                         placeholder="Instrucciones especiales, observaciones..."
-                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-20"
+                        className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[80px]"
                       />
                     </div>
                   </div>
@@ -666,7 +666,7 @@ export function ClienteEncomienda() {
                             <div className="space-y-4">
                               {encomiendaSeguimiento.seguimientos.map((seguimiento: any, index: number) => (
                                 <div key={seguimiento.id || index} className="flex gap-4 border-l-2 border-blue-200 pl-4">
-                                  <div className="shrink-0 w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
+                                  <div className="flex-shrink-0 w-3 h-3 bg-blue-500 rounded-full mt-2"></div>
                                   <div className="flex-1">
                                     <div className="flex justify-between items-start">
                                       <h5 className="font-semibold">{seguimiento.evento}</h5>

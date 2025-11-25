@@ -71,7 +71,7 @@ class AccountSettingsService {
                 errorMessage = newPasswordErrors;
               }
             } else if (errorData.containsKey('old_password')) {
-              final oldPasswordErrors = errorData['old_password'];
+              final oldPasswordErrors = errorData['old_password'];  
               if (oldPasswordErrors is List && oldPasswordErrors.isNotEmpty) {
                 errorMessage = oldPasswordErrors.first.toString();
               } else if (oldPasswordErrors is String) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile/screens/reclamos/lista_reclamos_screen.dart';
 import '../../services/auth_service.dart';
 import '../auth/login_screen.dart';
 import 'viajes_disponibles_screen.dart';
@@ -6,6 +7,7 @@ import '../encomiendas/listar_encomiendas_screen.dart'; // Nueva importación
 import '../encomiendas/crear_encomienda_screen.dart';   // Nueva importación
 import '../../widgets/neumorphic_card.dart';
 import '../../widgets/bottom_navigation_bar.dart';
+
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({super.key});
@@ -116,6 +118,19 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                               ),
                             ),
                           ),
+                           _buildNeumorphicCard(
+                           icon: Icons.report_problem,
+                           title: 'Mis Reclamos',
+                           subtitle: 'Gestionar reclamos',
+                           color: Colors.orange,
+                            onTap: () => Navigator.push(
+                             context,
+                             MaterialPageRoute(
+                              builder: (context) => const ListaReclamosScreen(),
+                               ),
+                                ),
+                                 ),
+                          
                           _buildNeumorphicCard(
                             icon: Icons.history,
                             title: 'Historial',
