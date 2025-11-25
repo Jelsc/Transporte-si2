@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -375,30 +376,39 @@ class AuthService {
     final baseUrl = await IPDetection.getBaseUrl();
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = await _authHeaders;
+    const timeoutDuration = Duration(seconds: 15);
 
     try {
       http.Response response;
 
       switch (method.toUpperCase()) {
         case 'GET':
-          response = await http.get(url, headers: headers);
+          response = await http
+              .get(url, headers: headers)
+              .timeout(timeoutDuration);
           break;
         case 'POST':
-          response = await http.post(
-            url,
-            headers: headers,
-            body: body != null ? jsonEncode(body) : null,
-          );
+          response = await http
+              .post(
+                url,
+                headers: headers,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(timeoutDuration);
           break;
         case 'PUT':
-          response = await http.put(
-            url,
-            headers: headers,
-            body: body != null ? jsonEncode(body) : null,
-          );
+          response = await http
+              .put(
+                url,
+                headers: headers,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(timeoutDuration);
           break;
         case 'DELETE':
-          response = await http.delete(url, headers: headers);
+          response = await http
+              .delete(url, headers: headers)
+              .timeout(timeoutDuration);
           break;
         default:
           throw Exception('Método HTTP no soportado: $method');
@@ -412,24 +422,32 @@ class AuthService {
           final newHeaders = await _authHeaders;
           switch (method.toUpperCase()) {
             case 'GET':
-              response = await http.get(url, headers: newHeaders);
+              response = await http
+                  .get(url, headers: newHeaders)
+                  .timeout(timeoutDuration);
               break;
             case 'POST':
-              response = await http.post(
-                url,
-                headers: newHeaders,
-                body: body != null ? jsonEncode(body) : null,
-              );
+              response = await http
+                  .post(
+                    url,
+                    headers: newHeaders,
+                    body: body != null ? jsonEncode(body) : null,
+                  )
+                  .timeout(timeoutDuration);
               break;
             case 'PUT':
-              response = await http.put(
-                url,
-                headers: newHeaders,
-                body: body != null ? jsonEncode(body) : null,
-              );
+              response = await http
+                  .put(
+                    url,
+                    headers: newHeaders,
+                    body: body != null ? jsonEncode(body) : null,
+                  )
+                  .timeout(timeoutDuration);
               break;
             case 'DELETE':
-              response = await http.delete(url, headers: newHeaders);
+              response = await http
+                  .delete(url, headers: newHeaders)
+                  .timeout(timeoutDuration);
               break;
           }
         } else {
@@ -442,12 +460,28 @@ class AuthService {
         }
       }
 
-      final responseData = jsonDecode(response.body);
+      // Validar que el body no esté vacío antes de decodificar
+      Map<String, dynamic> responseData;
+      if (response.body.isEmpty) {
+        responseData = {};
+      } else {
+        try {
+          responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (e) {
+          return ApiResponse<T>(
+            success: false,
+            error:
+                'Error al procesar la respuesta del servidor. Código: ${response.statusCode}',
+          );
+        }
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return ApiResponse<T>(
           success: true,
-          data: fromJson != null ? fromJson(responseData) : responseData,
+          data: fromJson != null
+              ? fromJson(responseData) as T
+              : responseData as T,
           message: responseData['message'] ?? 'Operación exitosa',
         );
       } else {
@@ -455,12 +489,17 @@ class AuthService {
         String errorMessage = 'Error en la petición';
 
         if (responseData['detail'] != null) {
-          errorMessage = responseData['detail'];
+          errorMessage = responseData['detail'].toString();
         } else if (responseData['error'] != null) {
-          errorMessage = responseData['error'];
+          errorMessage = responseData['error'].toString();
         } else if (responseData['non_field_errors'] != null) {
           // Para errores de validación generales
-          errorMessage = responseData['non_field_errors'].join(', ');
+          final errors = responseData['non_field_errors'];
+          if (errors is List) {
+            errorMessage = errors.join(', ');
+          } else {
+            errorMessage = errors.toString();
+          }
         } else {
           // Para errores de campos específicos
           List<String> fieldErrors = [];
@@ -477,11 +516,38 @@ class AuthService {
         return ApiResponse<T>(
           success: false,
           error: errorMessage,
-          message: responseData['message'],
+          message: responseData['message']?.toString(),
         );
       }
+    } on SocketException {
+      return ApiResponse<T>(
+        success: false,
+        error:
+            'No se pudo conectar con el servidor en $baseUrl. Verifica tu conexión a internet, que el backend esté ejecutándose y que ambos dispositivos estén en la misma red Wi-Fi.',
+      );
+    } on HttpException catch (e) {
+      return ApiResponse<T>(
+        success: false,
+        error: 'Error HTTP: ${e.message}',
+      );
+    } on FormatException {
+      return ApiResponse<T>(
+        success: false,
+        error: 'Error al procesar la respuesta del servidor.',
+      );
     } catch (e) {
-      return ApiResponse<T>(success: false, error: 'Error de conexión: $e');
+      if (e.toString().contains('TimeoutException') ||
+          e.toString().contains('timeout')) {
+        return ApiResponse<T>(
+          success: false,
+          error:
+              'Tiempo de espera agotado. El servidor no respondió a tiempo. Verifica tu conexión.',
+        );
+      }
+      return ApiResponse<T>(
+        success: false,
+        error: 'Error de conexión: ${e.toString()}',
+      );
     }
   }
 
@@ -495,41 +561,66 @@ class AuthService {
     final baseUrl = await IPDetection.getBaseUrl();
     final url = Uri.parse('$baseUrl$endpoint');
     final headers = _defaultHeaders;
+    const timeoutDuration = Duration(seconds: 15);
 
     try {
       http.Response response;
 
       switch (method.toUpperCase()) {
         case 'GET':
-          response = await http.get(url, headers: headers);
+          response = await http
+              .get(url, headers: headers)
+              .timeout(timeoutDuration);
           break;
         case 'POST':
-          response = await http.post(
-            url,
-            headers: headers,
-            body: body != null ? jsonEncode(body) : null,
-          );
+          response = await http
+              .post(
+                url,
+                headers: headers,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(timeoutDuration);
           break;
         case 'PUT':
-          response = await http.put(
-            url,
-            headers: headers,
-            body: body != null ? jsonEncode(body) : null,
-          );
+          response = await http
+              .put(
+                url,
+                headers: headers,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(timeoutDuration);
           break;
         case 'DELETE':
-          response = await http.delete(url, headers: headers);
+          response = await http
+              .delete(url, headers: headers)
+              .timeout(timeoutDuration);
           break;
         default:
           throw Exception('Método HTTP no soportado: $method');
       }
 
-      final responseData = jsonDecode(response.body);
+      // Validar que el body no esté vacío antes de decodificar
+      Map<String, dynamic> responseData;
+      if (response.body.isEmpty) {
+        responseData = {};
+      } else {
+        try {
+          responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        } catch (e) {
+          return ApiResponse<T>(
+            success: false,
+            error:
+                'Error al procesar la respuesta del servidor. Código: ${response.statusCode}',
+          );
+        }
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return ApiResponse<T>(
           success: true,
-          data: fromJson != null ? fromJson(responseData) : responseData,
+          data: fromJson != null
+              ? fromJson(responseData) as T
+              : responseData as T,
           message: responseData['message'] ?? 'Operación exitosa',
         );
       } else {
@@ -537,12 +628,17 @@ class AuthService {
         String errorMessage = 'Error en la petición';
 
         if (responseData['detail'] != null) {
-          errorMessage = responseData['detail'];
+          errorMessage = responseData['detail'].toString();
         } else if (responseData['error'] != null) {
-          errorMessage = responseData['error'];
+          errorMessage = responseData['error'].toString();
         } else if (responseData['non_field_errors'] != null) {
           // Para errores de validación generales
-          errorMessage = responseData['non_field_errors'].join(', ');
+          final errors = responseData['non_field_errors'];
+          if (errors is List) {
+            errorMessage = errors.join(', ');
+          } else {
+            errorMessage = errors.toString();
+          }
         } else {
           // Para errores de campos específicos
           List<String> fieldErrors = [];
@@ -559,11 +655,38 @@ class AuthService {
         return ApiResponse<T>(
           success: false,
           error: errorMessage,
-          message: responseData['message'],
+          message: responseData['message']?.toString(),
         );
       }
+    } on SocketException {
+      return ApiResponse<T>(
+        success: false,
+        error:
+            'No se pudo conectar con el servidor en $baseUrl. Verifica tu conexión a internet, que el backend esté ejecutándose y que ambos dispositivos estén en la misma red Wi-Fi.',
+      );
+    } on HttpException catch (e) {
+      return ApiResponse<T>(
+        success: false,
+        error: 'Error HTTP: ${e.message}',
+      );
+    } on FormatException {
+      return ApiResponse<T>(
+        success: false,
+        error: 'Error al procesar la respuesta del servidor.',
+      );
     } catch (e) {
-      return ApiResponse<T>(success: false, error: 'Error de conexión: $e');
+      if (e.toString().contains('TimeoutException') ||
+          e.toString().contains('timeout')) {
+        return ApiResponse<T>(
+          success: false,
+          error:
+              'Tiempo de espera agotado. El servidor no respondió a tiempo. Verifica tu conexión y que el backend esté ejecutándose.',
+        );
+      }
+      return ApiResponse<T>(
+        success: false,
+        error: 'Error de conexión: ${e.toString()}',
+      );
     }
   }
 

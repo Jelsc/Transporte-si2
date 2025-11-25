@@ -82,7 +82,7 @@ flutter install
 La clave de Stripe está en `lib/utils/stripe_config.dart`:
 
 ```dart
-Stripe.publishableKey = 'pk_test_51SFOxOB9S1VdGc0Rs6sEecz84SqlUSMGZ7CzOTNf1WLUPMrZfcEdPe3y0zDsfBPsxM0pR1cV4azJCjLspvfzLboL00KY7wBet1';
+Stripe.publishableKey = 'xd';
 ```
 
 ### Firebase

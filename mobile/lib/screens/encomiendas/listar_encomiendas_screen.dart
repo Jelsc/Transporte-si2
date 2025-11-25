@@ -6,6 +6,7 @@ import 'package:mobile/widgets/bottom_navigation_bar.dart';
 import 'package:mobile/widgets/pago_tarjeta_widget.dart';
 import 'crear_encomienda_screen.dart';
 import 'detalle_encomienda_screen.dart';
+import 'tracking_encomienda_screen.dart';
 
 class ListarEncomiendasScreen extends StatefulWidget {
   const ListarEncomiendasScreen({super.key});
@@ -345,8 +346,58 @@ class _ListarEncomiendasScreenState extends State<ListarEncomiendasScreen> {
                 ],
               ),
 
+              const SizedBox(height: 12),
+              
+              // Botones de acción
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => TrackingEncomiendaScreen(
+                              codigoInicial: encomienda.codigoSeguimiento,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.track_changes, size: 18),
+                      label: const Text('Rastrear'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.blue,
+                        side: const BorderSide(color: Colors.blue),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => DetalleEncomiendaScreen(
+                              encomienda: encomienda,
+                            ),
+                          ),
+                        ).then((_) => _cargarDatos());
+                      },
+                      icon: const Icon(Icons.info_outline, size: 18),
+                      label: const Text('Detalles'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
               // ✅ BOTONES DE PAGO (EFECTIVO Y TARJETA)
               if (encomienda.puedePagar) ...[
+                const SizedBox(height: 12),
                 const SizedBox(height: 12),
                 Column(
                   children: [
@@ -407,6 +458,18 @@ class _ListarEncomiendasScreenState extends State<ListarEncomiendasScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TrackingEncomiendaScreen(),
+                ),
+              );
+            },
+            tooltip: 'Rastrear encomienda',
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _cargarDatos,
