@@ -6,7 +6,7 @@ class IPDetection {
   // IMPORTANTE: Usa la IP de tu adaptador de red real (Ethernet/Wi-Fi), NO WSL
   // Para encontrar tu IP correcta en Windows:
   // PowerShell: Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and $_.InterfaceAlias -notlike "*WSL*" -and $_.InterfaceAlias -notlike "*Loopback*" -and $_.InterfaceAlias -notlike "*Virtual*" } | Select-Object -First 1 -ExpandProperty IPAddress
-  static const String BACKEND_HOST = "http://192.168.0.143:8000";
+  static const String BACKEND_HOST = "http://57.154.17.34:8000";
 
   // Para desarrollo con emulador Android (cambia si usas emulador):
   // static const String BACKEND_HOST = "http://10.0.2.2:8000";

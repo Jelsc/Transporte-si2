@@ -237,10 +237,11 @@ class _MapaTrackingEncomiendaState extends State<MapaTrackingEncomienda> {
 
   // Geometría de la ruta
   List<List<double>>? get _geometriaRuta {
+    // Prioridad 1: Usar geometría del ETA si está disponible
     if (_etaInfo != null && _etaInfo!['geometria_ruta'] != null) {
       final geo = _etaInfo!['geometria_ruta'];
-      if (geo is List) {
-        return geo
+      if (geo is List && geo.isNotEmpty) {
+        final coords = geo
             .map((coord) {
               if (coord is List && coord.length >= 2) {
                 return [coord[0] as double, coord[1] as double];
@@ -249,8 +250,42 @@ class _MapaTrackingEncomiendaState extends State<MapaTrackingEncomienda> {
             })
             .where((coord) => coord.length == 2)
             .toList();
+        if (coords.isNotEmpty) {
+          return coords;
+        }
       }
     }
+
+    // Prioridad 2: Si hay conductor y destino, crear línea recta
+    final conductorLoc = _conductorUbicacion;
+    if (conductorLoc != null &&
+        widget.latDestino != null &&
+        widget.lngDestino != null) {
+      final lat = conductorLoc['lat'] as double?;
+      final lng = conductorLoc['lng'] as double?;
+      if (lat != null && lng != null) {
+        return [
+          [lng, lat], // Origen: conductor
+          [widget.lngDestino!, widget.latDestino!], // Destino
+        ];
+      }
+    }
+
+    // Prioridad 3: Si hay origen del viaje y destino, crear línea recta
+    final origenViaje = _origenViaje;
+    if (origenViaje != null &&
+        widget.latDestino != null &&
+        widget.lngDestino != null) {
+      final latOrigen = origenViaje['lat'] as double?;
+      final lngOrigen = origenViaje['lng'] as double?;
+      if (latOrigen != null && lngOrigen != null) {
+        return [
+          [lngOrigen, latOrigen], // Origen: punto de partida del viaje
+          [widget.lngDestino!, widget.latDestino!], // Destino
+        ];
+      }
+    }
+
     return null;
   }
 
@@ -323,11 +358,15 @@ class _MapaTrackingEncomiendaState extends State<MapaTrackingEncomienda> {
                 polylines: [
                   Polyline(
                     points: _geometriaRuta!
-                        .map((coord) => LatLng(coord[1], coord[0]))
+                        .map((coord) {
+                          // Coordenadas vienen como [lng, lat] desde el backend
+                          // o las creamos como [lng, lat] en el getter
+                          return LatLng(coord[1], coord[0]);
+                        })
                         .toList(),
-                    strokeWidth: 4.0,
-                    color: Colors.blue,
-                    borderStrokeWidth: 2.0,
+                    strokeWidth: 5.0,
+                    color: Colors.blue.shade600,
+                    borderStrokeWidth: 1.5,
                     borderColor: Colors.blue.shade900,
                   ),
                 ],
