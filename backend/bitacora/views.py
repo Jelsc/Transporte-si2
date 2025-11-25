@@ -24,5 +24,10 @@ class BitacoraViewSet(viewsets.ModelViewSet):
         rol = self.request.GET.get('rol', '').strip()
         if rol:
             queryset = queryset.filter(usuario__rol__nombre__iexact=rol)
+        
+        # Filtro por módulo (REPORTES, FACTURACION, etc.)
+        modulo = self.request.GET.get('modulo', '').strip()
+        if modulo:
+            queryset = queryset.filter(modulo__iexact=modulo)
 
         return queryset

@@ -14,5 +14,5 @@ export interface BitacoraLog {
   descripcion: string;
   ip?: string | null;
   user_agent?: string | null;
-  
+  modulo?: string;
 }

@@ -9,6 +9,10 @@ class Bitacora(models.Model):
         ('TRANSPORTE', 'Transporte'),
         ('RESERVAS', 'Reservas'),
         ('PAGOS', 'Pagos'),
+        ('REPORTES', 'Reportes'),
+        ('FACTURACION', 'Facturación'),
+        ('AUTENTICACION', 'Autenticación'),
+        ('BACKUPS', 'Backups'),
         ('GENERAL', 'General'),
     ]
 

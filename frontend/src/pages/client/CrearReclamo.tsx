@@ -1,10 +1,14 @@
 // pages/client/CrearReclamo.tsx - VERSIÓN CON CATEGORÍAS TEMPORALES
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCrearReclamo, useCategorias } from '../../hooks/useReclamos';
+import { useCrearReclamo, useCategorias, useReclamos } from '../../hooks/useReclamos';
+import type { ReclamoType } from '../../types/reclamos';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileText, Plus, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 export const CrearReclamo: React.FC = () => {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'crear' | 'mis-reclamos'>('crear');
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
@@ -16,6 +20,7 @@ export const CrearReclamo: React.FC = () => {
   const [previews, setPreviews] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [mensajeExito, setMensajeExito] = useState('');
+  const [reclamoSeleccionado, setReclamoSeleccionado] = useState<ReclamoType | null>(null);
 
   // ✅ Usar los hooks
   const { 
@@ -31,6 +36,14 @@ export const CrearReclamo: React.FC = () => {
     error, 
     clearError 
   } = useCrearReclamo();
+
+  // Hook para obtener mis reclamos
+  const { 
+    reclamos, 
+    loading: loadingReclamos, 
+    error: errorReclamos,
+    refetch: refetchReclamos 
+  } = useReclamos();
 
   // ✅ Categorías temporales mientras se soluciona el backend
   const categoriasTemporales = [
@@ -101,11 +114,14 @@ export const CrearReclamo: React.FC = () => {
       setArchivos([]);
       setPreviews([]);
       
-      // Redirigir después de 3 segundos
+      // Recargar mis reclamos y cambiar a la pestaña de mis reclamos
+      await refetchReclamos();
+      
+      // Redirigir después de 3 segundos o cambiar a mis reclamos
       setTimeout(() => {
         setMensajeExito('');
-        navigate('/');
-      }, 3000);
+        setActiveTab('mis-reclamos');
+      }, 2000);
     } catch (error) {
       console.error('❌ Error al crear reclamo:', error);
     }
@@ -186,16 +202,58 @@ export const CrearReclamo: React.FC = () => {
     }
   }, [error, clearError]);
 
+  // Cargar reclamos cuando se cambia a la pestaña de mis reclamos
+  useEffect(() => {
+    if (activeTab === 'mis-reclamos') {
+      refetchReclamos();
+    }
+  }, [activeTab, refetchReclamos]);
+
+  const formatFecha = (fecha: string) => {
+    return new Date(fecha).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getEstadoColor = (estado: string) => {
+    const colores = {
+      abierto: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      en_proceso: 'bg-blue-100 text-blue-800 border-blue-200',
+      cerrado: 'bg-green-100 text-green-800 border-green-200',
+      cancelado: 'bg-red-100 text-red-800 border-red-200'
+    };
+    return colores[estado as keyof typeof colores] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  const getEstadoIcon = (estado: string) => {
+    switch (estado) {
+      case 'abierto':
+        return <AlertCircle className="w-4 h-4" />;
+      case 'en_proceso':
+        return <Clock className="w-4 h-4" />;
+      case 'cerrado':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'cancelado':
+        return <XCircle className="w-4 h-4" />;
+      default:
+        return <FileText className="w-4 h-4" />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-6xl mx-auto px-4">
         {/* Header mejorado */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Crear Nuevo Reclamo
+            Centro de Reclamos
           </h1>
           <p className="text-lg text-gray-600">
-            Complete el formulario para registrar un nuevo reclamo
+            Crea un nuevo reclamo o consulta el estado de tus reclamos existentes
           </p>
         </div>
 
@@ -231,7 +289,22 @@ export const CrearReclamo: React.FC = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {/* Tabs para Crear Reclamo y Mis Reclamos */}
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'crear' | 'mis-reclamos')} className="w-full">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
+            <TabsTrigger value="crear" className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Crear Reclamo
+            </TabsTrigger>
+            <TabsTrigger value="mis-reclamos" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Mis Reclamos ({reclamos.length})
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab: Crear Reclamo */}
+          <TabsContent value="crear" className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="p-8">
             <form onSubmit={handleSubmit}>
               {/* Servicio relacionado */}
@@ -456,6 +529,194 @@ export const CrearReclamo: React.FC = () => {
             </form>
           </div>
         </div>
+          </TabsContent>
+
+          {/* Tab: Mis Reclamos */}
+          <TabsContent value="mis-reclamos" className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6">
+                {loadingReclamos ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-gray-500 mt-4">Cargando tus reclamos...</p>
+                  </div>
+                ) : errorReclamos ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-sm font-medium text-red-800">{errorReclamos}</p>
+                  </div>
+                ) : !Array.isArray(reclamos) || reclamos.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      No tienes reclamos registrados
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      Crea tu primer reclamo usando el formulario de creación
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('crear')}
+                      className="px-6 py-3 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Crear Reclamo
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        Mis Reclamos ({reclamos.length})
+                      </h2>
+                      <button
+                        onClick={() => refetchReclamos()}
+                        className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+                      >
+                        Actualizar
+                      </button>
+                    </div>
+
+                    {/* Lista de reclamos */}
+                    <div className="space-y-4">
+                      {reclamos.map((reclamo) => (
+                        <div
+                          key={reclamo.id}
+                          className={`border rounded-lg p-5 transition-all cursor-pointer ${
+                            reclamoSeleccionado?.id === reclamo.id
+                              ? 'border-blue-500 bg-blue-50'
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                          }`}
+                          onClick={() => setReclamoSeleccionado(
+                            reclamoSeleccionado?.id === reclamo.id ? null : reclamo
+                          )}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className="font-semibold text-blue-600">
+                                  #{reclamo.numero_reclamo}
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getEstadoColor(reclamo.estado)}`}>
+                                  {getEstadoIcon(reclamo.estado)}
+                                  {reclamo.estado.replace('_', ' ').toUpperCase()}
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                                  reclamo.prioridad === 'urgente' ? 'bg-red-50 text-red-700 border-red-200' :
+                                  reclamo.prioridad === 'alta' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                  reclamo.prioridad === 'media' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                  'bg-gray-50 text-gray-700 border-gray-200'
+                                }`}>
+                                  {reclamo.prioridad.toUpperCase()}
+                                </span>
+                              </div>
+                              <h3 className="font-semibold text-gray-900 mb-1">
+                                {reclamo.titulo}
+                              </h3>
+                              <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                                {reclamo.descripcion}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                            <span>Categoría: {reclamo.categoria_nombre}</span>
+                            <span>•</span>
+                            <span>Creado: {formatFecha(reclamo.fecha_creacion)}</span>
+                            {reclamo.numero_guia && (
+                              <>
+                                <span>•</span>
+                                <span>Guía: {reclamo.numero_guia}</span>
+                              </>
+                            )}
+                            {reclamo.agente_nombre && (
+                              <>
+                                <span>•</span>
+                                <span>Agente: {reclamo.agente_nombre}</span>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Detalles expandidos */}
+                          {reclamoSeleccionado?.id === reclamo.id && (
+                            <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+                              {/* Descripción completa */}
+                              <div>
+                                <h4 className="font-semibold text-gray-900 mb-2">Descripción completa</h4>
+                                <p className="text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
+                                  {reclamo.descripcion}
+                                </p>
+                              </div>
+
+                              {/* Historial de comentarios */}
+                              {reclamo.detalles && reclamo.detalles.length > 0 && (
+                                <div>
+                                  <h4 className="font-semibold text-gray-900 mb-3">
+                                    Historial ({reclamo.detalles.length})
+                                  </h4>
+                                  <div className="space-y-3">
+                                    {reclamo.detalles.map((detalle) => (
+                                      <div key={detalle.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                        <div className="flex justify-between items-start mb-2">
+                                          <span className="font-medium text-gray-900">
+                                            {detalle.autor_nombre}
+                                          </span>
+                                          <span className="text-xs text-gray-500">
+                                            {formatFecha(detalle.fecha)}
+                                          </span>
+                                        </div>
+                                        <p className="text-sm text-gray-700">
+                                          {detalle.mensaje}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Archivos adjuntos */}
+                              {reclamo.adjuntos && reclamo.adjuntos.length > 0 && (
+                                <div>
+                                  <h4 className="font-semibold text-gray-900 mb-3">
+                                    Archivos adjuntos ({reclamo.adjuntos.length})
+                                  </h4>
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {reclamo.adjuntos.map((adjunto) => (
+                                      <a
+                                        key={adjunto.id}
+                                        href={adjunto.url_archivo}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="border border-gray-200 rounded-lg p-3 text-center hover:border-blue-300 transition-colors"
+                                      >
+                                        {adjunto.tipo_archivo === 'imagen' ? (
+                                          <img
+                                            src={adjunto.url_archivo}
+                                            alt={adjunto.nombre_archivo}
+                                            className="w-16 h-16 object-cover rounded mx-auto mb-2"
+                                          />
+                                        ) : (
+                                          <div className="w-16 h-16 bg-red-100 rounded flex items-center justify-center mx-auto mb-2">
+                                            <span className="text-red-600 font-bold text-sm">PDF</span>
+                                          </div>
+                                        )}
+                                        <p className="text-xs text-gray-600 truncate">
+                                          {adjunto.nombre_archivo}
+                                        </p>
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

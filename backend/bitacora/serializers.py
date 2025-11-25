@@ -6,7 +6,7 @@ class BitacoraSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Bitacora
-        fields = ['id', 'fecha_hora', 'usuario', 'accion', 'descripcion', 'ip', 'user_agent']
+        fields = ['id', 'fecha_hora', 'usuario', 'accion', 'descripcion', 'ip', 'user_agent', 'modulo']
 
     def get_usuario(self, obj):
         if obj.usuario:

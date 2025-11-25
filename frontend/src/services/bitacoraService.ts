@@ -11,14 +11,15 @@ export interface PaginatedBitacora {
   results: BitacoraLog[];
 }
 
-// page = número de página, search = texto a buscar
+// page = número de página, search = texto a buscar, rol = filtro por rol, modulo = filtro por módulo
 export const getBitacora = async (
   page = 1,
   search = "",
-  rol = ""
+  rol = "",
+  modulo = ""
 ): Promise<PaginatedBitacora> => {
   const response = await axios.get(API_URL, {
-    params: { page, search, rol }, // ahora mandamos rol al backend
+    params: { page, search, rol, modulo }, // ahora mandamos rol y modulo al backend
   });
   return response.data;
 };

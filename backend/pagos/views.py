@@ -7,7 +7,12 @@ from rest_framework.response import Response
 from django.db.models import Sum
 from django.db import transaction
 from django.utils import timezone
-from bitacora.utils import registrar_bitacora
+from bitacora.utils import (
+    registrar_creacion_pago,
+    registrar_pago_completado,
+    registrar_pago_cancelado,
+    registrar_pago_fallido
+)
 from .models import Pago
 from .serializers import PagoSerializer, CrearPagoSerializer, ConfirmarPagoSerializer
 from notificaciones.services import NotificationService
@@ -130,14 +135,17 @@ class PagoViewSet(viewsets.ModelViewSet):
                     print(f"🔍 Pago ID guardado: {pago.id}")
                     print(f"🔍 Stripe Payment Intent ID guardado: {pago.stripe_payment_intent_id}")
                     
-                    # Registrar en bitácora
-                    registrar_bitacora(
-                        request=request,
-                        usuario=request.user,
-                        accion="Crear Pago Stripe",
-                        descripcion=f"Pago #{pago.id} para reserva {reserva.codigo_reserva} - ${pago.monto}",
-                        modulo="PAGOS"
-                    )
+                    # Registrar en bitácora para auditoría
+                    try:
+                        registrar_creacion_pago(
+                            request=request,
+                            pago_id=pago.id,
+                            monto=float(pago.monto),
+                            metodo_pago=pago.metodo_pago,
+                            usuario_pago=pago.usuario
+                        )
+                    except Exception as e:
+                        print(f"Error al registrar en bitácora: {e}")
                     
                     # Notificar al usuario que se creó un pago (Stripe)
                     try:
@@ -215,13 +223,24 @@ class PagoViewSet(viewsets.ModelViewSet):
                         
                         print(f"✅ Pago manual completado - Reserva {reserva.codigo_reserva} confirmada")
                 
-                registrar_bitacora(
-                    request=request,
-                    usuario=request.user,
-                    accion="Crear Pago Manual",
-                    descripcion=f"Pago #{pago.id} para reserva {reserva.codigo_reserva} - ${pago.monto} - {pago.metodo_pago}",
-                    modulo="PAGOS"
-                )
+                # Registrar en bitácora para auditoría
+                try:
+                    registrar_creacion_pago(
+                        request=request,
+                        pago_id=pago.id,
+                        monto=float(pago.monto),
+                        metodo_pago=pago.metodo_pago,
+                        usuario_pago=pago.usuario
+                    )
+                    registrar_pago_completado(
+                        request=request,
+                        pago_id=pago.id,
+                        monto=float(pago.monto),
+                        metodo_pago=pago.metodo_pago,
+                        usuario_pago=pago.usuario
+                    )
+                except Exception as e:
+                    print(f"Error al registrar en bitácora: {e}")
                 
                 # Notificar al usuario que el pago manual fue completado
                 try:
@@ -379,14 +398,17 @@ class PagoViewSet(viewsets.ModelViewSet):
                         
                         print(f"✅ Pago confirmado - Reserva {reserva.codigo_reserva} confirmada y {asientos_actualizados} asientos ocupados")
                 
-                # Registrar en bitácora
-                registrar_bitacora(
-                    request=request,
-                    usuario=request.user,
-                    accion="Confirmar Pago",
-                    descripcion=f"Pago #{pago.id} confirmado - Reserva {pago.reserva.codigo_reserva if pago.reserva else 'N/A'} - ${pago.monto}",
-                    modulo="PAGOS"
-                )
+                # Registrar en bitácora para auditoría
+                try:
+                    registrar_pago_completado(
+                        request=request,
+                        pago_id=pago.id,
+                        monto=float(pago.monto),
+                        metodo_pago=pago.metodo_pago,
+                        usuario_pago=pago.usuario
+                    )
+                except Exception as e:
+                    print(f"Error al registrar en bitácora: {e}")
                 
                 # Notificar al usuario que su pago fue confirmado
                 try:
@@ -422,6 +444,17 @@ class PagoViewSet(viewsets.ModelViewSet):
                 # ✅ MEJOR MANEJO DE ESTADOS FALLIDOS
                 pago.estado = 'fallido'
                 pago.save()
+                
+                # Registrar pago fallido en bitácora
+                try:
+                    registrar_pago_fallido(
+                        request=request,
+                        pago_id=pago.id,
+                        monto=float(pago.monto),
+                        error=f"Estado del Payment Intent: {intent.status}"
+                    )
+                except Exception as e:
+                    print(f"Error al registrar en bitácora: {e}")
                 
                 print(f"❌ Payment Intent no completado. Estado actual: {intent.status}")
                 
@@ -498,13 +531,16 @@ class PagoViewSet(viewsets.ModelViewSet):
                             item.asiento.save()
                     print(f"✅ Pago cancelado - {reserva.items.count()} asientos liberados")
             
-            registrar_bitacora(
-                request=request,
-                usuario=request.user,
-                accion="Cancelar Pago",
-                descripcion=f"Pago #{pago.id} cancelado",
-                modulo="PAGOS"
-            )
+            # Registrar cancelación en bitácora para auditoría
+            try:
+                registrar_pago_cancelado(
+                    request=request,
+                    pago_id=pago.id,
+                    monto=float(pago.monto),
+                    motivo="Cancelado por usuario o administrador"
+                )
+            except Exception as e:
+                print(f"Error al registrar en bitácora: {e}")
             
             # Notificar al usuario que el pago fue cancelado
             try:

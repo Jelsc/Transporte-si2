@@ -25,6 +25,13 @@ from conductores.models import Conductor
 from vehiculos.models import Vehiculo
 from pagos.models import Pago
 
+# Importar funciones de bitácora para auditoría
+from bitacora.utils import (
+    registrar_generacion_reporte,
+    registrar_descarga_reporte,
+    registrar_eliminacion_reporte
+)
+
 
 class ReporteViewSet(viewsets.ModelViewSet):
     """
@@ -128,6 +135,21 @@ class ReporteViewSet(viewsets.ModelViewSet):
                 tamaño_archivo=tamaño_archivo,
                 tiempo_generacion=round(tiempo_generacion, 2)
             )
+            
+            # Registrar en bitácora para auditoría
+            try:
+                registrar_generacion_reporte(
+                    request=request,
+                    reporte_id=reporte.id,
+                    titulo=titulo,
+                    tipo=tipo,
+                    categoria=categoria,
+                    tiempo_generacion=round(tiempo_generacion, 2),
+                    tamaño_archivo=tamaño_archivo
+                )
+            except Exception as e:
+                # No fallar si hay error en la bitácora
+                print(f"Error al registrar en bitácora: {e}")
             
             # Devolver el archivo usando FileResponse que maneja mejor los archivos
             response = FileResponse(
@@ -353,14 +375,33 @@ def generar_reporte(request):
         # 5. Si es PDF o Excel (uno o múltiples reportes)
         if formato == 'pdf':
             from datetime import datetime
+            start_time = time.time()
             exporter = PDFExporter()
             if len(reportes_generados) > 1:
                 buffer = exporter.generar_multiple(reportes_generados)
                 filename = f"reportes_combinados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                titulo = f"Reportes Combinados ({len(reportes_generados)} reportes)"
             else:
                 buffer = exporter.generar(reportes_generados[0])
-                titulo = reportes_generados[0].get('titulo', 'reporte').replace(' ', '_')
-                filename = f"{titulo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                titulo = reportes_generados[0].get('titulo', 'reporte')
+                filename = f"{titulo.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            
+            tiempo_generacion = time.time() - start_time
+            tamaño_archivo = len(buffer.getvalue())
+            
+            # Registrar en bitácora
+            try:
+                registrar_generacion_reporte(
+                    request=request,
+                    reporte_id=0,  # No se guarda en BD para reportes inteligentes
+                    titulo=titulo,
+                    tipo='pdf',
+                    categoria=reportes_generados[0]['parametros'].get('tipo', 'general'),
+                    tiempo_generacion=tiempo_generacion,
+                    tamaño_archivo=tamaño_archivo
+                )
+            except Exception as e:
+                print(f"Error al registrar en bitácora: {e}")
             
             response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
@@ -368,14 +409,33 @@ def generar_reporte(request):
         
         elif formato == 'excel':
             from datetime import datetime
+            start_time = time.time()
             exporter = ExcelExporter()
             if len(reportes_generados) > 1:
                 buffer = exporter.generar_multiple(reportes_generados)
                 filename = f"reportes_combinados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                titulo = f"Reportes Combinados ({len(reportes_generados)} reportes)"
             else:
                 buffer = exporter.generar(reportes_generados[0])
-                titulo = reportes_generados[0].get('titulo', 'reporte').replace(' ', '_')
-                filename = f"{titulo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                titulo = reportes_generados[0].get('titulo', 'reporte')
+                filename = f"{titulo.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            
+            tiempo_generacion = time.time() - start_time
+            tamaño_archivo = len(buffer.getvalue())
+            
+            # Registrar en bitácora
+            try:
+                registrar_generacion_reporte(
+                    request=request,
+                    reporte_id=0,  # No se guarda en BD para reportes inteligentes
+                    titulo=titulo,
+                    tipo='excel',
+                    categoria=reportes_generados[0]['parametros'].get('tipo', 'general'),
+                    tiempo_generacion=tiempo_generacion,
+                    tamaño_archivo=tamaño_archivo
+                )
+            except Exception as e:
+                print(f"Error al registrar en bitácora: {e}")
             
             response = HttpResponse(
                 buffer.getvalue(),

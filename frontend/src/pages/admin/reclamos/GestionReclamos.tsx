@@ -1,11 +1,15 @@
 // pages/admin/reclamos/GestionReclamos.tsx
 import React, { useState, useEffect } from 'react';
+import AdminLayout from '@/app/layout/admin-layout';
 import { useReclamos, useCategorias, useGestionReclamo } from '../../../hooks/useReclamos';
-import type { ReclamoType } from '../../../types/reclamos';
+import type { ReclamoType, ReclamoAdjuntoType } from '../../../types/reclamos';
+import { X, Download, FileText, Image as ImageIcon, Maximize2, ExternalLink } from 'lucide-react';
 
 export const GestionReclamos: React.FC = () => {
   const [reclamoSeleccionado, setReclamoSeleccionado] = useState<ReclamoType | null>(null);
   const [comentarioInput, setComentarioInput] = useState('');
+  const [archivoSeleccionado, setArchivoSeleccionado] = useState<ReclamoAdjuntoType | null>(null);
+  const [mostrarVisor, setMostrarVisor] = useState(false);
   
   const [filtros, setFiltros] = useState({
     estado: '',
@@ -157,8 +161,9 @@ export const GestionReclamos: React.FC = () => {
   console.log('Error:', error);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <AdminLayout>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
         {/* ✅ Mostrar errores si existen */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -374,43 +379,98 @@ export const GestionReclamos: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Archivos Adjuntos */}
+                  {/* Archivos Adjuntos - MEJORADO */}
                   {reclamoSeleccionado.adjuntos && reclamoSeleccionado.adjuntos.length > 0 && (
                     <div className="bg-white rounded-xl border border-gray-200 p-5">
-                      <h3 className="font-semibold text-gray-900 mb-4 text-lg">
-                        Archivos Adjuntos ({reclamoSeleccionado.adjuntos.length})
-                      </h3>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold text-gray-900 text-lg">
+                          Documentos Adjuntos ({reclamoSeleccionado.adjuntos.length})
+                        </h3>
+                        <span className="text-sm text-gray-500">
+                          Haz clic en una imagen para ampliarla
+                        </span>
+                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         {reclamoSeleccionado.adjuntos.map((adjunto) => (
-                          <div key={adjunto.id} className="border-2 border-gray-200 rounded-xl p-4 text-center hover:border-blue-300 transition-colors">
+                          <div 
+                            key={adjunto.id} 
+                            className="border-2 border-gray-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-md transition-all bg-white group relative"
+                          >
                             {adjunto.tipo_archivo === 'imagen' ? (
-                              <img 
-                                src={adjunto.url_archivo} 
-                                alt={adjunto.nombre_archivo}
-                                className="w-20 h-20 object-cover rounded-lg mx-auto mb-3"
-                              />
+                              <div className="relative">
+                                <img 
+                                  src={adjunto.url_archivo} 
+                                  alt={adjunto.nombre_archivo}
+                                  className="w-full h-32 object-cover rounded-lg mb-3 cursor-pointer"
+                                  onClick={() => {
+                                    setArchivoSeleccionado(adjunto);
+                                    setMostrarVisor(true);
+                                  }}
+                                />
+                                <button
+                                  onClick={() => {
+                                    setArchivoSeleccionado(adjunto);
+                                    setMostrarVisor(true);
+                                  }}
+                                  className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  title="Ampliar imagen"
+                                >
+                                  <Maximize2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             ) : (
-                              <div className="w-20 h-20 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                                <span className="text-red-600 font-bold text-lg">PDF</span>
+                              <div className="w-full h-32 bg-gradient-to-br from-red-50 to-red-100 rounded-lg flex flex-col items-center justify-center mb-3 border-2 border-red-200">
+                                <FileText className="w-12 h-12 text-red-600 mb-2" />
+                                <span className="text-red-700 font-bold text-xs">PDF</span>
                               </div>
                             )}
-                            <p className="text-sm text-gray-600 font-medium truncate mb-2">
-                              {adjunto.nombre_archivo}
-                            </p>
-                            <a 
-                              href={adjunto.url_archivo} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              Ver archivo
-                            </a>
+                            
+                            <div className="space-y-2">
+                              <p className="text-xs text-gray-600 font-medium truncate" title={adjunto.nombre_archivo}>
+                                {adjunto.nombre_archivo}
+                              </p>
+                              <div className="flex items-center text-xs text-gray-500">
+                                <span>{new Date(adjunto.fecha_subida).toLocaleDateString('es-ES', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })}</span>
+                              </div>
+                              
+                              <div className="flex gap-2 pt-2 border-t border-gray-100">
+                                <a 
+                                  href={adjunto.url_archivo} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex-1 inline-flex items-center justify-center gap-1 text-xs text-blue-600 hover:text-blue-800 font-medium bg-blue-50 hover:bg-blue-100 rounded px-2 py-1.5 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                  Abrir
+                                </a>
+                                <a 
+                                  href={adjunto.url_archivo} 
+                                  download={adjunto.nombre_archivo}
+                                  className="inline-flex items-center justify-center gap-1 text-xs text-gray-600 hover:text-gray-800 font-medium bg-gray-50 hover:bg-gray-100 rounded px-2 py-1.5 transition-colors"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Download className="w-3 h-3" />
+                                </a>
+                              </div>
+                            </div>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Mensaje cuando no hay adjuntos */}
+                  {(!reclamoSeleccionado.adjuntos || reclamoSeleccionado.adjuntos.length === 0) && (
+                    <div className="bg-white rounded-xl border border-gray-200 p-5">
+                      <div className="text-center py-8">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                        <p className="text-gray-600 font-medium">No hay documentos adjuntos</p>
+                        <p className="text-sm text-gray-500 mt-1">El usuario no ha enviado archivos con este reclamo</p>
                       </div>
                     </div>
                   )}
@@ -527,7 +587,111 @@ export const GestionReclamos: React.FC = () => {
             )}
           </div>
         </div>
+        </div>
       </div>
-    </div>
+
+      {/* Modal Visor de Imágenes */}
+      {mostrarVisor && archivoSeleccionado && archivoSeleccionado.tipo_archivo === 'imagen' && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setMostrarVisor(false)}
+        >
+          <button
+            onClick={() => setMostrarVisor(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+            aria-label="Cerrar visor"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          
+          <div className="max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center">
+            <img 
+              src={archivoSeleccionado.url_archivo} 
+              alt={archivoSeleccionado.nombre_archivo}
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg">
+            <p className="text-sm font-medium">{archivoSeleccionado.nombre_archivo}</p>
+            <div className="flex items-center gap-4 mt-2 text-xs text-gray-300">
+              <a 
+                href={archivoSeleccionado.url_archivo} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-white transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink className="w-3 h-3" />
+                Abrir en nueva pestaña
+              </a>
+              <span>•</span>
+              <a 
+                href={archivoSeleccionado.url_archivo} 
+                download={archivoSeleccionado.nombre_archivo}
+                className="flex items-center gap-1 hover:text-white transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download className="w-3 h-3" />
+                Descargar
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Visor de PDF */}
+      {mostrarVisor && archivoSeleccionado && archivoSeleccionado.tipo_archivo !== 'imagen' && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setMostrarVisor(false)}
+        >
+          <button
+            onClick={() => setMostrarVisor(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+            aria-label="Cerrar visor"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          
+          <div className="max-w-7xl max-h-[90vh] w-full h-full flex flex-col items-center justify-center bg-white rounded-lg overflow-hidden">
+            <div className="w-full h-full">
+              <iframe
+                src={archivoSeleccionado.url_archivo}
+                className="w-full h-full border-0"
+                title={archivoSeleccionado.nombre_archivo}
+              />
+            </div>
+            
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg">
+              <p className="text-sm font-medium">{archivoSeleccionado.nombre_archivo}</p>
+              <div className="flex items-center gap-4 mt-2 text-xs text-gray-300">
+                <a 
+                  href={archivoSeleccionado.url_archivo} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 hover:text-white transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Abrir en nueva pestaña
+                </a>
+                <span>•</span>
+                <a 
+                  href={archivoSeleccionado.url_archivo} 
+                  download={archivoSeleccionado.nombre_archivo}
+                  className="flex items-center gap-1 hover:text-white transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Download className="w-3 h-3" />
+                  Descargar
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </AdminLayout>
   );
 };
