@@ -8,12 +8,12 @@ class Encomienda {
   static const String kEstadoEnRuta = 'en_ruta';
   static const String kEstadoEntregado = 'entregado';
   static const String kEstadoCancelado = 'cancelado';
-  
+
   static const String kPagoPendiente = 'pendiente';
   static const String kPagoProcesando = 'procesando';
   static const String kPagoCompletado = 'completado';
   static const String kPagoFallido = 'fallido';
-  
+
   static const String kMetodoPagoEfectivo = 'efectivo';
   static const String kMetodoPagoStripe = 'stripe';
 
@@ -42,6 +42,8 @@ class Encomienda {
   final List<dynamic> seguimientos;
   final bool? puedeSerAsignada;
   final bool? puedeSerEntregada;
+  final Map<String, dynamic>? viajeInfo;
+  final Map<String, dynamic>? trackingInfo;
 
   Encomienda({
     required this.id,
@@ -69,6 +71,8 @@ class Encomienda {
     required this.seguimientos,
     this.puedeSerAsignada,
     this.puedeSerEntregada,
+    this.viajeInfo,
+    this.trackingInfo,
   });
 
   // ✅ CONSTRUCTOR PARA CASOS DE ERROR
@@ -97,7 +101,9 @@ class Encomienda {
       pagoInfo = null,
       seguimientos = [],
       puedeSerAsignada = false,
-      puedeSerEntregada = false;
+      puedeSerEntregada = false,
+      viajeInfo = null,
+      trackingInfo = null;
 
   // ✅ FACTORY METHOD MEJORADO CON MANEJO DE ERRORES
   factory Encomienda.fromJson(Map<String, dynamic> json) {
@@ -128,13 +134,15 @@ class Encomienda {
         seguimientos: (json['seguimientos'] ?? []) as List<dynamic>,
         puedeSerAsignada: json['puede_ser_asignada'] as bool? ?? false,
         puedeSerEntregada: json['puede_ser_entregada'] as bool? ?? false,
+        viajeInfo: json['viaje_info'] as Map<String, dynamic>?,
+        trackingInfo: json['tracking_info'] as Map<String, dynamic>?,
       );
     } catch (e, stackTrace) {
       // ✅ REEMPLAZADO: En lugar de print, puedes usar debugPrint o simplemente comentar
       debugPrint('❌ Error en Encomienda.fromJson: $e');
       debugPrint('❌ StackTrace: $stackTrace');
       debugPrint('❌ JSON problemático: $json');
-      
+
       return Encomienda._empty();
     }
   }
@@ -161,7 +169,8 @@ class Encomienda {
   }
 
   static String? _getConductorNombre(Map<String, dynamic> json) {
-    if (json['conductor_nombre'] != null) return json['conductor_nombre'] as String?;
+    if (json['conductor_nombre'] != null)
+      return json['conductor_nombre'] as String?;
     if (json['conductor_info'] is Map) {
       return (json['conductor_info'] as Map)['nombre_completo'] as String?;
     }
@@ -258,11 +267,16 @@ class Encomienda {
   String get estadoTexto {
     final estadoLower = estado.toLowerCase();
     switch (estadoLower) {
-      case kEstadoPendiente: return 'Pendiente';
-      case kEstadoEnRuta: return 'En Ruta';
-      case kEstadoEntregado: return 'Entregado';
-      case kEstadoCancelado: return 'Cancelado';
-      default: return 'Desconocido';
+      case kEstadoPendiente:
+        return 'Pendiente';
+      case kEstadoEnRuta:
+        return 'En Ruta';
+      case kEstadoEntregado:
+        return 'Entregado';
+      case kEstadoCancelado:
+        return 'Cancelado';
+      default:
+        return 'Desconocido';
     }
   }
 
@@ -286,11 +300,16 @@ class Encomienda {
   String get estadoPagoTexto {
     final estadoPagoLower = estadoPago.toLowerCase();
     switch (estadoPagoLower) {
-      case kPagoPendiente: return 'Pago Pendiente';
-      case kPagoProcesando: return 'Procesando Pago';
-      case kPagoCompletado: return 'Pagado';
-      case kPagoFallido: return 'Pago Fallido';
-      default: return estadoPago;
+      case kPagoPendiente:
+        return 'Pago Pendiente';
+      case kPagoProcesando:
+        return 'Procesando Pago';
+      case kPagoCompletado:
+        return 'Pagado';
+      case kPagoFallido:
+        return 'Pago Fallido';
+      default:
+        return estadoPago;
     }
   }
 
@@ -314,8 +333,9 @@ class Encomienda {
   bool get tieneError => codigoSeguimiento == 'ERROR';
 
   // ✅ INFORMACIÓN DEL CONDUCTOR
-  bool get tieneConductor => conductorNombre != null && conductorNombre!.isNotEmpty;
-  
+  bool get tieneConductor =>
+      conductorNombre != null && conductorNombre!.isNotEmpty;
+
   String get conductorInfo {
     if (tieneConductor) {
       return conductorNombre!;
@@ -326,7 +346,7 @@ class Encomienda {
   // ✅ INFORMACIÓN DE SEGUIMIENTO
   String get ultimoSeguimiento {
     if (seguimientos.isEmpty) return 'Sin seguimiento disponible';
-    
+
     final ultimo = seguimientos.last;
     if (ultimo is Map<String, dynamic>) {
       return ultimo['evento']?.toString() ?? 'Evento desconocido';
@@ -336,7 +356,7 @@ class Encomienda {
 
   DateTime? get ultimaActualizacion {
     if (seguimientos.isEmpty) return null;
-    
+
     try {
       final ultimo = seguimientos.last;
       if (ultimo is Map<String, dynamic> && ultimo['fecha'] != null) {
@@ -429,7 +449,7 @@ class Encomienda {
 class EncomiendaParser {
   static List<Encomienda> fromList(List<dynamic> jsonList) {
     final encomiendas = <Encomienda>[];
-    
+
     for (var i = 0; i < jsonList.length; i++) {
       try {
         final item = jsonList[i];
@@ -443,7 +463,7 @@ class EncomiendaParser {
         debugPrint('❌ Error parseando encomienda en índice $i: $e');
       }
     }
-    
+
     return encomiendas;
   }
 }

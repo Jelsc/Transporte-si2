@@ -3,7 +3,10 @@ import 'dart:io';
 class IPDetection {
   // 🔧 CONFIGURACIÓN MANUAL - Cambia esta constante según necesites
   // Para desarrollo con teléfono físico (usando IP local de tu PC):
-  static const String BACKEND_HOST = "http://10.0.2.2:8000";
+  // IMPORTANTE: Usa la IP de tu adaptador de red real (Ethernet/Wi-Fi), NO WSL
+  // Para encontrar tu IP correcta en Windows:
+  // PowerShell: Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" -and $_.InterfaceAlias -notlike "*WSL*" -and $_.InterfaceAlias -notlike "*Loopback*" -and $_.InterfaceAlias -notlike "*Virtual*" } | Select-Object -First 1 -ExpandProperty IPAddress
+  static const String BACKEND_HOST = "http://192.168.0.143:8000";
 
   // Para desarrollo con emulador Android (cambia si usas emulador):
   // static const String BACKEND_HOST = "http://10.0.2.2:8000";
@@ -51,7 +54,9 @@ class IPDetection {
     final baseUrl = await getBaseUrl();
     final isCloud = baseUrl.contains('3.230.69.204');
     final isLocalhost =
-        baseUrl.contains('localhost') || baseUrl.contains('10.0.2.2');
+        baseUrl.contains('localhost') ||
+        baseUrl.contains('10.0.2.2') ||
+        baseUrl.contains('192.168.');
 
     return {
       'baseUrl': baseUrl,

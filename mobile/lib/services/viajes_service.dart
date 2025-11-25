@@ -42,26 +42,40 @@ class ViajesService {
 
       // Construir parámetros de consulta
       final queryParams = <String, String>{};
-      
-      // Si hay búsqueda general, usarla
+
+      // Construir términos de búsqueda combinando search, origen y destino
+      // El backend busca por nombre en origen__nombre y destino__nombre usando search
+      final searchTerms = <String>[];
+
       if (search != null && search.isNotEmpty) {
-        queryParams['search'] = search;
+        searchTerms.add(search);
       }
-      
-      // Para origen y destino, usar search ya que el backend busca por nombre
-      // Combinar origen y destino con search si están presentes
-      String searchTerms = search ?? '';
+
+      // Si origen/destino son números (IDs), usar filtro directo
+      // Si son strings (nombres), agregar a search
       if (origen != null && origen.isNotEmpty && origen != 'all') {
-        searchTerms = searchTerms.isEmpty ? origen : '$searchTerms $origen';
+        final origenIsId = RegExp(r'^\d+$').hasMatch(origen);
+        if (origenIsId) {
+          queryParams['origen'] = origen;
+        } else {
+          searchTerms.add(origen);
+        }
       }
+
       if (destino != null && destino.isNotEmpty && destino != 'all') {
-        searchTerms = searchTerms.isEmpty ? destino : '$searchTerms $destino';
+        final destinoIsId = RegExp(r'^\d+$').hasMatch(destino);
+        if (destinoIsId) {
+          queryParams['destino'] = destino;
+        } else {
+          searchTerms.add(destino);
+        }
       }
-      
+
+      // Si hay términos de búsqueda, combinarlos
       if (searchTerms.isNotEmpty) {
-        queryParams['search'] = searchTerms;
+        queryParams['search'] = searchTerms.join(' ');
       }
-      
+
       if (fechaDesde != null && fechaDesde.isNotEmpty) {
         queryParams['fecha__gte'] = fechaDesde; // Usar el filtro correcto
       }
@@ -81,8 +95,14 @@ class ViajesService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        // Debug: verificar qué se recibió
+        print(
+          '🔍 Viajes recibidos: ${data is Map ? (data['results']?.length ?? data['count'] ?? 0) : (data is List ? data.length : 0)} viajes',
+        );
         return {'success': true, 'data': data, 'error': null};
       } else {
+        final errorBody = response.body;
+        print('❌ Error al obtener viajes: ${response.statusCode} - $errorBody');
         return {
           'success': false,
           'data': null,
@@ -90,11 +110,7 @@ class ViajesService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'data': null,
-        'error': 'Error de conexión: $e',
-      };
+      return {'success': false, 'data': null, 'error': 'Error de conexión: $e'};
     }
   }
 

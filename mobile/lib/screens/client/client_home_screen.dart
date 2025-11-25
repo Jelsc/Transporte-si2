@@ -3,8 +3,9 @@ import 'package:mobile/screens/reclamos/lista_reclamos_screen.dart';
 import '../../services/auth_service.dart';
 import '../auth/login_screen.dart';
 import 'viajes_disponibles_screen.dart';
-import '../encomiendas/listar_encomiendas_screen.dart'; // Nueva importación
-import '../encomiendas/crear_encomienda_screen.dart'; // Nueva importación
+import '../encomiendas/listar_encomiendas_screen.dart';
+import '../encomiendas/crear_encomienda_screen.dart';
+import '../encomiendas/tracking_encomienda_screen.dart';
 import '../../widgets/neumorphic_card.dart';
 import '../../widgets/bottom_navigation_bar.dart';
 
@@ -104,6 +105,19 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                               MaterialPageRoute(
                                 builder: (context) =>
                                     const ListarEncomiendasScreen(),
+                              ),
+                            ),
+                          ),
+                          _buildNeumorphicCard(
+                            icon: Icons.track_changes,
+                            title: 'Rastrear',
+                            subtitle: 'Buscar por código',
+                            color: Colors.purple,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const TrackingEncomiendaScreen(),
                               ),
                             ),
                           ),

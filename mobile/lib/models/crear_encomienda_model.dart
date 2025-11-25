@@ -69,14 +69,80 @@
     
     if (destinoCiudad.isEmpty) return 'La ciudad de destino es requerida';
     if (destinoDireccion.isEmpty) return 'La dirección de destino es requerida';
-    if (destinoDireccion.length < 10) return 'La dirección de destino debe ser más específica';
+    
+    // Validación mejorada de dirección: más flexible pero aún válida
+    final direccionError = _validarDireccion(destinoDireccion);
+    if (direccionError != null) return direccionError;
     
     if (descripcion.isEmpty) return 'La descripción del paquete es requerida';
-    if (descripcion.length < 10) return 'La descripción debe ser más detallada';
+    
+    // Validación mejorada de descripción: más flexible pero aún válida
+    final descripcionError = _validarDescripcion(descripcion);
+    if (descripcionError != null) return descripcionError;
     
     if (peso <= 0) return 'El peso debe ser mayor a 0';
     if (peso > 100) return 'El peso no puede exceder los 100 kg';
     if (precio <= 0) return 'El precio debe ser mayor a 0';
+    
+    return null;
+  }
+
+  /// Valida que la dirección sea razonable sin ser demasiado restrictiva
+  String? _validarDireccion(String direccion) {
+    // Eliminar espacios al inicio y final
+    final direccionTrim = direccion.trim();
+    
+    // Verificar que no esté vacío después de trim
+    if (direccionTrim.isEmpty) {
+      return 'La dirección de destino es requerida';
+    }
+    
+    // Verificar longitud mínima razonable (3 caracteres)
+    if (direccionTrim.length < 3) {
+      return 'La dirección debe tener al menos 3 caracteres';
+    }
+    
+    // Verificar que tenga al menos una letra (no solo números o caracteres especiales)
+    final tieneLetras = RegExp(r'[a-zA-ZÁÉÍÓÚÑáéíóúñ]').hasMatch(direccionTrim);
+    if (!tieneLetras) {
+      return 'La dirección debe contener al menos una letra';
+    }
+    
+    // Verificar que no sea solo espacios repetidos
+    final sinEspacios = direccionTrim.replaceAll(RegExp(r'\s+'), '');
+    if (sinEspacios.length < 3) {
+      return 'La dirección debe ser más específica';
+    }
+    
+    return null;
+  }
+
+  /// Valida que la descripción sea razonable sin ser demasiado restrictiva
+  String? _validarDescripcion(String descripcion) {
+    // Eliminar espacios al inicio y final
+    final descripcionTrim = descripcion.trim();
+    
+    // Verificar que no esté vacío después de trim
+    if (descripcionTrim.isEmpty) {
+      return 'La descripción del paquete es requerida';
+    }
+    
+    // Verificar longitud mínima razonable (3 caracteres)
+    if (descripcionTrim.length < 3) {
+      return 'La descripción debe tener al menos 3 caracteres';
+    }
+    
+    // Verificar que tenga al menos una letra o número (no solo caracteres especiales)
+    final tieneContenido = RegExp(r'[a-zA-ZÁÉÍÓÚÑáéíóúñ0-9]').hasMatch(descripcionTrim);
+    if (!tieneContenido) {
+      return 'La descripción debe contener texto o números';
+    }
+    
+    // Verificar que no sea solo espacios repetidos
+    final sinEspacios = descripcionTrim.replaceAll(RegExp(r'\s+'), '');
+    if (sinEspacios.length < 3) {
+      return 'La descripción debe ser más específica';
+    }
     
     return null;
   }
