@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.http import FileResponse, HttpResponse
@@ -10,6 +10,10 @@ import os
 
 from .models import ReporteGenerado
 from .serializers import ReporteGeneradoSerializer, GenerarReporteRequestSerializer
+from .prompt_parser import interpretar_prompt, detectar_multiples_reportes
+from .report_generator import ReporteGenerator
+from .exporters import PDFExporter, ExcelExporter
+# Mantener compatibilidad con servicios antiguos para el sistema de categorías
 from .services.pdf_generator import PDFReportGenerator
 from .services.excel_generator import ExcelReportGenerator
 from .services.image_generator import ImageReportGenerator
@@ -275,3 +279,184 @@ class ReporteViewSet(viewsets.ModelViewSet):
             'imagen': 'image/png',
         }
         return content_types.get(tipo, 'application/octet-stream')
+
+
+# ========== ENDPOINTS DE REPORTES INTELIGENTES ==========
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generar_reporte(request):
+    """
+    POST /api/reportes/generar/
+    
+    Body:
+    {
+        "prompt": "Quiero un reporte de viajes del mes de septiembre, agrupado por origen, en PDF",
+        "formato": "pdf"  // opcional, se puede detectar del prompt
+    }
+    
+    Returns:
+        - Si formato es 'pantalla': JSON con los datos (puede ser múltiple)
+        - Si formato es 'pdf' o 'excel': Archivo para descarga
+    """
+    try:
+        prompt = request.data.get('prompt', '')
+        formato_forzado = request.data.get('formato')
+        
+        if not prompt:
+            return Response(
+                {'error': 'Debe proporcionar un prompt'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 1. Detectar si hay múltiples reportes en el prompt
+        prompts_separados = detectar_multiples_reportes(prompt)
+        
+        # 2. Generar todos los reportes solicitados
+        reportes_generados = []
+        for sub_prompt in prompts_separados:
+            # Interpretar cada sub-prompt
+            parametros = interpretar_prompt(sub_prompt)
+            
+            # Forzar formato si se proporcionó
+            if formato_forzado:
+                parametros['formato'] = formato_forzado
+            
+            # Generar datos del reporte
+            generator = ReporteGenerator()
+            datos_reporte = generator.generar_datos(parametros)
+            reportes_generados.append(datos_reporte)
+        
+        # 3. Determinar formato final
+        if formato_forzado:
+            formato = formato_forzado
+        else:
+            # Usar el formato del primer reporte
+            formato = reportes_generados[0]['parametros'].get('formato', 'pantalla')
+        
+        # 4. Si es pantalla y hay múltiples reportes
+        if formato == 'pantalla':
+            if len(reportes_generados) > 1:
+                return Response({
+                    'success': True,
+                    'reportes': reportes_generados,
+                    'cantidad_reportes': len(reportes_generados)
+                })
+            else:
+                # Un solo reporte
+                return Response({
+                    'success': True,
+                    'parametros_interpretados': reportes_generados[0]['parametros'],
+                    'reporte': reportes_generados[0]
+                })
+        
+        # 5. Si es PDF o Excel (uno o múltiples reportes)
+        if formato == 'pdf':
+            from datetime import datetime
+            exporter = PDFExporter()
+            if len(reportes_generados) > 1:
+                buffer = exporter.generar_multiple(reportes_generados)
+                filename = f"reportes_combinados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            else:
+                buffer = exporter.generar(reportes_generados[0])
+                titulo = reportes_generados[0].get('titulo', 'reporte').replace(' ', '_')
+                filename = f"{titulo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            
+            response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        
+        elif formato == 'excel':
+            from datetime import datetime
+            exporter = ExcelExporter()
+            if len(reportes_generados) > 1:
+                buffer = exporter.generar_multiple(reportes_generados)
+                filename = f"reportes_combinados_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            else:
+                buffer = exporter.generar(reportes_generados[0])
+                titulo = reportes_generados[0].get('titulo', 'reporte').replace(' ', '_')
+                filename = f"{titulo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            
+            response = HttpResponse(
+                buffer.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+    
+    except Exception as e:
+        return Response(
+            {
+                'error': str(e),
+                'tipo': type(e).__name__
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def interpretar_comando(request):
+    """
+    POST /api/reportes/interpretar/
+    
+    Endpoint auxiliar para solo interpretar el prompt sin generar el reporte.
+    Útil para mostrar una vista previa de cómo se interpretó el comando.
+    
+    Body:
+    {
+        "prompt": "Quiero un reporte de viajes..."
+    }
+    
+    Returns:
+    {
+        "parametros": {...},
+        "interpretacion": "..."
+    }
+    """
+    try:
+        prompt = request.data.get('prompt', '')
+        
+        if not prompt:
+            return Response(
+                {'error': 'Debe proporcionar un prompt'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        parametros = interpretar_prompt(prompt)
+        
+        # Generar descripción legible de la interpretación
+        interpretacion_partes = []
+        interpretacion_partes.append(f"Tipo de reporte: {parametros['tipo'].upper()}")
+        interpretacion_partes.append(f"Formato de salida: {parametros['formato'].upper()}")
+        
+        if parametros.get('fecha_inicio') and parametros.get('fecha_fin'):
+            fecha_inicio = parametros['fecha_inicio']
+            fecha_fin = parametros['fecha_fin']
+            if isinstance(fecha_inicio, datetime):
+                fecha_inicio = fecha_inicio.date()
+            if isinstance(fecha_fin, datetime):
+                fecha_fin = fecha_fin.date()
+            interpretacion_partes.append(
+                f"Periodo: del {fecha_inicio.strftime('%d/%m/%Y')} "
+                f"al {fecha_fin.strftime('%d/%m/%Y')}"
+            )
+        
+        if parametros.get('agrupacion'):
+            interpretacion_partes.append(f"Agrupado por: {', '.join(parametros['agrupacion'])}")
+        
+        if parametros.get('campos'):
+            interpretacion_partes.append(f"Campos solicitados: {', '.join(parametros['campos'])}")
+        
+        return Response({
+            'success': True,
+            'parametros': parametros,
+            'interpretacion': interpretacion_partes,
+            'prompt_original': prompt
+        })
+    
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
