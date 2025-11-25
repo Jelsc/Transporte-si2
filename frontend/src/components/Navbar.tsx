@@ -11,6 +11,7 @@ const navbarOptions = [
   { id: "viajes", name: "Viajes", href: "/consulta-viajes" },
   { id: "encomiendas", name: "Encomiendas", href: "/encomiendas" },
   { id: "servicios", name: "Servicios", href: "#servicios" },
+  { id: "reclamos", name: "Reclamos", href: "/reclamo/nuevo" },
   { id: "rutas", name: "Rutas", href: "#rutas" },
   { id: "choferes", name: "Choferes", href: "#choferes" },
   { id: "contacto", name: "Contacto", href: "#contacto" },

@@ -23,6 +23,7 @@ import {
   UserCheck,
   Bus,
   Container,
+  AlertTriangle,
   Database,
   FileText,
 } from "lucide-react";
@@ -175,6 +176,12 @@ export default function Sidebar({ collapsed, setCollapsed }: SidebarProps) {
           route: "/admin/rutas-optimizadas",
         },
       ],
+    },
+    {
+      id: "reclamos",
+      name: "Gestión de Reclamos",
+      icon: AlertTriangle,
+      route: "/admin/reclamos",
     },
     {
       id: "notificaciones",

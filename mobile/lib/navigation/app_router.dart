@@ -9,6 +9,9 @@ import '../screens/client/checkout_screen.dart';
 import '../screens/client/confirmacion_reserva_screen.dart';
 import '../models/viaje_model.dart';
 import '../models/reserva_model.dart';
+import '../screens/reclamos/lista_reclamos_screen.dart';
+import '../screens/reclamos/crear_reclamo_screen.dart';
+import '../screens/reclamos/detalle_reclamo_screen.dart';
 
 class AppRouter {
   static const String onboarding = '/onboarding';
@@ -21,6 +24,9 @@ class AppRouter {
   static const String confirmacionReserva = '/confirmacion-reserva';
 
   static const String notificationHistory = '/notification-history';
+  static const String reclamosLista = '/reclamos-lista';
+  static const String reclamosCrear = '/reclamos-crear';
+  static const String reclamosDetalle = '/reclamos-detalle';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -75,11 +81,30 @@ class AppRouter {
           settings: settings,
         );
 
+        case reclamosLista:
+        return MaterialPageRoute(
+        builder: (_) => const ListaReclamosScreen(),
+         settings: settings,
+         );
+        case reclamosCrear:
+         return MaterialPageRoute(
+           builder: (_) => const CrearReclamoScreen(),
+          settings: settings,
+           );
+
+           case reclamosDetalle:
+           final reclamoId = settings.arguments as int;
+           return MaterialPageRoute(
+             builder: (_) => DetalleReclamoScreen(reclamoId: reclamoId),
+             settings: settings,
+            );
+
       case notificationHistory:
         return MaterialPageRoute(
           builder: (_) => const NotificationHistoryScreen(),
           settings: settings,
         );
+        
 
       default:
         return MaterialPageRoute(

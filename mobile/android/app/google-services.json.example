@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "123456789",
-    "project_id": "tu-proyecto-firebase",
-    "storage_bucket": "tu-proyecto.firebasestorage.app"
-  },
+    "project_number": "543278137943",
+    "project_id": "transporte-si2",
+    "storage_bucket": "transporte-si2.firebasestorage.app"
+
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:123456789:android:abcdef123456789",
+        "mobilesdk_app_id": "1:543278137943:android:324ad71837a4edadbdd912",
         "android_client_info": {
           "package_name": "com.example.mobile"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "TU_API_KEY_AQUI"
+          "current_key": "AIzaSyBh8dMiDzV7E1-mIX-trNolyso9Wq0A5T4"
         }
       ],
       "services": {

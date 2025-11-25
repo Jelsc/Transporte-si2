@@ -134,6 +134,13 @@ class _ConductorHomeScreenState extends State<ConductorHomeScreen> {
                             onTap: () => _showComingSoon('Reportes de Viaje'),
                           ),
                           _buildNeumorphicCard(
+                          icon: Icons.report_problem,
+                          title: 'Reclamos',
+                           subtitle: 'Ver mis reclamos',
+                            color: Colors.orange,
+                           onTap: () => _showComingSoon('Gestión de Reclamos'),
+                          ),
+                          _buildNeumorphicCard(
                             icon: Icons.car_repair,
                             title: 'Vehículo',
                             subtitle: 'Estado del',

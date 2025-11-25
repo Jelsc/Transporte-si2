@@ -1,4 +1,4 @@
-  export interface ApiResponse<T = any> {
+export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
@@ -33,11 +33,13 @@ export interface Encomienda {
   conductor_asignado?: number;
   conductor_nombre?: string;
   creado_por?: number;
+  
+  // ✅ CAMPOS ACTUALIZADOS PARA COINCIDIR CON BACKEND
   metodo_pago: 'efectivo' | 'tarjeta';
   estado_pago: 'pendiente' | 'procesando' | 'completado' | 'fallido';
   pago_info?: any;
   
-
+  // ✅ NUEVOS CAMPOS DEL BACKEND
   seguimientos?: EncomiendaSeguimiento[];
   pago?: number;
   puede_ser_asignada?: boolean;
@@ -79,9 +81,9 @@ export interface CreateEncomiendaRequest {
   destino_direccion: string;
   descripcion: string;
   peso: number;
-  precio?: number; 
+  precio?: number; // ✅ OPCIONAL - se calcula automáticamente si no se envía
   notas?: string;
-  metodo_pago: 'efectivo' | 'tarjeta'; 
+  metodo_pago: 'efectivo' | 'tarjeta'; // ✅ ACTUALIZADO para coincidir con backend
 }
 
 export interface UpdateEncomiendaRequest {
@@ -128,6 +130,7 @@ export interface StripePaymentIntent {
   payment_intent_id: string;
   monto: number;
   estado: string;
+  // ✅ CAMPOS QUE DEVUELVE TU BACKEND
   success?: boolean;
   message?: string;
   pago_id?: number;
@@ -149,7 +152,7 @@ export interface ActualizarEstadoRequest {
   fecha_entrega_real?: string;
 }
 
-// ✅ INTERFACE PARA CONDUCTORES 
+// ✅ INTERFACE PARA CONDUCTORES (si necesitas)
 export interface ConductorOption {
   id: number;
   nombre: string;

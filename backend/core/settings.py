@@ -163,6 +163,7 @@ INSTALLED_APPS = [
     "encomiendas",
     "ubicaciones",
     "rutas_optimizadas",
+    'reclamos',
     "reportes",
     "backups",
     "analytics",

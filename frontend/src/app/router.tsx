@@ -28,31 +28,35 @@ import MisReservasPage from "@/pages/client/MisReservas/mis-reservas.page";
 import ReservasPage from "@/pages/admin/reservas/reservas.page";
 import Dashboard from "@/pages/admin/dashboard/dashboard.page";
 import ReportesPage from "@/pages/admin/reportes/reportes.page";
+import { CrearReclamo } from "@/pages/client/CrearReclamo";
+import { GestionReclamos } from "@/pages/admin/reclamos/GestionReclamos";
 
-import NotificationHistoryPage from "@/pages/client/notification-history.page";
 
-export default function AppRouter() {
-  return (
-    <Router>
-      <Routes>
-        {/* Rutas del cliente con layout */}
-        <Route path="/" element={<ClientLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
-          <Route path="encomiendas" element={<ClienteEncomienda />} />
-        </Route>
+  import NotificationHistoryPage from "@/pages/client/notification-history.page";
 
-        {/* Rutas protegidas del cliente */}
-        <Route path="/client" element={<ClientLayout />}>
-          <Route
-            path="notificaciones"
-            element={
-              <ProtectedRoute>
-                <NotificationHistoryPage />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
+  export default function AppRouter() {
+    return (
+      <Router>
+        <Routes>
+          {/* Rutas del cliente con layout */}
+          <Route path="/" element={<ClientLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="consulta-viajes" element={<ConsultaViajesPage />} />
+            <Route path="encomiendas" element={<ClienteEncomienda />} />
+            <Route path="reclamo/nuevo" element={<CrearReclamo />} />
+          </Route>
+
+          {/* Rutas protegidas del cliente */}
+          <Route path="/client" element={<ClientLayout />}>
+            <Route
+              path="notificaciones"
+              element={
+                <ProtectedRoute>
+                  <NotificationHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
 
         {/* Rutas de autenticación sin layout */}
         <Route path="/login" element={<LoginPage />} />
@@ -78,6 +82,14 @@ export default function AppRouter() {
               <PermisosPage />
             </ProtectedRoute>
           }
+        />
+        <Route
+            path="/admin/reclamos"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <GestionReclamos />
+              </ProtectedRoute>
+            }
         />
         <Route
           path="/admin/bitacora"
@@ -225,45 +237,45 @@ export default function AppRouter() {
           }
         />
 
-        {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
-        <Route
-          path="/perfil"
-          element={
-            <ProtectedRoute>
-              <div>Perfil de usuario (protegido)</div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile/edit"
-          element={
-            <ProtectedRoute>
-              <AccountSettingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/viajes"
-          element={
-            <ProtectedRoute>
-              <div>Mis viajes (protegido)</div>
-            </ProtectedRoute>
-          }
-        />
+          {/* 👇 RUTAS PROTEGIDAS DE USUARIO NORMAL */}
+          <Route
+            path="/perfil"
+            element={
+              <ProtectedRoute>
+                <div>Perfil de usuario (protegido)</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/edit"
+            element={
+              <ProtectedRoute>
+                <AccountSettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/viajes"
+            element={
+              <ProtectedRoute>
+                <div>Mis viajes (protegido)</div>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* 👇 RUTA MIS-RESERVAS PROTEGIDA */}
-        <Route
-          path="/mis-reservas"
-          element={
-            <ProtectedRoute>
-              <MisReservasPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* 👇 RUTA MIS-RESERVAS PROTEGIDA */}
+          <Route
+            path="/mis-reservas"
+            element={
+              <ProtectedRoute>
+                <MisReservasPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* catch-all */}
-        <Route path="*" element={<HomePage />} />
-      </Routes>
-    </Router>
-  );
-}
+          {/* catch-all */}
+          <Route path="*" element={<HomePage />} />
+        </Routes>
+      </Router>
+    );
+  }

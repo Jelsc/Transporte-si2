@@ -6,13 +6,13 @@ importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compa
 
 // Configuración de Firebase (debe coincidir con la del cliente)
 const firebaseConfig = {
-  apiKey: "TU_API_KEY_AQUI",
-  authDomain: "tu-proyecto.firebaseapp.com",
-  projectId: "tu-proyecto",
-  storageBucket: "tu-proyecto.firebasestorage.app",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456",
-  measurementId: "G-XXXXXXXXXX"
+  apiKey: "AIzaSyCDFLrTI9Dj0aEQF8p2qL4nKxkTy8a1BCm",
+  authDomain: "transporte-si2.firebaseapp.com",
+  projectId: "transporte-si2",
+  storageBucket: "transporte-si2.firebasestorage.app",
+  messagingSenderId: "543273137943",
+  appId: "1:543273137943:web:6f87a9e89bc4a5c745c46e",
+  measurementId: "G-Q6B6L5R1V3"
 };
 
 // Inicializar Firebase

@@ -13,7 +13,8 @@ import {
   UserCheck,
   Truck,
   Bus,
-  MapPin
+  MapPin,
+  AlertTriangle
 } from 'lucide-react';
 
 // Define la estructura del sidebar para mantener consistencia
@@ -52,6 +53,7 @@ const sidebarStructure = [
       { id: 'encomiendas', name: 'Encomiendas', icon: Container, route: '/admin/encomiendas' },
     ]
   },
+  { id: 'reclamos', name: 'Reclamos', icon: AlertTriangle, route: '/admin/reclamos' },
   { id: 'notificaciones', name: 'Notificaciones', icon: Bell, route: "/admin/notificaciones" },
   { id: 'bitacora', name: 'Bitácora', icon: BookOpen, route: "/admin/bitacora" },
 ];
