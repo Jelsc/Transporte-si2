@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import Sidebar from "@/components/admin-sidebar";
 import Header from "@/components/admin-header";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Chatbot } from "@/components/Chatbot";
 
 interface AdminLayoutProps {
   children?: ReactNode;
@@ -59,6 +60,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </ScrollArea>
         )}
       </main>
+      <Chatbot />
     </div>
   );
 }

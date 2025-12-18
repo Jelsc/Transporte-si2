@@ -81,4 +81,7 @@ urlpatterns = [
     
     # Analytics: predicciones y análisis con Random Forest
     path("api/analytics/", include("analytics.urls")),
+    
+    # Chatbot: asistente virtual de recomendaciones
+    path("api/", include("chatbot.urls")),
 ]

@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { Chatbot } from "@/components/Chatbot";
 // import { NotificationInitializer } from '@/hooks/useNotificationInitializer';
 
 const ClientLayout = () => {
@@ -13,6 +14,7 @@ const ClientLayout = () => {
         <Outlet />
       </main>
       <Footer />
+      <Chatbot />
     </div>
   );
 };
